@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  设备离线列表项布局 - 表格行样式
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_list_item_selector"
+    android:layout_marginTop="2dp"
+    android:layout_marginBottom="2dp">
+
+    <!-- 站点名称 -->
+    <TextView
+        android:id="@+id/tvSiteName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:textSize="11sp"
+        android:textColor="@color/text_primary"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:includeFontPadding="false"/>
+
+    <!-- 区县 -->
+    <TextView
+        android:id="@+id/tvCounty"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"
+        android:textColor="@color/success"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 离线设备数 -->
+    <TextView
+        android:id="@+id/tvOfflineDevice"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="11sp"
+        android:textColor="@color/error"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 是否全离线 -->
+    <TextView
+        android:id="@+id/tvIsFullOffline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 统计时间 -->
+    <TextView
+        android:id="@+id/tvStatTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"
+        android:textColor="@color/text_tertiary"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+</LinearLayout>

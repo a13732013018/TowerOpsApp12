@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁塔运维助手 - 界面预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a0a15; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 420px; margin: 0 auto; }
+        
+        /* 手机框架 */
+        .phone {
+            background: #1a1a2e;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 3px solid #333;
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: #16213e;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-bar h3 { color: #e94560; font-size: 14px; font-weight: bold; }
+        .status-bar span { color: #a0a0c0; font-size: 11px; }
+        
+        /* 配置区 */
+        .config-area {
+            background: #0f3460;
+            padding: 8px 12px;
+        }
+        .config-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .checkbox { 
+            display: flex; 
+            align-items: center; 
+            color: #fff; 
+            font-size: 11px;
+        }
+        .checkbox input { accent-color: #e94560; margin-right: 3px; }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-left: auto;
+        }
+        .input-group label { color: #a0a0c0; font-size: 10px; }
+        .input-group input {
+            width: 32px;
+            height: 22px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .btn {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary { background: #e94560; color: #fff; }
+        .btn-secondary { background: #333; color: #fff; }
+        
+        /* 进度条 */
+        .progress-bar {
+            background: #0a0a1a;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .progress-bar span { color: #a0a0c0; font-size: 10px; }
+        
+        /* Tab切换 */
+        .tab-layout {
+            display: flex;
+            background: #0f3460;
+            border-bottom: 2px solid #e94560;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            color: #a0a0c0;
+            font-size: 12px;
+            cursor: pointer;
+            position: relative;
+        }
+        .tab.active {
+            color: #e94560;
+            font-weight: bold;
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e94560;
+        }
+        
+        /* 排序工具栏 */
+        .sort-bar {
+            background: #0d0d20;
+            padding: 6px 10px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow-x: auto;
+        }
+        .sort-bar span { color: #606080; font-size: 10px; white-space: nowrap; }
+        .sort-btn {
+            background: #2a2a40;
+            color: #a0a0c0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        .sort-btn.active { color: #fff; background: #e94560; }
+        
+        /* 表头 */
+        .table-header {
+            display: flex;
+            background: #0d1a30;
+            padding: 6px 8px;
+            border-bottom: 1px solid #1a2a40;
+            font-size: 9px;
+            color: #606080;
+            gap: 6px;
+        }
+        .table-header .th {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .table-header .th:hover { color: #a0a0c0; }
+        .table-header .th.sortable .sort-icon {
+            font-size: 8px;
+            opacity: 0.5;
+        }
+        .table-header .th.sortable.active { color: #e94560; }
+        .table-header .th.sortable.active .sort-icon { opacity: 1; }
+        
+        /* 表头列宽 - 与数据行完全对齐 */
+        .th-index { width: 20px; text-align: center; justify-content: center; }
+        .th-name { flex: 1; min-width: 80px; }
+        .th-voltage { width: 45px; text-align: right; justify-content: flex-end; }
+        .th-current { width: 38px; text-align: right; justify-content: flex-end; }
+        .th-cause { width: 40px; text-align: right; justify-content: flex-end; }
+        .th-time { width: 50px; text-align: right; justify-content: flex-end; }
+        
+        /* 列表区域 */
+        .list-area {
+            background: #12122a;
+            padding: 8px;
+            height: 330px;
+            overflow-y: auto;
+        }
+        
+        /* 停电列表项 - 紧凑型（无分组） */
+        .power-item {
+            background: #1a1a2e;
+            padding: 6px 8px;
+            margin-bottom: 3px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .power-item .index { 
+            width: 20px; 
+            color: #505070; 
+            font-size: 9px; 
+            text-align: center; 
+        }
+        .power-item .name {
+            flex: 1;
+            color: #fff;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .power-item .voltage {
+            color: #e94560;
+            font-size: 10px;
+            font-weight: bold;
+            width: 45px;
+            text-align: right;
+        }
+        .power-item .current {
+            color: #40c080;
+            font-size: 10px;
+            width: 38px;
+            text-align: right;
+        }
+        .power-item .cause {
+            color: #ffa500;
+            font-size: 8px;
+            width: 40px;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .power-item .time {
+            color: #606080;
+            font-size: 8px;
+            width: 50px;
+            text-align: right;
+        }
+        
+        /* 刷新按钮区 */
+        .refresh-bar {
+            background: #0a0a1a;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Tab内容切换 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 说明文字 */
+        .preview-note {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="phone">
+            <!-- 顶部状态栏 -->
+            <div class="status-bar">
+                <h3>铁塔运维助手</h3>
+                <span>admin | 123456</span>
+            </div>
+            
+            <!-- 配置区 -->
+            <div class="config-area">
+                <div class="config-row">
+                    <label class="checkbox"><input type="checkbox" checked> 自动反馈</label>
+                    <label class="checkbox"><input type="checkbox" checked> 自动接单</label>
+                    <label class="checkbox"><input type="checkbox"> 自动回单</label>
+                    <div class="input-group">
+                        <label>轮询:</label>
+                        <input type="text" value="90">-<input type="text" value="120">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="input-group" style="margin-left: 0;">
+                        <label>反馈:</label>
+                        <input type="text" value="70">-<input type="text" value="90">
+                    </div>
+                    <div class="input-group">
+                        <label>接单:</label>
+                        <input type="text" value="60">-<input type="text" value="90">
+                    </div>
+                    <button class="btn btn-primary">开始监控</button>
+                    <button class="btn btn-secondary">停止</button>
+                </div>
+            </div>
+            
+            <!-- 进度条 -->
+            <div class="progress-bar">
+                <span>就绪</span>
+                <span>本轮完成 3/3 条 14:49:53</span>
+                <span style="color: #e94560;">当前停电 4 个</span>
+                <span style="color: #40c080;">剩余 30 秒进入下一轮</span>
+            </div>
+            
+            <!-- Tab切换 -->
+            <div class="tab-layout">
+                <div class="tab active" onclick="switchTab(this, 'work')">工单监控</div>
+                <div class="tab" onclick="switchTab(this, 'power')">停电监控</div>
+            </div>
+            
+            <!-- 工单监控内容 -->
+            <div id="work-tab" class="tab-content active">
+                <div class="sort-bar">
+                    <span>排序：</span>
+                    <span class="sort-btn active">工单历时 ↓</span>
+                    <span class="sort-btn">反馈历时 ↕</span>
+                    <span class="sort-btn">告警时间 ↕</span>
+                    <span class="sort-btn">告警状态 ↕</span>
+                </div>
+                <div class="list-area">
+                    <!-- 模拟工单项 -->
+                    <div class="power-item">
+                        <span class="index">1</span>
+                        <span class="name">深圳市南山区科技园基站A</span>
+                        <span class="voltage">52V</span>
+                        <span class="current">25A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">14:30</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">2</span>
+                        <span class="name">深圳市南山区科技园基站B</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">13:15</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">3</span>
+                        <span class="name">深圳市福田区中心基站</span>
+                        <span class="voltage">48V</span>
+                        <span class="current">18A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">12:00</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">4</span>
+                        <span class="name">深圳市罗湖区东门基站</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">11:45</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">5</span>
+                        <span class="name">深圳市宝安区西乡基站</span>
+                        <span class="voltage">51V</span>
+                        <span class="current">22A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">10:30</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">6</span>
+                        <span class="name">深圳市龙岗区坂田基站</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">09:20</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">7</span>
+                        <span class="name">深圳市南山区科苑基站</span>
+                        <span class="voltage">53V</span>
+                        <span class="current">30A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">08:10</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 停电监控内容 -->
+            <div id="power-tab" class="tab-content">
+                <div class="refresh-bar"></div>
+                
+                <!-- 对齐的表头 -->
+                <div class="table-header">
+                    <div class="th th-index">#</div>
+                    <div class="th th-name">站点名称</div>
+                    <div class="th th-voltage sortable active" onclick="toggleSort(this, 'voltage')">
+                        电压 <span class="sort-icon">↓</span>
+                    </div>
+                    <div class="th th-current sortable" onclick="toggleSort(this, 'current')">
+                        负载 <span class="sort-icon">↕</span>
+                    </div>
+                    <div class="th th-cause sortable" onclick="toggleSort(this, 'cause')">
+                        类型 <span class="sort-icon">↕</span>
+                    </div>
+                    <div class="th th-time sortable" onclick="toggleSort(this, 'time')">
+                        告警时间 <span class="sort-icon">↕</span>
+                    </div>
+                </div>
+                
+                <div class="list-area">
+                    <div class="power-item">
+                        <span class="index">1</span>
+                        <span class="name">深圳市南山区科苑基站</span>
+                        <span class="voltage">53V</span>
+                        <span class="current">30A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">14:30</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">2</span>
+                        <span class="name">深圳市宝安区西乡基站</span>
+                        <span class="voltage">52V</span>
+                        <span class="current">25A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">13:15</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">3</span>
+                        <span class="name">深圳市福田区中心基站</span>
+                        <span class="voltage">51V</span>
+                        <span class="current">22A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">12:00</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">4</span>
+                        <span class="name">深圳市南山区科技园基站B</span>
+                        <span class="voltage">48V</span>
+                        <span class="current">18A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">11:45</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">5</span>
+                        <span class="name">深圳市龙华区民治基站</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">10:30</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">6</span>
+                        <span class="name">深圳市罗湖区东门基站</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">09:20</span>
+                    </div>
+                    <div class="power-item">
+                        <span class="index">7</span>
+                        <span class="name">深圳市盐田区沙头角基站</span>
+                        <span class="voltage">0V</span>
+                        <span class="current">0A</span>
+                        <span class="cause">停电</span>
+                        <span class="time">08:10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-note">
+            <p><strong>界面预览说明：</strong></p>
+            <p>紧凑型单行布局，无分组显示</p>
+            <p>支持点击 Tab 切换"工单监控"和"停电监控"</p>
+            <p><strong>停电监控特性：</strong></p>
+            <p>- 对齐表头：站点名称 | 电压 | 负载 | 类型 | 告警时间</p>
+            <p>- 表头点击可切换正序/倒序排序</p>
+            <p>- 类型下方显示停电状态</p>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(el, type) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById(type + '-tab').classList.add('active');
+        }
+        
+        // 排序状态存储
+        var sortState = {
+            voltage: { asc: false, icon: '↓' },
+            current: { asc: true, icon: '↕' },
+            cause: { asc: true, icon: '↕' },
+            time: { asc: true, icon: '↕' }
+        };
+        
+        function toggleSort(el, field) {
+            var allTh = el.parentElement.querySelectorAll('.sortable');
+            allTh.forEach(function(th) {
+                th.classList.remove('active');
+            });
+            el.classList.add('active');
+            
+            // 切换排序方向
+            sortState[field].asc = !sortState[field].asc;
+            var icon = sortState[field].asc ? '↑' : '↓';
+            
+            // 更新图标
+            el.querySelector('.sort-icon').textContent = icon;
+            
+            // 更新其他字段为默认状态
+            var fields = ['voltage', 'current', 'cause', 'time'];
+            fields.forEach(function(f) {
+                if (f !== field) {
+                    sortState[f].asc = true;
+                    sortState[f].icon = '↕';
+                    var otherTh = el.parentElement.querySelector('.th-' + f + ' .sort-icon');
+                    if (otherTh) otherTh.textContent = '↕';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

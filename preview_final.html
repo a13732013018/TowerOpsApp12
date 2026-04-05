@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁塔运维助手 - 专业版UI设计</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #e8ecf1 0%, #f5f7fa 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1f2937;
+            margin-bottom: 6px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 11px;
+            letter-spacing: 3px;
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 手机框架 */
+        .phone {
+            background: #ffffff;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.12), 0 10px 30px rgba(0,0,0,0.08);
+        }
+        
+        /* 顶部标题栏 */
+        .header {
+            background: #ffffff;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        
+        .header-title {
+            color: #2563eb;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-user {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        .header-btn {
+            background: #dbeafe;
+            color: #2563eb;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* 控制面板卡片 */
+        .control-card {
+            background: #ffffff;
+            margin: 12px;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 18px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .checkbox-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        
+        .checkbox-item input {
+            accent-color: #2563eb;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .checkbox-item label {
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .input-section {
+            margin-bottom: 14px;
+        }
+        
+        .input-label {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .input-field {
+            width: 54px;
+            height: 36px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 0 8px;
+            font-size: 13px;
+            text-align: center;
+            background: #f9fafb;
+            color: #1f2937;
+            font-weight: 600;
+        }
+        
+        .input-suffix {
+            color: #9ca3af;
+            font-size: 12px;
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #9ca3af);
+            color: white;
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: #ffffff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 13px;
+            border-top: 1px solid #f3f4f6;
+        }
+        
+        .status-text {
+            color: #10b981;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+        }
+        
+        .status-text.error {
+            color: #ef4444;
+        }
+        
+        .status-text.info {
+            color: #3b82f6;
+        }
+        
+        .status-divider {
+            width: 1px;
+            height: 16px;
+            background: #e5e7eb;
+        }
+        
+        /* Tab栏 */
+        .tab-bar {
+            background: #ffffff;
+            display: flex;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 14px;
+            color: #9ca3af;
+            font-size: 13px;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .tab-item.active {
+            color: #2563eb;
+        }
+        
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 3px;
+            background: #2563eb;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        /* 内容区域 */
+        .content {
+            background: #f5f7fa;
+            padding: 12px;
+            min-height: 400px;
+        }
+        
+        /* 排序工具栏 */
+        .sort-bar {
+            background: #ffffff;
+            padding: 14px;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 1px;
+        }
+        
+        .sort-label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .sort-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .sort-tag {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .sort-tag.active {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .sort-tag.inactive {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* 卡片列表 */
+        .card-list {
+            padding: 8px;
+        }
+        
+        .work-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .card-index {
+            color: #9ca3af;
+            font-size: 14px;
+            width: 32px;
+        }
+        
+        .card-title {
+            flex: 1;
+            color: #2563eb;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        
+        .card-tag {
+            background: #fef3c7;
+            color: #f59e0b;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .card-content {
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        
+        .card-info svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .card-status {
+            color: #10b981;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .card-status svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .card-time {
+            color: #3b82f6;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .card-time svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* 停电列表 */
+        .power-header {
+            background: #eef2f6;
+            padding: 12px;
+            display: flex;
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 700;
+            border-radius: 0;
+        }
+        
+        .power-item {
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            padding: 14px 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .power-index {
+            width: 28px;
+            color: #9ca3af;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .power-name {
+            flex: 1;
+            color: #1f2937;
+            font-size: 14px;
+        }
+        
+        .power-voltage {
+            width: 56px;
+            text-align: right;
+            color: #ef4444;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .power-load {
+            width: 52px;
+            text-align: right;
+            color: #10b981;
+            font-size: 13px;
+        }
+        
+        .power-type {
+            width: 44px;
+            text-align: center;
+            color: #f59e0b;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fef3c7;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        
+        .power-time {
+            width: 100px;
+            text-align: right;
+            color: #6b7280;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
+        /* 设计说明 */
+        .design-notes {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        
+        .notes-title {
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .note-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+        
+        .note-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #dbeafe, #eff6ff);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .note-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .note-text {
+            color: #4b5563;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>铁塔运维助手</h1>
+        <p class="subtitle">TOWER OPERATIONS</p>
+        
+        <div class="phone">
+            <!-- 顶部标题栏 -->
+            <div class="header">
+                <span class="header-title">铁塔运维助手</span>
+                <div class="header-right">
+                    <span class="header-user">未登录</span>
+                    <span class="header-btn">退出</span>
+                </div>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-card">
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动反馈</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动接单</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动回单</label>
+                    </div>
+                </div>
+                
+                <div class="input-section">
+                    <span class="input-label">轮询间隔 (秒)</span>
+                    <div class="input-row">
+                        <input type="text" class="input-field" value="90">
+                        <span class="input-suffix">~</span>
+                        <input type="text" class="input-field" value="120">
+                    </div>
+                </div>
+                
+                <div class="input-section">
+                    <span class="input-label">阈值设置</span>
+                    <div class="input-row">
+                        <span class="input-suffix">反馈:</span>
+                        <input type="text" class="input-field" value="70">
+                        <span class="input-suffix">~</span>
+                        <input type="text" class="input-field" value="90">
+                        <span class="input-suffix" style="margin-left:16px">接单:</span>
+                        <input type="text" class="input-field" value="60">
+                        <span class="input-suffix">~</span>
+                        <input type="text" class="input-field" value="90">
+                    </div>
+                </div>
+                
+                <div class="btn-row">
+                    <button class="btn btn-primary">开启监控</button>
+                    <button class="btn btn-secondary">停止监控</button>
+                </div>
+            </div>
+            
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <span class="status-text"><span class="status-dot"></span>就绪</span>
+                <span class="status-divider"></span>
+                <span style="color:#6b7280">停电 0</span>
+                <span style="flex:1"></span>
+                <span class="status-text info">下次: --</span>
+            </div>
+            
+            <!-- Tab栏 -->
+            <div class="tab-bar">
+                <span class="tab-item">工单监控</span>
+                <span class="tab-item">停电监控</span>
+                <span class="tab-item">智联工单</span>
+                <span class="tab-item active">数运审核</span>
+            </div>
+            
+            <!-- 内容区域 -->
+            <div class="content">
+                <!-- 排序工具栏 -->
+                <div class="sort-bar">
+                    <span class="sort-label">排序方式</span>
+                    <div class="sort-tags">
+                        <span class="sort-tag active">工单历时 ↓</span>
+                        <span class="sort-tag inactive">反馈历时</span>
+                        <span class="sort-tag inactive">告警时间</span>
+                        <span class="sort-tag inactive">告警状态</span>
+                    </div>
+                </div>
+                
+                <!-- 工单卡片 -->
+                <div class="card-list">
+                    <div class="work-card">
+                        <div class="card-header">
+                            <span class="card-index">1</span>
+                            <span class="card-title">工单号:2026001</span>
+                            <span class="card-tag">告警中</span>
+                        </div>
+                        <div class="card-content">站点名 - 工单标题内容描述</div>
+                        <div class="card-info">
+                            <svg viewBox="0 0 24 24" fill="#6b7280"><path d="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"/></svg>
+                            接单人：张三
+                            <span style="margin-left:12px">创建：2026-03-21</span>
+                        </div>
+                        <div class="card-status">
+                            <svg viewBox="0 0 24 24" fill="#10b981"><path d="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM10,17l-5,-5 1.41,-1.41L10,14.17l7.59,-7.59L19,8l-9,9z"/></svg>
+                            反馈成功 - 已完成处理
+                        </div>
+                        <div class="card-time">
+                            <svg viewBox="0 0 24 24" fill="#3b82f6"><path d="M11.99,2C6.47,2 2,6.48 2,12s4.47,10 9.99,10C17.52,22 22,17.52 22,12S17.52,2 11.99,2zM12,20c-4.42,0 -8,-3.58 -8,-8s3.58,-8 8,-8 8,3.58 8,8 -3.58,8 -8,8z"/></svg>
+                            工单历时：120分钟
+                        </div>
+                    </div>
+                    
+                    <div class="work-card">
+                        <div class="card-header">
+                            <span class="card-index">2</span>
+                            <span class="card-title">工单号:2026002</span>
+                            <span class="card-tag" style="background:#d1fae5;color:#10b981">处理中</span>
+                        </div>
+                        <div class="card-content">站点名 - 工单标题内容</div>
+                        <div class="card-info">
+                            <svg viewBox="0 0 24 24" fill="#6b7280"><path d="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"/></svg>
+                            接单人：李四
+                            <span style="margin-left:12px">创建：2026-03-21</span>
+                        </div>
+                        <div class="card-time">
+                            <svg viewBox="0 0 24 24" fill="#3b82f6"><path d="M11.99,2C6.47,2 2,6.48 2,12s4.47,10 9.99,10C17.52,22 22,17.52 22,12S17.52,2 11.99,2zM12,20c-4.42,0 -8,-3.58 -8,-8s3.58,-8 8,-8 8,3.58 8,8 -3.58,8 -8,8z"/></svg>
+                            工单历时：180分钟
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 设计说明 -->
+        <div class="design-notes">
+            <div class="notes-title">专业UI设计亮点</div>
+            <div class="notes-grid">
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#2563eb"><path d="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/></svg>
+                    </div>
+                    <div class="note-text">专业蓝#2563EB主色调，稳重可信</div>
+                </div>
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#10b981"><path d="M12,2L1,21h22L12,2z"/></svg>
+                    </div>
+                    <div class="note-text">柔和#F5F7FA背景，长时间使用不疲劳</div>
+                </div>
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#f59e0b"><path d="M19,3H5C3.9,3 3,3.9 3,5v14c0,1.1 0.9,2 2,2h14c1.1,0 2,-0.9 2,-2V5C21,3.9 20.1,3 19,3z"/></svg>
+                    </div>
+                    <div class="note-text">卡片式圆角设计，层次分明</div>
+                </div>
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#6b7280"><path d="M9,11H7v6h2V11zM13,11h-2v6h2V11z"/></svg>
+                    </div>
+                    <div class="note-text">统一字体系统，12-18sp规范</div>
+                </div>
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#3b82f6"><path d="M12,4c4.41,0 8,3.59 8,8s-3.59,8 -8,8 -8,-3.59 -8,-8 3.59,-8 8,-8M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/></svg>
+                    </div>
+                    <div class="note-text">响应式布局，适配各种屏幕</div>
+                </div>
+                <div class="note-item">
+                    <div class="note-icon">
+                        <svg viewBox="0 0 24 24" fill="#ef4444"><path d="M17,3H7c-1.1,0 -2,0.9 -2,2v16l7,-3 7,3V5c0,-1.1 -0.9,-2 -2,-2z"/></svg>
+                    </div>
+                    <div class="note-text">状态色彩系统，视觉清晰</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

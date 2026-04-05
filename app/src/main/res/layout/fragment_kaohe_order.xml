@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_primary">
+
+    <!-- 控制栏 -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="2dp"
+        app:cardCornerRadius="7dp"
+        app:cardElevation="1.5dp"
+        app:cardBackgroundColor="@color/background_secondary">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="5dp">
+
+            <!-- 区县选择 + 查询按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="区县"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"/>
+
+                <Spinner
+                    android:id="@+id/spinnerKHCounty"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:background="@drawable/bg_input_white"/>
+
+                <Button
+                    android:id="@+id/btnKHQuery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:text="查询"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_inverse"
+                    android:background="@drawable/bg_button_primary_gradient"
+                    android:stateListAnimator="@null"
+                    android:letterSpacing="0"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"/>
+
+            </LinearLayout>
+
+            <!-- 分割线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginBottom="3dp"
+                android:background="#DDEAFF"/>
+
+            <!-- 过滤选项 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="过滤"
+                    android:textSize="9sp"
+                    android:textColor="@color/text_secondary"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="3dp"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter10"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="自动审核"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="true"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter17"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="杂单"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="true"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="0.5"/>
+
+            </LinearLayout>
+
+            <!-- 分割线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginBottom="3dp"
+                android:background="#DDEAFF"/>
+
+            <!-- 类型选项 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="类型"
+                    android:textSize="9sp"
+                    android:textColor="@color/text_secondary"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="3dp"
+                    android:gravity="center_vertical"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter13"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="验收遗留"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="false"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter14"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="退服稽核"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="false"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter15"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="信号整治"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="false"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter16"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="储能验收"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="false"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter22"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="智联/高铁"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="false"/>
+
+                <CheckBox
+                    android:id="@+id/cbKHFilter18"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="考核工单"
+                    android:textSize="9sp"
+                    android:minHeight="0dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:checked="true"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- 状态栏 -->
+    <TextView
+        android:id="@+id/tvKHStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="选择区县后点击查询"
+        android:textColor="@color/text_secondary"
+        android:textSize="10sp"/>
+
+    <!-- 排序表头（点击列名排序）-->
+    <LinearLayout
+        android:id="@+id/llKHSortHeader"
+        android:layout_width="match_parent"
+        android:layout_height="26dp"
+        android:orientation="horizontal"
+        android:background="#EEF2FF"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp">
+
+        <!-- 序号占位 -->
+        <TextView
+            android:layout_width="22dp"
+            android:layout_height="match_parent"
+            android:text="#"
+            android:textSize="9sp"
+            android:textColor="@color/text_tertiary"
+            android:gravity="center"
+            android:includeFontPadding="false"/>
+
+        <!-- 站名 -->
+        <TextView
+            android:id="@+id/tvKHSortStation"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="2.2"
+            android:text="站名 ↕"
+            android:textSize="9sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:includeFontPadding="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
+        <View
+            android:layout_width="0.5dp"
+            android:layout_height="match_parent"
+            android:background="#DDEAFF"/>
+
+        <!-- 工单类型 -->
+        <TextView
+            android:id="@+id/tvKHSortFlowName"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="2"
+            android:text="工单类型 ↕"
+            android:textSize="9sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
+        <View
+            android:layout_width="0.5dp"
+            android:layout_height="match_parent"
+            android:background="#DDEAFF"/>
+
+        <!-- 要求完成 -->
+        <TextView
+            android:id="@+id/tvKHSortReqTime"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="2.5"
+            android:text="要求完成 ↕"
+            android:textSize="9sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
+        <View
+            android:layout_width="0.5dp"
+            android:layout_height="match_parent"
+            android:background="#DDEAFF"/>
+
+        <!-- 接单人 -->
+        <TextView
+            android:id="@+id/tvKHSortAccestaff"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.3"
+            android:text="接单人 ↕"
+            android:textSize="9sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
+    </LinearLayout>
+
+    <!-- 列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvKaoHeOrders"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"/>
+
+</LinearLayout>

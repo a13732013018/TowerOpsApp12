@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁塔运维助手 - 布局预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; display: flex; justify-content: center; }
+        .phone-frame { width: 375px; height: 812px; background: #000; border-radius: 40px; padding: 10px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .phone-screen { width: 100%; height: 100%; background: #F5F7FA; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; }
+        .status-bar { height: 40px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 11px; color: #1F2937; }
+        .header { height: 48px; background: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid #E5E7EB; }
+        .header-title { font-size: 16px; font-weight: bold; color: #2563EB; }
+        .header-user { display: flex; align-items: center; gap: 6px; }
+        .user-info { font-size: 11px; color: #6B7280; }
+        .btn-logout { padding: 3px 10px; border: 1px solid #2563EB; border-radius: 4px; font-size: 10px; color: #2563EB; background: transparent; }
+        
+        /* 控制面板 */
+        .control-panel { margin: 8px; background: #FFFFFF; border-radius: 10px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .checkbox-row { display: flex; gap: 2px; margin-bottom: 4px; }
+        .checkbox-item { flex: 1; display: flex; align-items: center; }
+        .checkbox { width: 10px; height: 10px; border: 2px solid #2563EB; border-radius: 2px; background: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 7px; color: white; }
+        .checkbox-label { font-size: 8px; font-weight: bold; color: #1F2937; }
+        
+        .btn-row { display: flex; gap: 2px; margin-bottom: 4px; }
+        .btn { flex: 1; height: 26px; border-radius: 4px; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .btn-primary { background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); color: #FFFFFF; border: none; }
+        .btn-secondary { background: #6B7280; color: #FFFFFF; border: none; margin-left: 2px; }
+        
+        .input-row { display: flex; align-items: center; gap: 1px; }
+        .input-label { font-size: 8px; font-weight: bold; color: #6B7280; }
+        .input-field { width: 24px; height: 18px; background: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 2px; text-align: center; font-size: 7px; font-weight: bold; color: #1F2937; }
+        .divider { width: 1px; height: 10px; background: #E5E7EB; margin: 0 2px; }
+        .input-unit { font-size: 7px; color: #9CA3AF; }
+        
+        /* 状态栏 */
+        .status-bar-main { background: #FFFFFF; padding: 6px 10px; display: flex; align-items: center; gap: 6px; border-top: 1px solid #E5E7EB; }
+        .status-item { display: flex; align-items: center; gap: 3px; }
+        .status-dot { width: 5px; height: 5px; border-radius: 50%; background: #10B981; }
+        .status-text { font-size: 10px; }
+        .status-ready { color: #10B981; }
+        .status-error { color: #EF4444; }
+        .divider-line { width: 1px; height: 10px; background: #E5E7EB; }
+        .spacer { flex: 1; }
+        
+        /* Tab栏 - 高度缩小 */
+        .tab-bar { background: #FFFFFF; display: flex; border-bottom: 1px solid #E5E7EB; height: 36px; }
+        .tab-item { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #6B7280; position: relative; }
+        .tab-item.active { color: #2563EB; }
+        .tab-item.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 2px; background: #2563EB; border-radius: 2px 2px 0 0; }
+        
+        /* 内容区域 */
+        .content { flex: 1; background: #F5F7FA; padding: 4px; overflow-y: auto; }
+        
+        /* 表头 */
+        .table-header { display: flex; background: #EEF2F6; padding: 6px; font-size: 8px; font-weight: bold; color: #6B7280; align-items: center; }
+        .th-num { width: 20px; text-align: center; }
+        .th-name { flex: 1; margin-left: 2px; }
+        .th-volt { width: 38px; text-align: right; margin-left: 2px; }
+        .th-load { width: 36px; text-align: right; margin-left: 2px; }
+        .th-type { width: 32px; text-align: center; margin-left: 2px; }
+        .th-time { width: 60px; text-align: right; margin-left: 2px; }
+        
+        /* 列表项 */
+        .list-item { background: #FFFFFF; border-radius: 3px; padding: 6px; margin-bottom: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; align-items: center; font-size: 8px; }
+        .list-item-num { width: 20px; color: #9CA3AF; text-align: center; font-size: 7px; }
+        .list-item-name { flex: 1; color: #1F2937; font-weight: bold; margin-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+        .list-item-volt { width: 38px; color: #EF4444; text-align: right; margin-left: 2px; font-size: 8px; font-weight: bold; }
+        .list-item-load { width: 36px; color: #10B981; text-align: right; margin-left: 2px; font-size: 8px; }
+        .list-item-type { width: 32px; text-align: center; margin-left: 2px; }
+        .tag { padding: 1px 3px; border-radius: 2px; font-size: 7px; }
+        .tag-warning { background: #FEF3C7; color: #B45309; }
+        .list-item-time { width: 60px; color: #9CA3AF; text-align: right; margin-left: 2px; font-size: 8px; }
+        
+        /* 登录界面 */
+        .login-content { flex: 1; background: #F5F7FA; padding: 16px; display: flex; flex-direction: column; align-items: center; }
+        .login-logo { width: 70px; height: 70px; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); font-size: 32px; }
+        .login-title { font-size: 20px; font-weight: bold; color: #2563EB; margin-bottom: 4px; }
+        .login-subtitle { font-size: 10px; color: #9CA3AF; letter-spacing: 0.1; margin-bottom: 20px; }
+        .login-card { background: #FFFFFF; border-radius: 12px; padding: 16px; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .login-label { font-size: 12px; font-weight: bold; color: #1F2937; margin-bottom: 6px; }
+        .login-select { height: 44px; background: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 6px; margin-bottom: 14px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; font-weight: bold; color: #1F2937; }
+        .login-input { height: 42px; background: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 6px; margin-bottom: 10px; padding: 0 12px; font-size: 13px; color: #1F2937; }
+        .login-btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .login-input-pin { flex: 1; height: 42px; background: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 6px; padding: 0 12px; font-size: 13px; color: #1F2937; }
+        .btn-sms { width: 100px; height: 42px; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: bold; border: none; }
+        .login-btn-main { height: 44px; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); border-radius: 8px; font-size: 14px; font-weight: bold; color: #FFFFFF; display: flex; align-items: center; justify-content: center; margin-top: 14px; }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+            <div class="header">
+                <span class="header-title">铁塔运维助手</span>
+                <div class="header-user"><span class="user-info">未登录</span><span class="btn-logout">退出</span></div>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="checkbox-row">
+                    <div class="checkbox-item"><div class="checkbox">✓</div><span class="checkbox-label">自动反馈</span></div>
+                    <div class="checkbox-item"><div class="checkbox">✓</div><span class="checkbox-label">自动接单</span></div>
+                    <div class="checkbox-item"><div class="checkbox">✓</div><span class="checkbox-label">自动回单</span></div>
+                </div>
+                <div class="btn-row">
+                    <div class="btn btn-primary">开启</div>
+                    <div class="btn btn-secondary">停止</div>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">轮询</span>
+                    <input type="text" class="input-field" value="90">
+                    <span style="color:#6B7280;font-size:8px;">~</span>
+                    <input type="text" class="input-field" value="120">
+                    <span class="input-unit">秒</span>
+                    <div class="divider"></div>
+                    <span class="input-label">反馈</span>
+                    <input type="text" class="input-field" value="70">
+                    <span style="color:#6B7280;font-size:8px;">~</span>
+                    <input type="text" class="input-field" value="90">
+                    <div class="divider"></div>
+                    <span class="input-label">接单</span>
+                    <input type="text" class="input-field" value="60">
+                    <span style="color:#6B7280;font-size:8px;">~</span>
+                    <input type="text" class="input-field" value="90">
+                </div>
+            </div>
+            
+            <!-- 状态栏 -->
+            <div class="status-bar-main">
+                <div class="status-item"><div class="status-dot"></div><span class="status-text status-ready">就绪</span></div>
+                <div class="divider-line"></div>
+                <div class="status-item"><span class="status-text" style="color:#6B7280;">已处理: 0</span></div>
+                <div class="divider-line"></div>
+                <div class="status-item"><span class="status-text status-error">停电: 0</span></div>
+                <div class="spacer"></div>
+            </div>
+            
+            <!-- Tab栏 -->
+            <div class="tab-bar">
+                <div class="tab-item">工单监控</div>
+                <div class="tab-item active">停电监控</div>
+                <div class="tab-item">智联工单</div>
+            </div>
+            
+            <!-- 内容区域 -->
+            <div class="content">
+                <div class="table-header">
+                    <span class="th-num">#</span>
+                    <span class="th-name">站点名称</span>
+                    <span class="th-volt">电压(V)</span>
+                    <span class="th-load">负载(A)</span>
+                    <span class="th-type">类型</span>
+                    <span class="th-time">告警时间</span>
+                </div>
+                <div class="list-item">
+                    <span class="list-item-num">1</span>
+                    <span class="list-item-name">北京市朝阳区铁塔基站01号站点监控点</span>
+                    <span class="list-item-volt">0.00V</span>
+                    <span class="list-item-load">0.00A</span>
+                    <span class="list-item-type"><span class="tag tag-warning">停电</span></span>
+                    <span class="list-item-time">14:30</span>
+                </div>
+                <div class="list-item">
+                    <span class="list-item-num">2</span>
+                    <span class="list-item-name">海淀区西二旗</span>
+                    <span class="list-item-volt">0.00V</span>
+                    <span class="list-item-load">0.00A</span>
+                    <span class="list-item-type"><span class="tag tag-warning">停电</span></span>
+                    <span class="list-item-time">13:20</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

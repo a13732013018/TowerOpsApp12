@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 状态栏背景：浅蓝渐变，不再是死白 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="180"
+        android:startColor="#EBF2FF"
+        android:endColor="#F0F6FF"
+        android:type="linear"/>
+    <stroke android:width="0dp" android:color="#00000000"/>
+</shape>

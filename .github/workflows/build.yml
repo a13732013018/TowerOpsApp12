@@ -1,0 +1,45 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Ensure gradle-wrapper.jar exists
+        run: |
+          JAR=gradle/wrapper/gradle-wrapper.jar
+          if [ ! -f "$JAR" ] || [ ! -s "$JAR" ]; then
+            echo "gradle-wrapper.jar missing or empty, downloading..."
+            curl -fsSL \
+              "https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
+              -o "$JAR"
+          fi
+          echo "gradle-wrapper.jar size: $(wc -c < $JAR) bytes"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TowerOpsApp-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

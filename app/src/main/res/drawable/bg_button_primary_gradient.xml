@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 主按钮渐变：Indigo-600 → Indigo-500 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:type="linear"
+        android:angle="90"
+        android:startColor="#4338CA"
+        android:endColor="#6366F1"/>
+    <corners android:radius="8dp"/>
+</shape>

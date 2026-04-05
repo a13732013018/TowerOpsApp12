@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TowerOps — 极致UI预览 v4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --blue-deep: #0a0f2e;
+    --blue-mid:  #0f1f5c;
+    --blue-main: #1a3fad;
+    --blue-bright: #2563eb;
+    --blue-glow:  #60a5fa;
+    --cyan:       #06b6d4;
+    --purple:     #7c3aed;
+    --green:      #10b981;
+    --red:        #ef4444;
+    --white:      #ffffff;
+    --text-soft:  #93c5fd;
+    --card-bg:    rgba(255,255,255,0.07);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #05081a;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     粒子背景 Canvas
+  ═══════════════════════════════════════════════════════ */
+  #particles-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     全局布局
+  ═══════════════════════════════════════════════════════ */
+  .preview-container {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 30px 16px 60px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #4a6fa5;
+    margin: 40px 0 14px;
+    padding-left: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #1a3fad44, transparent);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     ① 登录页
+  ═══════════════════════════════════════════════════════ */
+  .login-screen {
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(160deg, #050c2e 0%, #090d20 45%, #0d1535 100%);
+    min-height: 640px;
+    box-shadow: 0 30px 80px rgba(0,0,50,0.8), 0 0 0 1px rgba(37,99,235,0.15);
+  }
+
+  /* 登录背景光晕 */
+  .login-glow-1 {
+    position: absolute; top: -60px; right: -60px;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .login-glow-2 {
+    position: absolute; bottom: 80px; left: -80px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .login-glow-3 {
+    position: absolute; bottom: -40px; right: 20px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(6,182,212,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .login-glow-4 {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 60%);
+    border-radius: 50%;
+  }
+
+  /* 网格线装饰 */
+  .login-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .login-content {
+    position: relative; z-index: 2;
+    padding: 56px 28px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Logo 区 */
+  .logo-wrapper {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .logo-ring-outer {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(59,130,246,0.25);
+    display: flex; align-items: center; justify-content: center;
+    animation: ring-pulse 3s ease-in-out infinite;
+  }
+  .logo-ring-inner {
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(59,130,246,0.45);
+    display: flex; align-items: center; justify-content: center;
+    animation: ring-pulse 3s ease-in-out infinite reverse;
+  }
+  .logo-core {
+    width: 70px; height: 70px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #1e40af, #2563eb, #3b82f6);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 32px rgba(37,99,235,0.6), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    font-size: 32px;
+  }
+  @keyframes ring-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+
+  .logo-glow-bottom {
+    position: absolute;
+    bottom: -16px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 20px;
+    background: radial-gradient(ellipse, rgba(59,130,246,0.5), transparent);
+    filter: blur(4px);
+  }
+
+  /* 标题 */
+  .login-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.04em;
+    margin-top: 26px;
+    text-shadow: 0 0 20px rgba(59,130,246,0.4);
+  }
+  .login-subtitle {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    color: #4a7dc0;
+    margin-top: 6px;
+  }
+
+  /* 输入框 */
+  .login-form {
+    width: 100%;
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .input-group {
+    position: relative;
+  }
+  .input-icon {
+    position: absolute;
+    left: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 16px;
+    opacity: 0.5;
+  }
+  .login-input {
+    width: 100%;
+    height: 52px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 14px;
+    padding: 0 16px 0 46px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .login-input::placeholder { color: #4a6fa5; }
+  .login-input:focus {
+    border-color: rgba(59,130,246,0.6);
+    background: rgba(59,130,246,0.08);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12), 0 0 12px rgba(59,130,246,0.15);
+  }
+
+  /* 登录按钮 */
+  .login-btn {
+    width: 100%;
+    height: 58px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6);
+    border: none;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(37,99,235,0.5), 0 0 0 1px rgba(255,255,255,0.12) inset;
+    transition: all 0.3s;
+  }
+  .login-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+    animation: btn-shine 2.8s ease-in-out infinite;
+  }
+  @keyframes btn-shine {
+    0% { left: -100%; }
+    50%, 100% { left: 160%; }
+  }
+  .login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(37,99,235,0.65);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     ② 主界面
+  ═══════════════════════════════════════════════════════ */
+  .main-screen {
+    border-radius: 28px;
+    overflow: hidden;
+    background: #f0f4ff;
+    box-shadow: 0 30px 80px rgba(0,0,50,0.6), 0 0 0 1px rgba(37,99,235,0.1);
+  }
+
+  /* 顶栏 */
+  .main-header {
+    height: 64px;
+    background: linear-gradient(100deg, #0f2462 0%, #1e3a8a 55%, #1a3fad 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-glow {
+    position: absolute;
+    right: -40px; top: -30px;
+    width: 160px; height: 120px;
+    background: radial-gradient(ellipse, rgba(59,130,246,0.4), transparent);
+    pointer-events: none;
+  }
+  .header-bar {
+    width: 3px; height: 28px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 2px;
+    margin-right: 12px;
+    box-shadow: 0 0 6px rgba(255,255,255,0.4);
+  }
+  .header-icon {
+    font-size: 24px;
+    margin-right: 10px;
+  }
+  .header-text { flex: 1; }
+  .header-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.03em;
+  }
+  .header-sub {
+    font-size: 9px;
+    color: #93c5fd;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+  .header-badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #dbeafe;
+    margin-right: 8px;
+  }
+  .header-logout {
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  /* ═══════ 状态信息栏 ═══════ */
+  .status-bar {
+    background: linear-gradient(180deg, #ebf2ff 0%, #f0f6ff 100%);
+    padding: 8px 14px;
+    border-bottom: 1px solid #dce8ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .status-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #059669;
+    box-shadow: 0 1px 4px rgba(5,150,105,0.1);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: dot-pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 4px #10b981;
+  }
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+  .divider-v {
+    width: 1px; height: 16px;
+    background: #d1d5db;
+  }
+  .round-text {
+    font-size: 11px;
+    color: #4b5563;
+    flex: 1;
+  }
+  .outage-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #dc2626;
+    box-shadow: 0 1px 4px rgba(220,38,38,0.1);
+  }
+
+  /* ═══════ 🔥 核心升级：超酷倒计时数字时钟 ═══════ */
+  .countdown-section {
+    background: linear-gradient(135deg, #0f1f5c 0%, #1a2f7a 50%, #0d1a4e 100%);
+    padding: 16px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(59,130,246,0.2);
+  }
+
+  /* 时钟背景装饰 */
+  .clock-bg-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 100px;
+    background: radial-gradient(ellipse, rgba(37,99,235,0.2), transparent);
+    pointer-events: none;
+  }
+
+  .clock-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: #4a7dc0;
+    text-transform: uppercase;
+  }
+
+  /* 数字时钟核心 */
+  .clock-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .clock-digit-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .clock-digits {
+    display: flex;
+    gap: 3px;
+  }
+  .clock-digit {
+    width: 38px;
+    height: 52px;
+    background: linear-gradient(180deg, #0a1540 0%, #0d1a4e 100%);
+    border: 1px solid rgba(59,130,246,0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #60a5fa;
+    text-shadow: 0 0 10px rgba(96,165,250,0.8), 0 0 20px rgba(96,165,250,0.4);
+    box-shadow:
+      0 0 0 1px rgba(96,165,250,0.08) inset,
+      0 2px 8px rgba(0,0,30,0.6),
+      0 0 6px rgba(96,165,250,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  /* 数字格中间分隔线（数码管质感） */
+  .clock-digit::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgba(96,165,250,0.12);
+  }
+  /* 上下渐变高光 */
+  .clock-digit::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .clock-unit {
+    font-size: 9px;
+    color: #3b6bb5;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+
+  .clock-colon {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #3b6bb5;
+    margin-bottom: 18px;
+    animation: colon-blink 1s ease-in-out infinite;
+  }
+  @keyframes colon-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.15; }
+  }
+
+  /* 时钟下方进度条 */
+  .clock-progress {
+    width: 100%;
+    height: 3px;
+    background: rgba(59,130,246,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .clock-progress-bar {
+    height: 100%;
+    width: 65%;
+    background: linear-gradient(90deg, #1d4ed8, #3b82f6, #60a5fa);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(96,165,250,0.6);
+    animation: progress-flow 3s ease-in-out infinite alternate;
+  }
+  @keyframes progress-flow {
+    0% { width: 25%; }
+    100% { width: 85%; }
+  }
+
+  .clock-next-label {
+    font-size: 10px;
+    color: #4a7dc0;
+    letter-spacing: 0.06em;
+  }
+
+  /* ═══════ Tab 栏 ═══════ */
+  .tab-bar {
+    background: linear-gradient(180deg, #fff 0%, #f5f9ff 100%);
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid #e0eaff;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-item {
+    flex-shrink: 0;
+    padding: 12px 14px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+  }
+  .tab-item.active {
+    color: #1d4ed8;
+    font-weight: 700;
+  }
+  .tab-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 8px; right: 8px;
+    height: 3px;
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 -1px 6px rgba(37,99,235,0.4);
+  }
+
+  /* ═══════ 控制面板 ═══════ */
+  .control-panel {
+    background: #fff;
+    margin: 12px 10px 6px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.08), 0 0 0 1px rgba(219,234,254,0.8);
+  }
+  .panel-header {
+    background: linear-gradient(90deg, #dbeafe, #eff6ff);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #bfdbfe;
+  }
+  .panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1d4ed8;
+    flex: 1;
+  }
+  .panel-subtitle {
+    font-size: 10px;
+    color: #3b82f6;
+  }
+  .panel-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ctrl-btn {
+    flex: 1;
+    min-width: 80px;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+  .ctrl-btn.start {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.35);
+  }
+  .ctrl-btn.stop {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(220,38,38,0.25);
+  }
+
+  /* ═══════ 工单卡片 ═══════ */
+  .order-card {
+    background: #fafcff;
+    margin: 0 10px 8px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(37,99,235,0.08), 0 0 0 1px rgba(219,234,254,0.6);
+  }
+  .card-header-strip {
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #60a5fa, #06b6d4);
+  }
+  .card-body {
+    padding: 10px 14px 12px;
+  }
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .card-tag {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+  }
+  .card-sn {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e3a8a;
+    flex: 1;
+  }
+  .card-status {
+    font-size: 10px;
+    color: #10b981;
+    font-weight: 600;
+    background: #d1fae5;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .card-detail {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.6;
+    padding-left: 2px;
+  }
+  .card-detail span { color: #374151; font-weight: 500; }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f4ff;
+  }
+  .card-action {
+    flex: 1;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .card-action.accept {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  }
+  .card-action.feedback {
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(5,150,105,0.25);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     ③ 独立时钟大展示区
+  ═══════════════════════════════════════════════════════ */
+  .clock-showcase {
+    border-radius: 28px;
+    background: linear-gradient(160deg, #05091f 0%, #0a1540 50%, #070d30 100%);
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    box-shadow: 0 30px 80px rgba(0,0,50,0.7), 0 0 0 1px rgba(37,99,235,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .cs-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px; height: 200px;
+    background: radial-gradient(ellipse, rgba(37,99,235,0.15), transparent 70%);
+    pointer-events: none;
+  }
+  .cs-glow-2 {
+    position: absolute;
+    bottom: 0; left: -60px;
+    width: 200px; height: 150px;
+    background: radial-gradient(ellipse, rgba(139,92,246,0.12), transparent 70%);
+    pointer-events: none;
+  }
+
+  .cs-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #3b6bb5;
+    text-transform: uppercase;
+  }
+
+  /* 大时钟 */
+  .big-clock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .big-digit-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .big-digits {
+    display: flex;
+    gap: 4px;
+  }
+  .big-digit {
+    width: 54px;
+    height: 72px;
+    background: linear-gradient(180deg, #060e2a 0%, #0a1540 60%, #07102e 100%);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 42px;
+    font-weight: 900;
+    color: #60a5fa;
+    text-shadow: 0 0 16px rgba(96,165,250,0.9), 0 0 32px rgba(96,165,250,0.45);
+    box-shadow:
+      0 0 0 1px rgba(96,165,250,0.06) inset,
+      0 4px 16px rgba(0,0,40,0.8),
+      0 0 12px rgba(96,165,250,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .big-digit::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(96,165,250,0.1);
+  }
+  .big-digit::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 48%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+    border-radius: 10px 10px 0 0;
+  }
+  .big-unit {
+    font-size: 10px;
+    color: #2d5090;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .big-colon {
+    font-family: 'Orbitron', monospace;
+    font-size: 42px;
+    font-weight: 700;
+    color: #1e3f6e;
+    margin-bottom: 20px;
+    animation: colon-blink 1s ease-in-out infinite;
+  }
+
+  /* 环形进度指示器 */
+  .ring-progress {
+    position: relative;
+    width: 120px; height: 120px;
+  }
+  .ring-svg {
+    transform: rotate(-90deg);
+  }
+  .ring-track {
+    fill: none;
+    stroke: rgba(59,130,246,0.1);
+    stroke-width: 8;
+  }
+  .ring-fill {
+    fill: none;
+    stroke: url(#ringGrad);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 339;
+    stroke-dashoffset: 119;
+    filter: drop-shadow(0 0 6px rgba(96,165,250,0.6));
+    animation: ring-spin 4s ease-in-out infinite alternate;
+  }
+  @keyframes ring-spin {
+    0% { stroke-dashoffset: 280; }
+    100% { stroke-dashoffset: 60; }
+  }
+  .ring-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .ring-percent {
+    font-family: 'Orbitron', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: #60a5fa;
+    text-shadow: 0 0 10px rgba(96,165,250,0.7);
+    display: block;
+    line-height: 1;
+  }
+  .ring-label {
+    font-size: 9px;
+    color: #3b6bb5;
+    letter-spacing: 0.12em;
+    margin-top: 3px;
+    display: block;
+  }
+
+  /* 底部数据行 */
+  .cs-stats {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+  }
+  .cs-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .cs-stat-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: #60a5fa;
+    text-shadow: 0 0 8px rgba(96,165,250,0.5);
+  }
+  .cs-stat-val.green { color: #34d399; text-shadow: 0 0 8px rgba(52,211,153,0.5); }
+  .cs-stat-val.red { color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,0.5); }
+  .cs-stat-lbl {
+    font-size: 9px;
+    color: #2d5090;
+    letter-spacing: 0.1em;
+  }
+  .cs-divider {
+    width: 1px; height: 36px;
+    background: rgba(59,130,246,0.15);
+    align-self: center;
+  }
+
+  /* 扫描线动画 */
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(96,165,250,0.4), transparent);
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes scan {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* ═══════ 实时时钟 ═══════ */
+  .realtime-clock {
+    border-radius: 28px;
+    background: linear-gradient(135deg, #06081e, #0a1230, #070e28);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,50,0.7), 0 0 0 1px rgba(37,99,235,0.12);
+  }
+  .rt-glow {
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%);
+  }
+  .rt-glow-2 {
+    position: absolute;
+    bottom: -20px; left: -20px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(6,182,212,0.12), transparent 70%);
+  }
+  .rt-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: #2d5090;
+    text-transform: uppercase;
+  }
+  .rt-time {
+    font-family: 'Orbitron', monospace;
+    font-size: 52px;
+    font-weight: 900;
+    color: transparent;
+    background: linear-gradient(180deg, #93c5fd 0%, #60a5fa 50%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+    filter: drop-shadow(0 0 20px rgba(96,165,250,0.6));
+    line-height: 1;
+  }
+  .rt-date {
+    font-size: 13px;
+    color: #2d5090;
+    letter-spacing: 0.1em;
+  }
+  .rt-weekday {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: #1a3f7a;
+  }
+
+  /* ═══════ 日志区 ═══════ */
+  .log-panel {
+    background: #fff;
+    margin: 0 10px 8px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+  }
+  .log-header {
+    background: linear-gradient(90deg, #dbeafe, #eff6ff);
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #bfdbfe;
+  }
+  .log-body {
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #374151;
+    line-height: 1.8;
+    background: #fafcff;
+  }
+  .log-ok { color: #059669; }
+  .log-info { color: #2563eb; }
+  .log-warn { color: #d97706; }
+  .log-time { color: #9ca3af; }
+
+  /* 版本标签 */
+  .version-tag {
+    text-align: center;
+    font-size: 10px;
+    color: #2d4a7a;
+    letter-spacing: 0.2em;
+    margin-top: 16px;
+    font-family: 'Orbitron', monospace;
+  }
+
+  /* 响应式宽度适配 */
+  @media (min-width: 860px) {
+    .preview-container { max-width: 860px; }
+    .screens-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles-canvas"></canvas>
+
+<div class="preview-container">
+
+  <!-- 顶部标题 -->
+  <div style="text-align:center; padding: 20px 0 0;">
+    <div style="font-family:'Orbitron',monospace; font-size:11px; letter-spacing:0.3em; color:#1a3a6e; margin-bottom:10px;">TOWEROPS UI PREVIEW</div>
+    <div style="font-size:28px; font-weight:800; color:#fff; letter-spacing:0.04em; text-shadow:0 0 30px rgba(59,130,246,0.5);">铁塔运维助手</div>
+    <div style="font-size:12px; color:#3b6bb5; margin-top:6px; letter-spacing:0.08em;">极致视觉体验 v4.0 — ULTRA DESIGN</div>
+  </div>
+
+  <!-- ========================= 实时时钟展示 ========================= -->
+  <div class="section-label">⏰ 实时系统时钟</div>
+  <div class="realtime-clock">
+    <div class="rt-glow"></div>
+    <div class="rt-glow-2"></div>
+    <div class="rt-label">SYSTEM TIME</div>
+    <div class="rt-time" id="rtTime">20:49:33</div>
+    <div class="rt-date" id="rtDate">2026年03月25日</div>
+    <div class="rt-weekday" id="rtWeekday">WEDNESDAY</div>
+  </div>
+
+  <!-- ========================= 倒计时大展示 ========================= -->
+  <div class="section-label">⏳ 倒计时数字时钟</div>
+  <div class="clock-showcase">
+    <div class="cs-glow"></div>
+    <div class="cs-glow-2"></div>
+    <div class="scan-line"></div>
+
+    <div class="cs-title">NEXT EXECUTION COUNTDOWN</div>
+
+    <div class="big-clock">
+      <svg width="0" height="0">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#1d4ed8"/>
+            <stop offset="50%" style="stop-color:#3b82f6"/>
+            <stop offset="100%" style="stop-color:#60a5fa"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div class="big-digit-group">
+        <div class="big-digits">
+          <div class="big-digit" id="d-min1">0</div>
+          <div class="big-digit" id="d-min2">1</div>
+        </div>
+        <div class="big-unit">MIN</div>
+      </div>
+
+      <div class="big-colon">:</div>
+
+      <div class="big-digit-group">
+        <div class="big-digits">
+          <div class="big-digit" id="d-sec1">4</div>
+          <div class="big-digit" id="d-sec2">5</div>
+        </div>
+        <div class="big-unit">SEC</div>
+      </div>
+    </div>
+
+    <!-- 环形进度 + 统计 -->
+    <div style="display:flex; align-items:center; gap:24px; position:relative; z-index:1;">
+      <div class="ring-progress">
+        <svg class="ring-svg" width="120" height="120" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ringGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1d4ed8"/>
+              <stop offset="100%" style="stop-color:#60a5fa"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="60" cy="60" r="54"/>
+          <circle class="ring-fill" cx="60" cy="60" r="54" stroke="url(#ringGrad2)"/>
+        </svg>
+        <div class="ring-text">
+          <span class="ring-percent" id="ringPercent">65%</span>
+          <span class="ring-label">PROGRESS</span>
+        </div>
+      </div>
+
+      <div class="cs-stats" style="flex-direction:column; gap:12px;">
+        <div style="display:flex; gap:16px;">
+          <div class="cs-stat">
+            <div class="cs-stat-val green" id="statDone">12</div>
+            <div class="cs-stat-lbl">已完成</div>
+          </div>
+          <div class="cs-divider"></div>
+          <div class="cs-stat">
+            <div class="cs-stat-val">98</div>
+            <div class="cs-stat-lbl">总工单</div>
+          </div>
+          <div class="cs-divider"></div>
+          <div class="cs-stat">
+            <div class="cs-stat-val red">3</div>
+            <div class="cs-stat-lbl">停电站</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================= 登录 + 主界面 ========================= -->
+  <div class="screens-row">
+    <div>
+      <div class="section-label">🔐 登录页</div>
+      <div class="login-screen">
+        <div class="login-glow-1"></div>
+        <div class="login-glow-2"></div>
+        <div class="login-glow-3"></div>
+        <div class="login-glow-4"></div>
+        <div class="login-grid"></div>
+        <div class="login-content">
+          <div class="logo-wrapper">
+            <div class="logo-ring-outer">
+              <div class="logo-ring-inner">
+                <div class="logo-core">🗼</div>
+              </div>
+            </div>
+            <div class="logo-glow-bottom"></div>
+          </div>
+          <div class="login-title">铁塔运维助手</div>
+          <div class="login-subtitle">T O W E R &nbsp; O P S &nbsp; S Y S T E M</div>
+          <div class="login-form">
+            <div class="input-group">
+              <span class="input-icon">📱</span>
+              <input class="login-input" type="text" placeholder="请输入手机号">
+            </div>
+            <div class="input-group">
+              <span class="input-icon">🔒</span>
+              <input class="login-input" type="password" placeholder="请输入密码">
+            </div>
+            <button class="login-btn">立即登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">📱 主界面</div>
+      <div class="main-screen">
+        <!-- 顶栏 -->
+        <div class="main-header">
+          <div class="header-glow"></div>
+          <div class="header-bar"></div>
+          <div class="header-icon">🗼</div>
+          <div class="header-text">
+            <div class="header-title">铁塔运维助手</div>
+            <div class="header-sub">Tower Operations</div>
+          </div>
+          <div class="header-badge">张三 | 001</div>
+          <div class="header-logout">退出</div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+          <div class="status-chip">
+            <div class="status-dot"></div>
+            监控中
+          </div>
+          <div class="divider-v"></div>
+          <div class="round-text">本轮完成 8/12 条 14:30:22</div>
+          <div class="outage-chip">⚡ 停电 3</div>
+        </div>
+
+        <!-- 🔥 核心！嵌入式数字倒计时 -->
+        <div class="countdown-section">
+          <div class="clock-bg-glow"></div>
+          <div class="clock-label">NEXT EXECUTION IN</div>
+          <div class="clock-display">
+            <div class="clock-digit-group">
+              <div class="clock-digits">
+                <div class="clock-digit" id="cd-m1">0</div>
+                <div class="clock-digit" id="cd-m2">1</div>
+              </div>
+              <div class="clock-unit">分钟</div>
+            </div>
+            <div class="clock-colon">:</div>
+            <div class="clock-digit-group">
+              <div class="clock-digits">
+                <div class="clock-digit" id="cd-s1">4</div>
+                <div class="clock-digit" id="cd-s2">5</div>
+              </div>
+              <div class="clock-unit">秒</div>
+            </div>
+          </div>
+          <div class="clock-progress">
+            <div class="clock-progress-bar" id="progressBar"></div>
+          </div>
+          <div class="clock-next-label" id="nextLabel">下次执行：20:51:15</div>
+        </div>
+
+        <!-- Tab栏 -->
+        <div class="tab-bar">
+          <div class="tab-item active">工单监控</div>
+          <div class="tab-item">停电监控</div>
+          <div class="tab-item">智联工单</div>
+          <div class="tab-item">巡检工单</div>
+          <div class="tab-item">数运工单</div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+          <div class="panel-header">
+            <span>🔧 监控配置</span>
+            <div class="panel-title"></div>
+            <div class="panel-subtitle">自动化运维 ›</div>
+          </div>
+          <div class="panel-body" style="padding-bottom:8px;">
+            <button class="ctrl-btn start">监控中</button>
+            <button class="ctrl-btn stop">停止</button>
+          </div>
+          <div style="padding: 0 14px 12px; display:flex; gap:16px; font-size:10px; color:#6b7280;">
+            <label><input type="checkbox" checked style="margin-right:3px;">自动接单</label>
+            <label><input type="checkbox" checked style="margin-right:3px;">自动反馈</label>
+            <label><input type="checkbox" style="margin-right:3px;">自动回单</label>
+          </div>
+        </div>
+
+        <!-- 工单卡片 -->
+        <div class="order-card">
+          <div class="card-header-strip"></div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <div class="card-tag">工单</div>
+              <div class="card-sn">WO-2026032500123</div>
+              <div class="card-status">✓ 已接单</div>
+            </div>
+            <div class="card-detail">
+              <span>站点：</span>南山铁塔-A区-B12<br>
+              <span>类型：</span>故障处理 &nbsp; <span>优先：</span>紧急
+            </div>
+            <div class="card-footer">
+              <button class="card-action accept">接单</button>
+              <button class="card-action feedback">反馈</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 日志 -->
+        <div class="log-panel" style="margin-bottom:0;">
+          <div class="log-header">📋 运行日志</div>
+          <div class="log-body">
+            <span class="log-time">[20:49:30]</span> <span class="log-ok">✓ 接单成功：WO-123</span><br>
+            <span class="log-time">[20:49:12]</span> <span class="log-info">› 获取工单列表 (8条)</span><br>
+            <span class="log-time">[20:48:55]</span> <span class="log-warn">⚡ 停电告警：南山站</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="version-tag">TOWEROPS v4.0 — ULTRA DESIGN SYSTEM</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// 粒子背景动画
+// ════════════════════════════════════════════
+const canvas = document.getElementById('particles-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.hue = Math.random() < 0.7 ? 220 : (Math.random() < 0.5 ? 200 : 270);
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 160; i++) particles.push(new Particle());
+
+// 连线
+function drawLines() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 90) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(59,130,246,${0.06 * (1 - dist/90)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawLines();
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// ════════════════════════════════════════════
+// 实时时钟
+// ════════════════════════════════════════════
+const weekdays = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+function updateRealTime() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('rtTime').textContent = `${hh}:${mm}:${ss}`;
+  document.getElementById('rtDate').textContent =
+    `${now.getFullYear()}年${String(now.getMonth()+1).padStart(2,'0')}月${String(now.getDate()).padStart(2,'0')}日`;
+  document.getElementById('rtWeekday').textContent = weekdays[now.getDay()];
+}
+updateRealTime();
+setInterval(updateRealTime, 1000);
+
+// ════════════════════════════════════════════
+// 倒计时动画
+// ════════════════════════════════════════════
+let totalSec = 105; // 1:45 开始演示
+const maxSec = 120;
+
+function updateCountdown() {
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const m1 = String(min).padStart(2,'0')[0];
+  const m2 = String(min).padStart(2,'0')[1];
+  const s1 = String(sec).padStart(2,'0')[0];
+  const s2 = String(sec).padStart(2,'0')[1];
+
+  // 大展示区
+  setDigit('d-min1', m1); setDigit('d-min2', m2);
+  setDigit('d-sec1', s1); setDigit('d-sec2', s2);
+  // 嵌入式时钟
+  setDigit('cd-m1', m1); setDigit('cd-m2', m2);
+  setDigit('cd-s1', s1); setDigit('cd-s2', s2);
+
+  // 进度条（从满→空）
+  const pct = (totalSec / maxSec) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  // 环形进度百分比
+  const rpct = Math.round((1 - totalSec / maxSec) * 100);
+  document.getElementById('ringPercent').textContent = rpct + '%';
+  // 环形stroke-dashoffset：339 = 2π×54; 满=0，空=339
+  const offset = 339 * (totalSec / maxSec);
+  document.querySelector('.ring-fill').style.strokeDashoffset = offset;
+
+  // 下次执行时间
+  const now = new Date();
+  now.setSeconds(now.getSeconds() + totalSec);
+  const nh = String(now.getHours()).padStart(2,'0');
+  const nm = String(now.getMinutes()).padStart(2,'0');
+  const ns = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('nextLabel').textContent = `下次执行：${nh}:${nm}:${ns}`;
+
+  if (totalSec > 0) {
+    totalSec--;
+  } else {
+    totalSec = maxSec; // 循环演示
+  }
+}
+
+function setDigit(id, val) {
+  const el = document.getElementById(id);
+  if (el && el.textContent !== val) {
+    el.style.transform = 'translateY(-4px)';
+    el.style.opacity = '0.4';
+    setTimeout(() => {
+      el.textContent = val;
+      el.style.transform = 'translateY(0)';
+      el.style.opacity = '1';
+    }, 120);
+  }
+}
+
+// 给数字格加过渡
+document.querySelectorAll('.clock-digit, .big-digit').forEach(el => {
+  el.style.transition = 'transform 0.12s ease, opacity 0.12s ease';
+});
+
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+// ════════════════════════════════════════════
+// 统计数字动态跳动
+// ════════════════════════════════════════════
+let doneCount = 0;
+setInterval(() => {
+  if (doneCount < 15) {
+    doneCount++;
+    document.getElementById('statDone').textContent = doneCount;
+  }
+}, 2000);
+</script>
+</body>
+</html>

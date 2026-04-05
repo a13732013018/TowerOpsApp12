@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
+
+    <!-- 标题输入框 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="事项标题 *"
+        android:textSize="13sp"
+        android:textColor="#475569"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etTodoTitle"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:hint="请输入事项标题"
+        android:textSize="14sp"
+        android:textColor="#1E293B"
+        android:background="@drawable/bg_input_round"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:inputType="text"
+        android:maxLines="1"
+        android:imeOptions="actionNext" />
+
+    <!-- 紧急程度 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="紧急程度"
+        android:textSize="13sp"
+        android:textColor="#475569"
+        android:textStyle="bold"
+        android:layout_marginTop="14dp" />
+
+    <!-- 三个单选按钮横排 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp"
+        android:weightSum="3">
+
+        <!-- 普通 -->
+        <TextView
+            android:id="@+id/btnPriorityNormal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="● 普通"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_priority_normal_selected"
+            android:layout_marginEnd="4dp" />
+
+        <!-- 重要 -->
+        <TextView
+            android:id="@+id/btnPriorityHigh"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="● 重要"
+            android:textSize="13sp"
+            android:textColor="#94A3B8"
+            android:background="@drawable/bg_priority_unselected"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
+
+        <!-- 紧急 -->
+        <TextView
+            android:id="@+id/btnPriorityUrgent"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="● 紧急"
+            android:textSize="13sp"
+            android:textColor="#94A3B8"
+            android:background="@drawable/bg_priority_unselected"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
+    <!-- 截止时间 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="截止时间（可选）"
+        android:textSize="13sp"
+        android:textColor="#475569"
+        android:textStyle="bold"
+        android:layout_marginTop="14dp" />
+
+    <!-- 点击弹出日期选择 -->
+    <TextView
+        android:id="@+id/tvDueTime"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:hint="点击选择截止日期时间"
+        android:textSize="14sp"
+        android:textColor="#1E293B"
+        android:background="@drawable/bg_input_round"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:gravity="center_vertical"
+        android:drawableEnd="@android:drawable/ic_menu_my_calendar"
+        android:drawablePadding="8dp" />
+
+    <!-- 备注输入框 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="备注（可选）"
+        android:textSize="13sp"
+        android:textColor="#475569"
+        android:textStyle="bold"
+        android:layout_marginTop="14dp" />
+
+    <EditText
+        android:id="@+id/etTodoContent"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_marginTop="6dp"
+        android:hint="填写备注信息..."
+        android:textSize="14sp"
+        android:textColor="#1E293B"
+        android:background="@drawable/bg_input_round"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:inputType="textMultiLine"
+        android:gravity="top"
+        android:maxLines="3" />
+
+</LinearLayout>

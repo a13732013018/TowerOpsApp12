@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁塔运维助手 - 白色主题预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+        }
+        
+        /* 手机模拟器 */
+        .phone {
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        
+        /* 顶部标题栏 */
+        .header {
+            background: #ffffff;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .header-title {
+            color: #2563eb;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .header-user {
+            color: #6b7280;
+            font-size: 12px;
+            margin-right: 12px;
+        }
+        
+        .header-btn {
+            background: #dbeafe;
+            color: #2563eb;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            background: #ffffff;
+            padding: 14px 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .checkbox-item input {
+            accent-color: #2563eb;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .checkbox-item label {
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .input-group label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .input-field {
+            width: 48px;
+            height: 32px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 0 6px;
+            font-size: 12px;
+            text-align: center;
+            background: #f9fafb;
+            color: #1f2937;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: #f0f2f5;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .status-text {
+            color: #10b981;
+        }
+        
+        .status-text.error {
+            color: #ef4444;
+        }
+        
+        .status-divider {
+            width: 1px;
+            height: 14px;
+            background: #e5e7eb;
+        }
+        
+        /* Tab栏 */
+        .tab-bar {
+            background: #ffffff;
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            color: #6b7280;
+            font-size: 13px;
+            position: relative;
+        }
+        
+        .tab-item.active {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: #2563eb;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        /* 列表区域 */
+        .list-area {
+            background: #f5f7fa;
+            padding: 12px;
+        }
+        
+        /* 排序工具栏 */
+        .sort-bar {
+            background: #ffffff;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+        }
+        
+        .sort-label {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        .sort-tag {
+            background: #2563eb;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .sort-tag.inactive {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* 卡片列表项 */
+        .card-item {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .card-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .card-index {
+            color: #9ca3af;
+            font-size: 13px;
+            width: 32px;
+        }
+        
+        .card-title {
+            flex: 1;
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .card-tag {
+            background: #fef3c7;
+            color: #f59e0b;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .card-content {
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .card-info {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .card-success {
+            color: #10b981;
+            font-size: 13px;
+        }
+        
+        .card-info-blue {
+            color: #3b82f6;
+            font-size: 13px;
+        }
+        
+        /* 停电列表 */
+        .power-list {
+            background: #ffffff;
+        }
+        
+        .power-header {
+            background: #eef2f6;
+            padding: 10px 8px;
+            display: flex;
+            font-size: 12px;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .power-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 12px;
+        }
+        
+        .power-index {
+            width: 24px;
+            color: #9ca3af;
+            text-align: center;
+        }
+        
+        .power-name {
+            flex: 1;
+            color: #1f2937;
+        }
+        
+        .power-voltage {
+            width: 52px;
+            text-align: right;
+            color: #ef4444;
+            font-weight: 600;
+        }
+        
+        .power-load {
+            width: 48px;
+            text-align: right;
+            color: #10b981;
+        }
+        
+        .power-type {
+            width: 40px;
+            text-align: center;
+            color: #f59e0b;
+        }
+        
+        .power-time {
+            width: 110px;
+            text-align: right;
+            color: #6b7280;
+        }
+        
+        /* 颜色说明 */
+        .color-guide {
+            margin-top: 24px;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 12px;
+        }
+        
+        .color-guide h3 {
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        .color-item {
+            text-align: center;
+        }
+        
+        .color-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            margin: 0 auto 4px;
+        }
+        
+        .color-name {
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>铁塔运维助手</h1>
+        <p class="subtitle">TOWER OPERATIONS - 白色主题</p>
+        
+        <div class="phone">
+            <!-- 顶部标题栏 -->
+            <div class="header">
+                <span class="header-title">铁塔运维助手</span>
+                <span class="header-user">未登录</span>
+                <span class="header-btn">退出</span>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动反馈</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动接单</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <label>自动回单</label>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>轮询:</label>
+                        <input type="text" class="input-field" value="90">
+                        <span>~</span>
+                        <input type="text" class="input-field" value="120">
+                        <span style="color:#9ca3af;font-size:12px">秒</span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-primary">开启监控</button>
+                        <button class="btn-secondary">停止</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <span class="status-text">启动</span>
+                <span class="status-divider"></span>
+                <span style="color:#6b7280">停电 0</span>
+                <span style="flex:1"></span>
+                <span class="status-text">下次: --</span>
+            </div>
+            
+            <!-- Tab栏 -->
+            <div class="tab-bar">
+                <div class="tab-item">工单监控</div>
+                <div class="tab-item">停电监控</div>
+                <div class="tab-item">智联工单</div>
+                <div class="tab-item active">数运审核</div>
+            </div>
+            
+            <!-- 列表区域 - 工单 -->
+            <div class="list-area">
+                <div class="sort-bar">
+                    <span class="sort-label">排序：</span>
+                    <span class="sort-tag">工单历时 ↓</span>
+                    <span class="sort-tag inactive">反馈历时 ↕</span>
+                    <span class="sort-tag inactive">告警时间 ↕</span>
+                </div>
+                
+                <!-- 卡片1 -->
+                <div class="card-item">
+                    <div class="card-row">
+                        <span class="card-index">1</span>
+                        <span class="card-title">工单号:2026001</span>
+                        <span class="card-tag">告警中</span>
+                    </div>
+                    <div class="card-content">站点名 - 工单标题内容</div>
+                    <div class="card-info">接单人：张三 | 创建：2026-03-21 10:00</div>
+                    <div class="card-success">✓ 反馈成功 - 已完成</div>
+                    <div class="card-info-blue">工单历时：120分钟</div>
+                    <div class="card-info">上次反馈：2026-03-21 10:30</div>
+                    <div class="card-info" style="color:#f59e0b">告警时间：2026-03-21 09:00</div>
+                </div>
+                
+                <!-- 卡片2 -->
+                <div class="card-item">
+                    <div class="card-row">
+                        <span class="card-index">2</span>
+                        <span class="card-title">工单号:2026002</span>
+                        <span class="card-tag">处理中</span>
+                    </div>
+                    <div class="card-content">站点名 - 工单标题内容</div>
+                    <div class="card-info">接单人：李四 | 创建：2026-03-21 09:00</div>
+                    <div class="card-info-blue">工单历时：180分钟</div>
+                    <div class="card-info">上次反馈：尚未反馈</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 颜色说明 -->
+        <div class="color-guide">
+            <h3>配色说明 - 长时间观看不疲劳</h3>
+            <div class="color-grid">
+                <div class="color-item">
+                    <div class="color-box" style="background:#2563EB"></div>
+                    <div class="color-name">主色调</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#F5F7FA"></div>
+                    <div class="color-name">背景色</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#10B981"></div>
+                    <div class="color-name">成功</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#F59E0B"></div>
+                    <div class="color-name">警告</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#EF4444"></div>
+                    <div class="color-name">错误</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#1F2937"></div>
+                    <div class="color-name">主文字</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#6B7280"></div>
+                    <div class="color-name">次文字</div>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background:#FFFFFF;border:1px solid #E5E7EB"></div>
+                    <div class="color-name">卡片</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 正常进度条填充（绿→青） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="0"
+        android:startColor="#10B981"
+        android:endColor="#34D399"/>
+    <corners android:radius="2dp"/>
+</shape>

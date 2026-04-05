@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 渐变主色调 — v4.0 全光感白色体系 -->
+    <color name="gradient_start">#4338CA</color>
+    <color name="gradient_center">#5B50D6</color>
+    <color name="gradient_end">#818CF8</color>
+    
+    <!-- 卡片背景 -->
+    <color name="card_bg">#FFFFFF</color>
+    
+    <!-- 文字颜色 -->
+    <color name="text_label_glass">#4B5580</color>
+    <color name="text_hint_glass">#9BA5C0</color>
+    
+    <!-- 状态颜色 -->
+    <color name="error_gradient">#DC2626</color>
+    <color name="success_gradient">#059669</color>
+</resources>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@android:color/white">
+
+    <!-- 第一行：序号 地市 工单号 当前环节 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvKHIndex"
+            android:layout_width="24dp"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:textColor="#888888"
+            android:gravity="center"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvKHCityName"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:textColor="#444444"
+            android:gravity="center"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvKHOrderNum"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="9sp"
+            android:textColor="#2563EB"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvKHJobName"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:textColor="#E65C00"
+            android:textStyle="bold"
+            android:gravity="end"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+    </LinearLayout>
+
+    <!-- 第二行：站点名称 + 分组 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="3dp">
+
+        <TextView
+            android:id="@+id/tvKHStationName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="11sp"
+            android:textColor="#1a1a2e"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvKHGroupName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:textSize="9sp"
+            android:textColor="#2563EB"
+            android:background="@drawable/bg_tag_inactive"
+            android:includeFontPadding="false"/>
+
+    </LinearLayout>
+
+    <!-- 第三行：工单类型 | 任务类型 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/tvKHFlowName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="9sp"
+            android:textColor="#666666"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:layout_width="4dp"
+            android:layout_height="wrap_content"
+            android:text="|"
+            android:textSize="9sp"
+            android:textColor="#cccccc"/>
+
+        <TextView
+            android:id="@+id/tvKHDataName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="9sp"
+            android:textColor="#666666"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+    </LinearLayout>
+
+    <!-- 第四行：创建时间 → 要求完成时间 | 接单人 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/tvKHCreateTime"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="9sp"
+            android:textColor="#888888"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvKHAccestaff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textSize="9sp"
+            android:textColor="#2563EB"
+            android:includeFontPadding="false"/>
+
+    </LinearLayout>
+
+    <!-- 分割线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginTop="6dp"
+        android:background="#E5E7EB"/>
+
+</LinearLayout>

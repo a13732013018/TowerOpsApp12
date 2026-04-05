@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_base">
+
+    <!-- ══════════════════ 顶栏：64dp · Material Design 3 规范 · 精工细节 ══════════════════ -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_header_gradient"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:gravity="center_vertical"
+        android:elevation="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 品牌区 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Logo 小圆卡片：40×40 -->
+            <androidx.cardview.widget.CardView
+                xmlns:app2="http://schemas.android.com/apk/res-auto"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                app2:cardCornerRadius="12dp"
+                app2:cardElevation="4dp"
+                app2:cardBackgroundColor="#FFFFFF"
+                android:layout_marginEnd="16dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_logo_tower"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"/>
+            </androidx.cardview.widget.CardView>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="铁塔运维助手"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.02"
+                    android:includeFontPadding="false"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tower Operations"
+                    android:textColor="#E0E7FF"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 用户 chip：高 32dp，圆角胶囊，半透明白 -->
+        <TextView
+            android:id="@+id/tvUserInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="未登录"
+            android:textColor="#E8EDFF"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_white_glass"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:layout_marginEnd="12dp"
+            android:maxWidth="140dp"
+            android:ellipsize="end"
+            android:singleLine="true"/>
+
+        <!-- 退出按钮：高 36dp，精准轮廓 -->
+        <TextView
+            android:id="@+id/btnLogout"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="退出"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_button_primary_white"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:gravity="center"
+            android:letterSpacing="0.01"
+            android:clickable="true"
+            android:focusable="true"
+            android:stateListAnimator="@null"/>
+    </LinearLayout>
+
+    <!-- ══════════════════ 状态栏：36dp · Material Design 3 规范 · 信息密度合理 ══════════════════ -->
+    <LinearLayout
+        android:id="@+id/statusBar"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/status_bar_background"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 状态指示器 -->
+        <TextView
+            android:id="@+id/tvProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="就绪"
+            android:textColor="@color/success"
+            android:textSize="12sp"
+            android:drawableStart="@drawable/ic_status_dot"
+            android:drawablePadding="6dp"
+            android:includeFontPadding="false"/>
+
+        <!-- 分割竖线 -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="16dp"
+            android:background="@color/status_bar_border"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"/>
+
+        <TextView
+            android:id="@+id/tvRoundComplete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:includeFontPadding="false"/>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="16dp"
+            android:background="@color/status_bar_border"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"/>
+
+        <TextView
+            android:id="@+id/tvPowerOutageCountStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="停电: 0"
+            android:textColor="@color/error"
+            android:textSize="12sp"
+            android:includeFontPadding="false"/>
+
+        <!-- 弹性间距 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <TextView
+            android:id="@+id/tvNextRun"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/colorPrimary"
+            android:textSize="12sp"
+            android:includeFontPadding="false"/>
+    </LinearLayout>
+
+    <!-- 状态栏底部分割线（极细） -->
+    <View
+        android:id="@+id/divider1"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/divider_strong"
+        app:layout_constraintTop_toBottomOf="@id/statusBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- ══════════════════ Tab 栏：48dp · Material Design 3 规范 · 精准指示器 ══════════════════ -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:background="@color/bg_card"
+        app:tabIndicatorColor="@color/colorPrimary"
+        app:tabSelectedTextColor="@color/colorPrimary"
+        app:tabTextColor="@color/tab_unselected"
+        app:tabMode="scrollable"
+        app:tabGravity="center"
+        app:tabIndicatorHeight="3dp"
+        app:tabIndicatorFullWidth="false"
+        app:tabRippleColor="@color/primary_light"
+        app:tabTextAppearance="@style/TabTextStyle"
+        app:tabPaddingStart="8dp"
+        app:tabPaddingEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@id/divider1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Tab 底部分割线 -->
+    <View
+        android:id="@+id/divider2"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/divider_strong"
+        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- ══════════════════ ViewPager2 ══════════════════ -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/divider2"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#FFFFFF">
+
+    <!-- 主行 -->
+    <LinearLayout
+        android:id="@+id/layoutHiddenItemRow"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:gravity="center_vertical">
+
+        <!-- 站址名称 -->
+        <TextView
+            android:id="@+id/tvHiddenStation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:textSize="10sp"
+            android:textColor="#374151"
+            android:maxLines="2"
+            android:ellipsize="end"/>
+
+        <!-- 等级（带颜色标签） -->
+        <TextView
+            android:id="@+id/tvHiddenLevel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:textSize="9sp"
+            android:gravity="center"
+            android:textStyle="bold"/>
+
+        <!-- 状态 -->
+        <TextView
+            android:id="@+id/tvHiddenStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:textSize="9sp"
+            android:gravity="center"
+            android:textColor="#4B5563"/>
+
+        <!-- 天数（>7天红色，>15天深红，>30天紫色） -->
+        <TextView
+            android:id="@+id/tvHiddenDays"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:textSize="9sp"
+            android:gravity="center"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- 归类（小字行，灰色）-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="18dp"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="2dp"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/tvHiddenCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="9sp"
+            android:textColor="#9CA3AF"/>
+        <TextView
+            android:id="@+id/tvHiddenEnterDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="8sp"
+            android:textColor="#9CA3AF"/>
+    </LinearLayout>
+
+    <!-- 分割线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="#E5E7EB"/>
+
+</LinearLayout>

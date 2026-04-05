@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白色主题 vs 深色主题 对比</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        
+        .comparison {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .phone-frame {
+            width: 360px;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .phone-dark {
+            background: #1a1a2e;
+        }
+        
+        .phone-light {
+            background: #f5f7fa;
+        }
+        
+        .frame-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .title-dark {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #e94560;
+        }
+        
+        .title-light {
+            background: linear-gradient(135deg, #ffffff, #f5f7fa);
+            color: #2563eb;
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* 深色主题组件 */
+        .header-dark {
+            background: #16213e;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header-dark .title {
+            color: #e94560;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .header-dark .user {
+            color: #a0a0c0;
+            font-size: 10px;
+        }
+        
+        .header-dark .btn {
+            background: #3a1520;
+            color: #e94560;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+        
+        .control-dark {
+            background: #16213e;
+            padding: 8px 12px;
+        }
+        
+        .checkbox-dark {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-dark label {
+            color: #ffffff;
+            font-size: 10sp;
+            font-weight: bold;
+        }
+        
+        .input-row-dark {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .input-dark {
+            background: #122a4a;
+            border: 1px solid #2a4a6a;
+            color: #ffffff;
+            width: 36px;
+            height: 22px;
+            font-size: 10px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .btn-dark-primary {
+            background: linear-gradient(90deg, #e94560, #ff6b9d);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .btn-dark-secondary {
+            background: #3a3a5a;
+            color: #a0a0c0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .status-dark {
+            background: #0a0a1a;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+        
+        .status-dark .text {
+            color: #40c080;
+        }
+        
+        .status-dark .error {
+            color: #e94560;
+        }
+        
+        .tab-dark {
+            background: #0f3460;
+            display: flex;
+            padding: 8px;
+        }
+        
+        .tab-dark .tab {
+            flex: 1;
+            text-align: center;
+            color: #a0a0c0;
+            font-size: 10px;
+            padding: 6px;
+        }
+        
+        .tab-dark .tab.active {
+            color: #e94560;
+        }
+        
+        .list-dark {
+            background: #12122a;
+            padding: 8px;
+        }
+        
+        .card-dark {
+            background: #1e1e3a;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 6px;
+        }
+        
+        .card-dark .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .card-dark .title {
+            color: #e94560;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .card-dark .tag {
+            background: #3a1520;
+            color: #ff6b35;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+        }
+        
+        .card-dark .text {
+            color: #c0c0e0;
+            font-size: 11px;
+        }
+        
+        .card-dark .info {
+            color: #7070a0;
+            font-size: 10px;
+        }
+        
+        /* 白色主题组件 */
+        .header-light {
+            background: #ffffff;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .header-light .title {
+            color: #2563eb;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .header-light .user {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .header-light .btn {
+            background: #dbeafe;
+            color: #2563eb;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .control-light {
+            background: #ffffff;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .checkbox-light {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-light label {
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .input-row-light {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .input-light {
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            color: #1f2937;
+            width: 44px;
+            height: 28px;
+            font-size: 12px;
+            text-align: center;
+            border-radius: 6px;
+        }
+        
+        .btn-light-primary {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .btn-light-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .status-light {
+            background: #f0f2f5;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .status-light .text {
+            color: #10b981;
+        }
+        
+        .status-light .error {
+            color: #ef4444;
+        }
+        
+        .tab-light {
+            background: #ffffff;
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab-light .tab {
+            flex: 1;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            padding: 12px;
+        }
+        
+        .tab-light .tab.active {
+            color: #2563eb;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .tab-light .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 3px;
+            background: #2563eb;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .list-light {
+            background: #f5f7fa;
+            padding: 12px;
+        }
+        
+        .card-light {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .card-light .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .card-light .title {
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .card-light .tag {
+            background: #fef3c7;
+            color: #f59e0b;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .card-light .text {
+            color: #1f2937;
+            font-size: 13px;
+        }
+        
+        .card-light .info {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            max-width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .summary h2 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            background: #dbeafe;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            font-size: 16px;
+        }
+        
+        .feature-text {
+            color: #1f2937;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="comparison">
+        <!-- 深色主题 -->
+        <div>
+            <div class="frame-title title-dark">旧版 - 深色主题</div>
+            <div class="phone-frame phone-dark">
+                <div class="header-dark">
+                    <span class="title">铁塔运维助手</span>
+                    <span class="user">未登录</span>
+                    <span class="btn">退出</span>
+                </div>
+                <div class="control-dark">
+                    <div class="checkbox-dark">
+                        <label>自动反馈</label>
+                        <label>自动接单</label>
+                        <label>自动回单</label>
+                    </div>
+                    <div class="input-row-dark">
+                        <span style="color:#e0e0f0;font-size:10px">轮询:</span>
+                        <input type="text" class="input-dark" value="90">
+                        <span style="color:#e0e0f0;font-size:10px">~</span>
+                        <input type="text" class="input-dark" value="120">
+                        <span style="flex:1"></span>
+                        <button class="btn-dark-primary">开启监控</button>
+                        <button class="btn-dark-secondary">停止</button>
+                    </div>
+                </div>
+                <div class="status-dark">
+                    <span class="text">启动</span>
+                    <span style="color:#404060">|</span>
+                    <span class="error">停电 0</span>
+                </div>
+                <div class="tab-dark">
+                    <span class="tab">工单监控</span>
+                    <span class="tab">停电监控</span>
+                    <span class="tab active">数运审核</span>
+                </div>
+                <div class="list-dark">
+                    <div class="card-dark">
+                        <div class="row">
+                            <span style="color:#606080;font-size:11px;width:26px">1</span>
+                            <span class="title" style="flex:1">工单号:2026001</span>
+                            <span class="tag">告警中</span>
+                        </div>
+                        <div class="text" style="margin-bottom:4px">站点名 - 工单标题内容</div>
+                        <div class="info">接单人：张三 | 创建：2026-03-21</div>
+                    </div>
+                    <div class="card-dark">
+                        <div class="row">
+                            <span style="color:#606080;font-size:11px;width:26px">2</span>
+                            <span class="title" style="flex:1">工单号:2026002</span>
+                            <span class="tag" style="background:#2a2a4a;color:#50a050">已完成</span>
+                        </div>
+                        <div class="text" style="margin-bottom:4px">站点名 - 工单标题</div>
+                        <div class="info">接单人：李四 | 创建：2026-03-20</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 白色主题 -->
+        <div>
+            <div class="frame-title title-light">新版 - 白色主题</div>
+            <div class="phone-frame phone-light">
+                <div class="header-light">
+                    <span class="title">铁塔运维助手</span>
+                    <span class="user">未登录</span>
+                    <span class="btn">退出</span>
+                </div>
+                <div class="control-light">
+                    <div class="checkbox-light">
+                        <label>自动反馈</label>
+                        <label>自动接单</label>
+                        <label>自动回单</label>
+                    </div>
+                    <div class="input-row-light">
+                        <span style="color:#6b7280;font-size:12px">轮询:</span>
+                        <input type="text" class="input-light" value="90">
+                        <span style="color:#6b7280;font-size:12px">~</span>
+                        <input type="text" class="input-light" value="120">
+                        <span style="flex:1"></span>
+                        <button class="btn-light-primary">开启监控</button>
+                        <button class="btn-light-secondary">停止</button>
+                    </div>
+                </div>
+                <div class="status-light">
+                    <span class="text">启动</span>
+                    <span style="color:#e5e7eb">|</span>
+                    <span class="error">停电 0</span>
+                </div>
+                <div class="tab-light">
+                    <span class="tab">工单监控</span>
+                    <span class="tab">停电监控</span>
+                    <span class="tab active">数运审核</span>
+                </div>
+                <div class="list-light">
+                    <div class="card-light">
+                        <div class="row">
+                            <span style="color:#9ca3af;font-size:12px;width:30px">1</span>
+                            <span class="title" style="flex:1">工单号:2026001</span>
+                            <span class="tag">告警中</span>
+                        </div>
+                        <div class="text" style="margin-bottom:6px">站点名 - 工单标题内容</div>
+                        <div class="info">接单人：张三 | 创建：2026-03-21</div>
+                    </div>
+                    <div class="card-light">
+                        <div class="row">
+                            <span style="color:#9ca3af;font-size:12px;width:30px">2</span>
+                            <span class="title" style="flex:1">工单号:2026002</span>
+                            <span class="tag" style="background:#d1fae5;color:#10b981">已完成</span>
+                        </div>
+                        <div class="text" style="margin-bottom:6px">站点名 - 工单标题</div>
+                        <div class="info">接单人：李四 | 创建：2026-03-20</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="summary">
+        <h2>白色主题设计亮点</h2>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">👁</div>
+                <div class="feature-text">柔和护眼，长时间使用不疲劳</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <div class="feature-text">专业蓝#2563EB作为主色调</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <div class="feature-text">现代圆角设计，视觉更舒适</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📋</div>
+                <div class="feature-text">卡片式布局，信息层次分明</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔤</div>
+                <div class="feature-text">更大更清晰的字体</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✨</div>
+                <div class="feature-text">轻微阴影增加立体感</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

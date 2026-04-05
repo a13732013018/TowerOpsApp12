@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:gravity="center_vertical">
+
+    <!-- 序号 -->
+    <TextView
+        android:id="@+id/tvAcIndex"
+        android:layout_width="16dp"
+        android:layout_height="wrap_content"
+        android:text="1"
+        android:textColor="@color/text_tertiary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 站名 -->
+    <TextView
+        android:id="@+id/tvAcStName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.5"
+        android:text="测试站名"
+        android:textColor="@color/text_primary"
+        android:textSize="9sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:layout_marginStart="2dp"
+        android:includeFontPadding="false"/>
+
+    <!-- 告警时间（yyyy-MM-dd HH:mm:ss，两行显示） -->
+    <TextView
+        android:id="@+id/tvAcAlarmTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.2"
+        android:text="2025-01-01&#10;08:00:00"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:maxLines="2"
+        android:includeFontPadding="false"
+        android:layout_marginStart="2dp"/>
+
+    <!-- 蓝牙出站时间（yyyy-MM-dd HH:mm:ss，两行显示） -->
+    <TextView
+        android:id="@+id/tvAcBtTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.2"
+        android:text="无记录"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:maxLines="2"
+        android:includeFontPadding="false"
+        android:layout_marginStart="2dp"/>
+
+    <!-- 蓝牙间隔（分钟） -->
+    <TextView
+        android:id="@+id/tvAcBtInterval"
+        android:layout_width="26dp"
+        android:layout_height="wrap_content"
+        android:text="-"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 状态 -->
+    <TextView
+        android:id="@+id/tvAcStatus"
+        android:layout_width="30dp"
+        android:layout_height="wrap_content"
+        android:text="查询中"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:maxLines="2"
+        android:includeFontPadding="false"/>
+
+    <!-- 远程开门时间（yyyy-MM-dd HH:mm:ss，两行显示） -->
+    <TextView
+        android:id="@+id/tvAcRemoteTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.2"
+        android:text="查询中"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:maxLines="2"
+        android:includeFontPadding="false"
+        android:layout_marginStart="2dp"/>
+
+    <!-- 远程间隔（分钟） -->
+    <TextView
+        android:id="@+id/tvAcRemoteInterval"
+        android:layout_width="26dp"
+        android:layout_height="wrap_content"
+        android:text="-"
+        android:textColor="@color/text_secondary"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+</LinearLayout>

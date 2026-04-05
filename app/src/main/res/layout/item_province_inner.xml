@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="6dp"
+    app:cardCornerRadius="6dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <!-- 顶部：序号 + 处理人标签 + 分组 + 创建时间 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- 序号 -->
+            <TextView
+                android:id="@+id/tvPIIndex"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:text="1"
+                android:textSize="10sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/bg_tag_primary" />
+
+            <!-- 处理人 -->
+            <TextView
+                android:id="@+id/tvPIHandler"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="林甲雨"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_handler_tag"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginStart="5dp" />
+
+            <!-- 分组 -->
+            <TextView
+                android:id="@+id/tvPIGroup"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="卢智伟、杨桂"
+                android:textSize="10sp"
+                android:textColor="#8B5CF6"
+                android:layout_marginStart="6dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- 创建时间 -->
+            <TextView
+                android:id="@+id/tvPICreateTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2025-01-01 12:00"
+                android:textSize="10sp"
+                android:textColor="#9CA3AF" />
+        </LinearLayout>
+
+        <!-- 站点名称 + 工单数量 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:id="@+id/tvPIStationName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="站点名称"
+                android:textSize="14sp"
+                android:textColor="#1F2937"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvPIOrderCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="(3张)"
+                android:textSize="11sp"
+                android:textColor="#2563EB"
+                android:textStyle="bold"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+
+        <!-- 工单描述 + 工单类型 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/tvPIOrderDesc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="工单描述内容"
+                android:textSize="11sp"
+                android:textColor="#6B7280"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvPIOrderType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="综合"
+                android:textSize="10sp"
+                android:textColor="@android:color/white"
+                android:background="@drawable/bg_tag_success"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+        </LinearLayout>
+
+        <!-- 任务类型(data_name) -->
+        <TextView
+            android:id="@+id/tvPIDataName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="设备信号不准确异常整治"
+            android:textSize="11sp"
+            android:textColor="#059669"
+            android:layout_marginTop="3dp"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <!-- 流程名称 / 环节 -->
+        <TextView
+            android:id="@+id/tvPIFlowName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="流程：配变技改"
+            android:textSize="11sp"
+            android:textColor="#4B5563"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- 要求完成时间 -->
+        <TextView
+            android:id="@+id/tvPIReqTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="要求完成: 2025-01-05 18:00"
+            android:textSize="10sp"
+            android:textColor="#EF4444"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

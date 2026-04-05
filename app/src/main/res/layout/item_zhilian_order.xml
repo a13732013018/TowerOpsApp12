@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="3dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/background_secondary">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 顶部左侧色条 + 头部行 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical">
+
+            <!-- 序号圆圈 -->
+            <TextView
+                android:id="@+id/tvIndex"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:background="@drawable/bg_circle_blue"
+                android:gravity="center"
+                android:text="1"
+                android:textSize="10sp"
+                android:textColor="@color/text_inverse"
+                android:textStyle="bold"
+                android:includeFontPadding="false"/>
+
+            <!-- 站点名 -->
+            <TextView
+                android:id="@+id/tvSiteName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="站点名称"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <!-- 状态 badge -->
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:text="未领取"
+                android:textSize="10sp"
+                android:textColor="@color/primary_text"
+                android:background="@color/primary_light"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:gravity="center"
+                android:includeFontPadding="false"/>
+        </LinearLayout>
+
+        <!-- 分割线 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"/>
+
+        <!-- 信息区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp">
+
+            <!-- 任务类型 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="任务类型"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_tertiary"/>
+
+                <TextView
+                    android:id="@+id/tvTaskType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- 创建时间 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="创建时间"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_tertiary"/>
+
+                <TextView
+                    android:id="@+id/tvCreateTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 处理人（已领取时显示） -->
+        <LinearLayout
+            android:id="@+id/layoutDealInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="处理人:"
+                android:textSize="10sp"
+                android:textColor="@color/text_tertiary"/>
+
+            <TextView
+                android:id="@+id/tvDoDealName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginStart="5dp"/>
+        </LinearLayout>
+
+        <!-- 操作按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="10dp"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btnManualAccept"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:text="手动接单"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/button_success_bg"
+                android:textColor="@color/text_inverse"
+                android:stateListAnimator="@null"
+                android:minHeight="0dp"
+                android:letterSpacing="0"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:visibility="gone"/>
+
+            <Button
+                android:id="@+id/btnManualRevert"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:text="手动回单"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/warning"
+                android:textColor="@color/text_inverse"
+                android:stateListAnimator="@null"
+                android:minHeight="0dp"
+                android:letterSpacing="0"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:visibility="gone"
+                android:layout_marginStart="7dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  数运监控 Fragment v5.0
+  设计规范：36dp 按钮，统一间距，120dp 日志区
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_base">
+
+    <!-- ═══ 状态栏：36dp ═══ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:background="@color/bg_card"
+        android:elevation="2dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvShuyunStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="数运监控未启动"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvCurrentTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--:--:--"
+            android:textSize="12sp"
+            android:textColor="@color/text_tertiary"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="12dp"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvPendingCount"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:text="待处理: 0"
+            android:textSize="10sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:background="@color/primary_light"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:gravity="center"
+            android:layout_marginEnd="6dp"
+            android:includeFontPadding="false"/>
+
+        <TextView
+            android:id="@+id/tvProcessingCount"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:text="处理中: 0"
+            android:textSize="10sp"
+            android:textColor="@color/success"
+            android:textStyle="bold"
+            android:background="@color/success_light"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:gravity="center"
+            android:includeFontPadding="false"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_strong"/>
+
+    <!-- ═══ 登录面板 ═══ -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="4dp"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/bg_card">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <!-- PC 验证码行：32dp -->
+            <LinearLayout
+                android:id="@+id/layoutPcCaptcha"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PC验证码"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:includeFontPadding="false"/>
+
+                <ImageView
+                    android:id="@+id/imgPcCaptcha"
+                    android:layout_width="72dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@color/bg_panel"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="验证码"/>
+
+                <EditText
+                    android:id="@+id/etPcCaptcha"
+                    android:layout_width="52dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="6dp"
+                    android:hint="输入"
+                    android:textSize="11sp"
+                    android:background="@drawable/bg_edittext"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:inputType="text"
+                    android:maxLength="4"
+                    android:gravity="center"/>
+
+                <Button
+                    android:id="@+id/btnRefreshCaptcha"
+                    android:layout_width="32dp"
+                    android:layout_height="28dp"
+                    android:text="刷"
+                    android:textSize="10sp"
+                    android:backgroundTint="@color/text_tertiary"
+                    android:textColor="@android:color/white"
+                    android:layout_marginStart="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    android:stateListAnimator="@null"/>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="18dp"
+                    android:background="@color/divider"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvPcLoginStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="未登录"
+                    android:textSize="10sp"
+                    android:textColor="@color/error"
+                    android:includeFontPadding="false"/>
+
+                <Button
+                    android:id="@+id/btnPcLogin"
+                    android:layout_width="50dp"
+                    android:layout_height="28dp"
+                    android:text="登录"
+                    android:textSize="10sp"
+                    android:backgroundTint="@color/success"
+                    android:textColor="@android:color/white"
+                    android:layout_marginStart="6dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    android:stateListAnimator="@null"/>
+            </LinearLayout>
+
+            <!-- APP 登录行：32dp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="APP账号"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:includeFontPadding="false"/>
+
+                <Spinner
+                    android:id="@+id/spinnerAppAccount"
+                    android:layout_width="100dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_spinner"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:dropDownWidth="150dp"/>
+
+                <TextView
+                    android:id="@+id/tvImei"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="IMEI:-"
+                    android:textSize="9sp"
+                    android:textColor="@color/text_tertiary"
+                    android:layout_marginStart="6dp"
+                    android:maxWidth="64dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"/>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="18dp"
+                    android:background="@color/divider"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvAppLoginStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="未登录"
+                    android:textSize="10sp"
+                    android:textColor="@color/error"
+                    android:includeFontPadding="false"/>
+
+                <Button
+                    android:id="@+id/btnAppLogin"
+                    android:layout_width="50dp"
+                    android:layout_height="28dp"
+                    android:text="登录"
+                    android:textSize="10sp"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="@android:color/white"
+                    android:layout_marginStart="6dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    android:stateListAnimator="@null"/>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- ═══ 控制面板：统一 36dp 按钮 ═══ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:background="@color/bg_card"
+        android:layout_marginTop="1dp"
+        android:gravity="center_vertical">
+
+        <CheckBox
+            android:id="@+id/cbAutoAccept"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="自动接单"
+            android:textSize="12sp"
+            android:checked="true"
+            android:minHeight="0dp"/>
+
+        <CheckBox
+            android:id="@+id/cbAutoRevert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="自动回单"
+            android:textSize="12sp"
+            android:checked="true"
+            android:layout_marginStart="6dp"
+            android:minHeight="0dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="区县"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginStart="8dp"
+            android:includeFontPadding="false"/>
+
+        <Spinner
+            android:id="@+id/spinnerCounty"
+            android:layout_width="90dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_spinner"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:dropDownWidth="180dp"
+            android:spinnerMode="dropdown"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnStartShuyun"
+            android:layout_width="72dp"
+            android:layout_height="36dp"
+            android:text="启动监控"
+            android:textSize="11sp"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="@android:color/white"
+            android:stateListAnimator="@null"
+            android:minHeight="0dp"
+            android:letterSpacing="0"
+            android:padding="0dp"/>
+
+        <Button
+            android:id="@+id/btnStopShuyun"
+            android:layout_width="52dp"
+            android:layout_height="36dp"
+            android:text="停止"
+            android:textSize="11sp"
+            android:backgroundTint="@color/error"
+            android:textColor="@android:color/white"
+            android:layout_marginStart="6dp"
+            android:stateListAnimator="@null"
+            android:minHeight="0dp"
+            android:letterSpacing="0"
+            android:padding="0dp"
+            android:enabled="false"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_strong"/>
+
+    <!-- ═══ Tab 切换：34dp ═══ -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutShuyun"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:background="@color/bg_card"
+        app:tabIndicatorColor="@color/colorPrimary"
+        app:tabSelectedTextColor="@color/colorPrimary"
+        app:tabTextColor="@color/text_secondary"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabIndicatorHeight="3dp"
+        app:tabIndicatorFullWidth="false"
+        app:tabTextAppearance="@style/TabTextStyle">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="待处理"/>
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="处理中"/>
+
+    </com.google.android.material.tabs.TabLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_strong"/>
+
+    <!-- ═══ 列表区 ═══ -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPending"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="4dp"
+            android:clipToPadding="false"
+            android:visibility="visible"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvProcessing"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="4dp"
+            android:clipToPadding="false"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="暂无数据"
+            android:textSize="13sp"
+            android:textColor="@color/text_tertiary"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
+    <!-- ═══ 日志面板：120dp ═══ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:orientation="vertical"
+        android:background="@color/log_background">
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="@color/log_border"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:background="@color/log_header_bg"
+            android:gravity="center_vertical">
+
+            <View android:layout_width="8dp" android:layout_height="8dp"
+                android:background="@drawable/bg_dot_circle_red" android:layout_marginEnd="5dp"/>
+            <View android:layout_width="8dp" android:layout_height="8dp"
+                android:background="@drawable/bg_dot_circle_yellow" android:layout_marginEnd="5dp"/>
+            <View android:layout_width="8dp" android:layout_height="8dp"
+                android:background="@drawable/bg_dot_circle_green" android:layout_marginEnd="10dp"/>
+
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="运行日志"
+                android:textSize="10sp" android:textStyle="bold"
+                android:textColor="@color/log_title" android:fontFamily="monospace"
+                android:includeFontPadding="false"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="18dp"
+                android:text="● LIVE" android:textSize="8sp"
+                android:textColor="@color/success" android:textStyle="bold"
+                android:background="@color/success_light"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
+                android:gravity="center" android:includeFontPadding="false"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.5dp"
+            android:background="@color/log_border"/>
+
+        <ScrollView
+            android:id="@+id/svLog"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:paddingTop="5dp" android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/tvLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="9.5sp"
+                android:textColor="@color/log_text"
+                android:fontFamily="monospace"
+                android:lineSpacingMultiplier="1.5"
+                android:includeFontPadding="false"/>
+        </ScrollView>
+    </LinearLayout>
+
+</LinearLayout>

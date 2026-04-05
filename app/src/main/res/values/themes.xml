@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TowerOps 主题 v5.0 — 顶级精工白金 -->
+    <style name="Theme.TowerOpsApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#4F46E5</item>
+        <item name="colorPrimaryDark">#4338CA</item>
+        <item name="colorPrimaryVariant">#4338CA</item>
+        <item name="colorAccent">#4F46E5</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorOnSurface">#1E2347</item>
+        <item name="android:windowBackground">#F4F6FB</item>
+        <item name="android:statusBarColor">#4F46E5</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <!-- EditText 全局聚焦颜色 -->
+        <item name="colorControlActivated">#4F46E5</item>
+        <item name="colorControlHighlight">#1A4F46E5</item>
+        <!-- 去除 Button 默认阴影波纹 -->
+        <item name="materialButtonStyle">@style/PrimaryButton</item>
+    </style>
+
+    <!-- ===== Tab 主文字 · 13sp bold ===== -->
+    <style name="TabTextStyle" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+
+    <!-- ===== 子Tab文字 · 12sp ===== -->
+    <style name="TabTextSub" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <!-- ===== 主按钮 · Indigo-600 ===== -->
+    <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">#4F46E5</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <!-- ===== 危险按钮 · Red-600 ===== -->
+    <style name="DangerButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">#DC2626</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <!-- ===== 成功按钮 · Emerald-600 ===== -->
+    <style name="SuccessButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">#059669</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <!-- ===== 次级按钮 ===== -->
+    <style name="SecondaryButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textColor">#475569</item>
+        <item name="strokeColor">#E2E8F0</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">36dp</item>
+    </style>
+
+    <!-- ===== 幽灵按钮 ===== -->
+    <style name="GhostButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">#475569</item>
+        <item name="backgroundTint">#F1F5F9</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">36dp</item>
+    </style>
+</resources>

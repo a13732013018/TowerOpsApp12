@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 顶栏渐变：Indigo-600 → Indigo-500 精准光感 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:type="linear"
+        android:angle="135"
+        android:startColor="#4F46E5"
+        android:centerColor="#5350E8"
+        android:endColor="#6366F1"/>
+</shape>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@color/list_item_background"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:gravity="center_vertical"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- 序号 -->
+    <TextView
+        android:id="@+id/tvIndex"
+        android:layout_width="22dp"
+        android:layout_height="wrap_content"
+        android:text="1"
+        android:textColor="@color/text_tertiary"
+        android:textSize="9sp"
+        android:gravity="center"
+        android:includeFontPadding="false"/>
+
+    <!-- 站点名称 -->
+    <TextView
+        android:id="@+id/tvStName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="站点名称"
+        android:textColor="@color/text_primary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginStart="4dp"
+        android:includeFontPadding="false"/>
+
+    <!-- 电压 -->
+    <TextView
+        android:id="@+id/tvDcVoltage"
+        android:layout_width="46dp"
+        android:layout_height="wrap_content"
+        android:text="0.00V"
+        android:textColor="@color/error"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:gravity="end"
+        android:includeFontPadding="false"/>
+
+    <!-- 负载电流 -->
+    <TextView
+        android:id="@+id/tvDcLoadCurrent"
+        android:layout_width="44dp"
+        android:layout_height="wrap_content"
+        android:text="0.00A"
+        android:textColor="@color/success"
+        android:textSize="10sp"
+        android:gravity="end"
+        android:layout_marginStart="2dp"
+        android:includeFontPadding="false"/>
+
+    <!-- 类型 badge -->
+    <TextView
+        android:id="@+id/tvCause"
+        android:layout_width="32dp"
+        android:layout_height="18dp"
+        android:text="停电"
+        android:textColor="@color/warning_text"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:layout_marginStart="4dp"
+        android:background="@drawable/bg_tag_warning"
+        android:includeFontPadding="false"/>
+
+    <!-- 告警时间 -->
+    <TextView
+        android:id="@+id/tvAlarmTime"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:text="时间"
+        android:textColor="@color/text_secondary"
+        android:textSize="9sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:gravity="end"
+        android:layout_marginStart="4dp"
+        android:includeFontPadding="false"/>
+
+    <!-- 隐藏字段 -->
+    <TextView
+        android:id="@+id/tvStCode"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/tvGroup"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+
+</LinearLayout>

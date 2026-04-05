@@ -1,0 +1,29 @@
+# Android standard .gitignore
+
+# Built outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Build directories
+/build/
+/app/build/
+/captures/
+
+# Local configuration files
+local.properties
+/.idea/workspace.xml
+/.idea/libraries
+/.idea/caches
+
+# Gradle cache (but NOT the wrapper jar!)
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!--  TowerOps 设计系统 v5.0 — 顶级精工白金体系                       -->
+    <!--  8dp 网格 · 精准语义 · 奢华细节 · 完全无黑色                     -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- 启动器 -->
+    <color name="ic_launcher_background">#EEF2FF</color>
+
+    <!-- ═══ 品牌色 · Sovereign Indigo ═══ -->
+    <!-- 主色 Indigo-600：更鲜亮有力 -->
+    <color name="colorPrimary">#4F46E5</color>
+    <color name="colorPrimaryDark">#4338CA</color>
+    <color name="colorPrimaryDeep">#3730A3</color>
+    <color name="colorPrimaryLight">#EEF2FF</color>
+    <color name="colorPrimaryMid">#818CF8</color>
+    <color name="colorPrimaryGlow">#A5B4FC</color>
+    <color name="colorAccent">#4F46E5</color>
+
+    <!-- ═══ 背景层次 · 五层白金体系 ═══ -->
+    <!-- L0 页面基底：冷白微蓝调 -->
+    <color name="bg_base">#F4F6FB</color>
+    <!-- L1 卡片面：纯白 -->
+    <color name="bg_card">#FFFFFF</color>
+    <!-- L2 嵌套面板：蓝灰极浅 -->
+    <color name="bg_panel">#F0F3FA</color>
+    <!-- L3 输入框/chip 背景 -->
+    <color name="bg_input">#F7F9FE</color>
+    <!-- L4 强调面板（hover/active）-->
+    <color name="bg_highlight">#EEF2FF</color>
+    <!-- 模态遮罩 -->
+    <color name="bg_scrim">#40000000</color>
+
+    <!-- 兼容旧名称 -->
+    <color name="background_primary">#F4F6FB</color>
+    <color name="background_secondary">#FFFFFF</color>
+    <color name="background_tertiary">#F0F3FA</color>
+    <color name="background_overlay">#F4F6FB</color>
+
+    <!-- ═══ 顶栏 ═══ -->
+    <color name="header_start">#4F46E5</color>
+    <color name="header_end">#6366F1</color>
+
+    <!-- ═══ 控制面板 ═══ -->
+    <color name="control_panel_background">#FFFFFF</color>
+    <color name="control_panel_border">#E4E9F6</color>
+
+    <!-- ═══ 状态栏 ═══ -->
+    <color name="status_bar_background">#F0F3FF</color>
+    <color name="status_bar_border">#D8E0F5</color>
+
+    <!-- ═══ Tab 栏 ═══ -->
+    <color name="tab_background">#FFFFFF</color>
+    <color name="tab_indicator">#4F46E5</color>
+    <color name="tab_selected">#4F46E5</color>
+    <color name="tab_unselected">#94A3C0</color>
+    <color name="tab_border">#E4E9F6</color>
+
+    <!-- ═══ 按钮色系 ═══ -->
+    <!-- 主操作：靛蓝 -->
+    <color name="btn_primary">#4F46E5</color>
+    <color name="btn_primary_dark">#4338CA</color>
+    <color name="btn_primary_text">#FFFFFF</color>
+    <!-- 成功操作：绿 -->
+    <color name="btn_success">#059669</color>
+    <color name="btn_success_dark">#047857</color>
+    <!-- 危险操作：红 -->
+    <color name="btn_danger">#DC2626</color>
+    <color name="btn_danger_dark">#B91C1C</color>
+    <!-- 次要操作：蓝灰 -->
+    <color name="btn_secondary">#64748B</color>
+    <color name="btn_secondary_dark">#475569</color>
+    <!-- 琥珀 审核 -->
+    <color name="btn_amber">#D97706</color>
+    <color name="btn_amber_dark">#B45309</color>
+    <!-- 紫 -->
+    <color name="btn_purple">#7C3AED</color>
+    <color name="btn_purple_dark">#6D28D9</color>
+    <!-- 翠绿 -->
+    <color name="btn_teal">#0D9488</color>
+    <color name="btn_teal_dark">#0F766E</color>
+
+    <!-- 兼容旧名称 -->
+    <color name="button_primary_bg">#4F46E5</color>
+    <color name="button_primary_text">#FFFFFF</color>
+    <color name="button_primary_dark">#4338CA</color>
+    <color name="button_success_bg">#059669</color>
+    <color name="button_success_dark">#047857</color>
+    <color name="button_danger_bg">#DC2626</color>
+    <color name="button_danger_dark">#B91C1C</color>
+    <color name="button_secondary_bg">#64748B</color>
+    <color name="button_secondary_text">#FFFFFF</color>
+    <color name="button_ghost_bg">#EEF2FF</color>
+    <color name="button_ghost_text">#4F46E5</color>
+
+    <!-- ═══ 文字体系 ═══ -->
+    <!-- 最高对比 · 深靛近黑 -->
+    <color name="text_primary">#1E2347</color>
+    <!-- 正文 · 中灰靛 -->
+    <color name="text_secondary">#4B5580</color>
+    <!-- 辅助 · 浅灰 -->
+    <color name="text_tertiary">#8C9BBF</color>
+    <!-- 占位符 -->
+    <color name="text_placeholder">#BEC7E0</color>
+    <!-- 反白 -->
+    <color name="text_inverse">#FFFFFF</color>
+    <!-- 链接 / 强调 -->
+    <color name="text_link">#4F46E5</color>
+    <!-- 数字 · monospace 高亮 -->
+    <color name="text_number">#3B4FC8</color>
+
+    <!-- ═══ 语义状态色 ═══ -->
+    <!-- 成功 · Emerald-600 -->
+    <color name="success">#059669</color>
+    <color name="success_light">#ECFDF5</color>
+    <color name="success_mid">#D1FAE5</color>
+    <color name="success_text">#065F46</color>
+    <color name="success_border">#6EE7B7</color>
+    <!-- 警告 · Amber-600 -->
+    <color name="warning">#D97706</color>
+    <color name="warning_light">#FFFBEB</color>
+    <color name="warning_mid">#FEF3C7</color>
+    <color name="warning_text">#92400E</color>
+    <color name="warning_border">#FCD34D</color>
+    <!-- 错误 · Red-600 -->
+    <color name="error">#DC2626</color>
+    <color name="error_light">#FEF2F2</color>
+    <color name="error_mid">#FEE2E2</color>
+    <color name="error_text">#991B1B</color>
+    <color name="error_border">#FCA5A5</color>
+    <!-- 信息 · Blue-600 -->
+    <color name="info">#2563EB</color>
+    <color name="info_light">#EFF6FF</color>
+    <color name="info_mid">#DBEAFE</color>
+    <color name="info_text">#1E40AF</color>
+    <color name="info_border">#93C5FD</color>
+    <!-- 主色语义 · Indigo -->
+    <color name="primary_light">#EEF2FF</color>
+    <color name="primary_mid">#E0E7FF</color>
+    <color name="primary_text">#3730A3</color>
+    <color name="primary_border">#A5B4FC</color>
+    <!-- 紫 Violet -->
+    <color name="violet_light">#F5F3FF</color>
+    <color name="violet_text">#5B21B6</color>
+    <color name="violet_border">#C4B5FD</color>
+    <!-- 翠绿 Teal -->
+    <color name="teal_light">#F0FDFA</color>
+    <color name="teal_text">#0F766E</color>
+    <color name="teal_border">#5EEAD4</color>
+
+    <!-- ═══ 边框 / 分割线 ═══ -->
+    <!-- 极细分割：几乎透明 -->
+    <color name="divider">#EDF0F8</color>
+    <!-- 正常分割 -->
+    <color name="divider_strong">#E4E9F6</color>
+    <!-- 卡片边框 -->
+    <color name="border">#E4E9F6</color>
+    <!-- 强调边框 -->
+    <color name="border_strong">#CBD3EA</color>
+    <!-- 聚焦边框 -->
+    <color name="border_focus">#4F46E5</color>
+
+    <!-- ═══ 输入框 ═══ -->
+    <color name="input_background">#F7F9FE</color>
+    <color name="input_border">#D4DAEA</color>
+    <color name="input_border_focus">#4F46E5</color>
+    <color name="input_text">#1E2347</color>
+
+    <!-- ═══ 列表项 ═══ -->
+    <color name="list_item_background">#FFFFFF</color>
+    <color name="list_item_alt">#FAFBFF</color>
+    <color name="list_item_selected">#EEF2FF</color>
+    <color name="list_item_selected_border">#4F46E5</color>
+
+    <!-- ═══ CheckBox ═══ -->
+    <color name="checkbox_checked">#4F46E5</color>
+    <color name="checkbox_unchecked">#BEC7E0</color>
+
+    <!-- ═══ 标签 Tag ═══ -->
+    <color name="tag_background">#F0F3FA</color>
+    <color name="tag_text">#4B5580</color>
+    <color name="tag_primary_bg">#EEF2FF</color>
+    <color name="tag_primary_text">#4F46E5</color>
+
+    <!-- ═══ 日志区 · 精工终端面板（无任何黑色） ═══ -->
+    <!-- 主体：亮白微靛 -->
+    <color name="log_background">#FAFBFF</color>
+    <!-- 标题栏：柔和靛白 -->
+    <color name="log_header_bg">#F0F2FF</color>
+    <!-- 分割线 -->
+    <color name="log_border">#DDE3F8</color>
+    <!-- 正文：深靛灰，高可读性 -->
+    <color name="log_text">#2D3A6B</color>
+    <!-- 标题文字 -->
+    <color name="log_title">#5C6EA8</color>
+    <!-- 状态色（用于 Span 着色） -->
+    <color name="log_success">#047857</color>
+    <color name="log_warning">#B45309</color>
+    <color name="log_error">#B91C1C</color>
+    <color name="log_info">#1D4ED8</color>
+    <!-- macOS 装饰圆点 -->
+    <color name="log_dot_red">#FF5F57</color>
+    <color name="log_dot_yellow">#FFBD2E</color>
+    <color name="log_dot_green">#28CA41</color>
+
+    <!-- ═══ 旧版兼容 ═══ -->
+    <color name="success_neu">#059669</color>
+    <color name="error_neu">#DC2626</color>
+</resources>

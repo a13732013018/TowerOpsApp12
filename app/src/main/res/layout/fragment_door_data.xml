@@ -226,7 +226,7 @@
             android:id="@+id/thDoorStName"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="2"
+            android:layout_weight="1.8"
             android:text="站名"
             android:textSize="9sp"
             android:textColor="#374151"
@@ -238,7 +238,7 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.2"
+            android:layout_weight="1.1"
             android:text="告警类型"
             android:textSize="9sp"
             android:textColor="#374151"
@@ -273,12 +273,26 @@
             android:clickable="true"
             android:focusable="true" />
 
+        <!-- 远程时间（可排序） -->
+        <TextView
+            android:id="@+id/thDoorRemoteTime"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.3"
+            android:text="远程时间"
+            android:textSize="9sp"
+            android:textColor="#374151"
+            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true" />
+
         <!-- 时差（可排序） -->
         <TextView
             android:id="@+id/thDoorDiff"
-            android:layout_width="34dp"
+            android:layout_width="32dp"
             android:layout_height="match_parent"
-            android:text="差"
+            android:text="时差"
             android:textSize="9sp"
             android:textColor="#374151"
             android:textStyle="bold"

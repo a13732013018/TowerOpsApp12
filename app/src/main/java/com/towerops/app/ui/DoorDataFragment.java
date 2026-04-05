@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,13 +50,18 @@ import java.util.regex.Pattern;
  * 核心逻辑：
  *   1. 翻页拉取 OMMS listAlarm.xhtml（alarmname=门）全量历史门禁告警
  *   2. 同步拉取数运蓝牙开门记录（AccessControlApi.getAllLanyaRecords(startDate, endDate)）
- *   3. 按「站名」分组（OMMS站址运维ID≠数运站址编码，只有站名能跨系统关联）
- *   4. 每站：逐条告警找蓝牙记录，|告警时间 - 蓝牙开门时间| ≤ 30分钟 = 合格
- *      - 有合格记录：保留第一条合格，删除其余，标绿
- *      - 无合格记录：只保留最新一条，标红（不合格）
- *   5. 按合格/不合格排序后展示，顶部汇总合格站数/不合格站数
- *   6. 表头可点击排序（正序/倒序切换）
- *   7. 支持导出 CSV 到 Downloads 目录
+ *   3. 按站名分组，每站遍历所有告警：
+ *      - 蓝牙和远程开门时间都算，取离告警时间最近的
+ *      - 蓝牙 OR 远程 |时间差| ≤ 30分钟 → 合格
+ *      - 蓝牙 AND 远程 都 > 30分钟或无记录 → 不合格
+ *      - 合格原因 = 时间差更小的那个（蓝牙 or 远程）
+ *   4. 每站只取1条展示：
+ *      - 有合格 → 取离当前最近的合格告警
+ *      - 全不合格 → 取离当前最近的告警
+ *   5. 时间差列显示蓝牙/远程中离告警时间最近的那个的差值
+ *   6. 按合格/不合格排序后展示，顶部汇总合格站数/不合格站数
+ *   7. 表头可点击排序（正序/倒序切换）
+ *   8. 支持导出 CSV 到 Downloads 目录
  */
 public class DoorDataFragment extends Fragment {
 
@@ -65,7 +71,7 @@ public class DoorDataFragment extends Fragment {
     private static final int MATCH_THRESHOLD_MIN = 30;
 
     // ── 排序枚举 ─────────────────────────────────────────────────────────
-    private enum SortCol { NONE, ST_NAME, ALARM_TIME, BT_TIME, DIFF, QUALIFIED }
+    private enum SortCol { NONE, ST_NAME, ALARM_TIME, BT_TIME, DIFF, REMOTE_TIME, QUALIFIED }
     private SortCol  sortCol = SortCol.QUALIFIED;
     private boolean  sortAsc = false; // 默认：合格在前（desc）
 
@@ -75,7 +81,7 @@ public class DoorDataFragment extends Fragment {
     private TextView     tvStatus, tvStartDate, tvEndDate;
     private LinearLayout layoutSummary, layoutHeader;
     private TextView     tvTotal, tvOk, tvFail;
-    private TextView     thStName, thAlarmTime, thBtTime, thDiff, thQualified;
+    private TextView     thStName, thAlarmTime, thBtTime, thDiff, thRemoteTime, thQualified;
     private RecyclerView rvDoorData;
 
     /** 当前选中日期（yyyy-MM-dd，空串=不限） */
@@ -99,13 +105,17 @@ public class DoorDataFragment extends Fragment {
     /** 最终展示行（每站一条） */
     public static class DoorAlarmRow {
         public int     index;
-        public String  stCode;       // 站址运维ID（OMMS col[11]，12位，非站址编码，仅展示用）
-        public String  stName;       // 站名（用于匹配蓝牙记录）
-        public String  alarmName;    // 告警名称
-        public String  alarmTime;    // 告警发生时间
-        public String  btOpenTime;   // 匹配到的蓝牙开门时间（"无" = 未匹配）
-        public int     diffMinutes;  // |告警时间 - 蓝牙时间| 分钟，-1 = 无法计算
-        public boolean qualified;    // true=合格，false=不合格
+        public String  stCode;           // 站址运维ID（OMMS col[11]，12位，非站址编码，仅展示用）
+        public String  stName;           // 站名（用于匹配蓝牙记录）
+        public String  alarmName;        // 告警名称
+        public String  alarmTime;        // 告警发生时间
+        public String  btOpenTime;       // 蓝牙开门时间（"无" = 无记录）
+        public int     diffMinutes;      // |告警时间 - 蓝牙时间| 分钟，-1 = 无法计算
+        public String  remoteOpenTime;   // 远程开门时间（"无" = 无记录）
+        public int     remoteDiffMinutes; // |告警时间 - 远程开门时间| 分钟，-1 = 无法计算
+        public boolean qualified;        // true=合格（蓝牙或远程≤30min），false=不合格
+        public String  qualifyReason;    // 合格来源："蓝牙" / "远程"（取时间差更小的那个），不合格时为空
+        public String  fsuid;            // FSU ID（col[16] 设备ID，14位，第7-9位=438，用于查远程开门时间）
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -158,6 +168,7 @@ public class DoorDataFragment extends Fragment {
         thAlarmTime = v.findViewById(R.id.thDoorAlarmTime);
         thBtTime    = v.findViewById(R.id.thDoorBtTime);
         thDiff      = v.findViewById(R.id.thDoorDiff);
+        thRemoteTime = v.findViewById(R.id.thDoorRemoteTime);
         thQualified = v.findViewById(R.id.thDoorQualified);
     }
 
@@ -257,6 +268,7 @@ public class DoorDataFragment extends Fragment {
         thAlarmTime.setOnClickListener(v -> onHeaderClick(SortCol.ALARM_TIME, thAlarmTime));
         thBtTime.setOnClickListener(v -> onHeaderClick(SortCol.BT_TIME,    thBtTime));
         thDiff.setOnClickListener(v -> onHeaderClick(SortCol.DIFF,        thDiff));
+        if (thRemoteTime != null) thRemoteTime.setOnClickListener(v -> onHeaderClick(SortCol.REMOTE_TIME, thRemoteTime));
         thQualified.setOnClickListener(v -> onHeaderClick(SortCol.QUALIFIED,  thQualified));
     }
 
@@ -277,8 +289,17 @@ public class DoorDataFragment extends Fragment {
         resetHeader(thStName,    "站名",    SortCol.ST_NAME);
         resetHeader(thAlarmTime, "告警时间", SortCol.ALARM_TIME);
         resetHeader(thBtTime,    "蓝牙时间", SortCol.BT_TIME);
-        resetHeader(thDiff,      "差",       SortCol.DIFF);
+        resetHeader(thDiff,      "时差",     SortCol.DIFF);
+        if (thRemoteTime != null) resetHeader(thRemoteTime, "远程时间", SortCol.REMOTE_TIME);
         resetHeader(thQualified, "结果",    SortCol.QUALIFIED);
+    }
+
+    /** 取蓝牙/远程中离告警时间更近的差值（分钟） */
+    private static int bestDiff(DoorAlarmRow r) {
+        int bt = r.diffMinutes >= 0 ? r.diffMinutes : Integer.MAX_VALUE;
+        int rm = r.remoteDiffMinutes >= 0 ? r.remoteDiffMinutes : Integer.MAX_VALUE;
+        int min = Math.min(bt, rm);
+        return min == Integer.MAX_VALUE ? -1 : min;
     }
 
     private void resetHeader(TextView tv, String base, SortCol col) {
@@ -317,9 +338,18 @@ public class DoorDataFragment extends Fragment {
                 break;
             case DIFF:
                 sorted.sort((a, b) -> {
-                    int da = a.diffMinutes < 0 ? Integer.MAX_VALUE : a.diffMinutes;
-                    int db = b.diffMinutes < 0 ? Integer.MAX_VALUE : b.diffMinutes;
+                    // 取蓝牙/远程中更小的差值
+                    int da = bestDiff(a);
+                    int db = bestDiff(b);
+                    if (da < 0) da = Integer.MAX_VALUE;
+                    if (db < 0) db = Integer.MAX_VALUE;
                     return asc ? Integer.compare(da, db) : Integer.compare(db, da);
+                });
+                break;
+            case REMOTE_TIME:
+                sorted.sort((a, b) -> {
+                    int c = safeStr(a.remoteOpenTime).compareTo(safeStr(b.remoteOpenTime));
+                    return asc ? c : -c;
                 });
                 break;
             case QUALIFIED:
@@ -449,7 +479,7 @@ public class DoorDataFragment extends Fragment {
                 // BOM，让 Excel 正确识别 UTF-8
                 fw.write('\uFEFF');
                 // 表头
-                fw.write("序号,站名,站址编码,告警类型,告警时间,蓝牙进站时间,时差(分钟),结果\n");
+                fw.write("序号,站名,站址编码,告警类型,告警时间,蓝牙进站时间,蓝牙时差(分钟),远程开门时间,远程时差(分钟),结果\n");
                 // 按当前展示顺序导出
                 for (DoorAlarmRow row : itemList) {
                     fw.write(csvCell(String.valueOf(row.index)));
@@ -466,7 +496,11 @@ public class DoorDataFragment extends Fragment {
                     fw.write(",");
                     fw.write(csvCell(row.diffMinutes >= 0 ? String.valueOf(row.diffMinutes) : ""));
                     fw.write(",");
-                    fw.write(csvCell(row.qualified ? "合格" : "不合格"));
+                    fw.write(csvCell("无".equals(row.remoteOpenTime) ? "" : (row.remoteOpenTime == null ? "" : row.remoteOpenTime)));
+                    fw.write(",");
+                    fw.write(csvCell(row.remoteDiffMinutes >= 0 ? String.valueOf(row.remoteDiffMinutes) : ""));
+                    fw.write(",");
+                    fw.write(csvCell(row.qualified ? "合格(" + (row.qualifyReason != null ? row.qualifyReason : "") + ")" : "不合格"));
                     fw.write("\n");
                 }
                 fw.flush();
@@ -557,107 +591,169 @@ public class DoorDataFragment extends Fragment {
         }
         Logger.d("DoorData", "[蓝牙匹配] 蓝牙记录有站名: " + lanyaWithName + "条，无站名: " + lanyaNoName + "条，去重后站数: " + btByName.size());
 
-        // ════ Step 4：按站名分组所有告警 ════════════════════════════════════
-        Map<String, List<RawAlarm>> alarmsByStation = new HashMap<>();
-        int alarmWithName = 0, alarmNoName = 0;
+        // ════ Step 5：按站分组 + 蓝牙/远程匹配 + 每站取1条 ══════════════════════
+        // ★★★ 2026-04-05 重写规则 ★★★
+        // 规则1：蓝牙和远程，只要有一个≤30分钟 → 合格
+        // 规则2：蓝牙和远程都不满足 → 不合格
+        // 规则3：每站只取1条展示
+        //   - 有合格：取离当前最近的合格告警
+        //   - 全不合格：取离当前最近的告警
+        // 规则4：时间差取蓝牙/远程中离告警时间最近的那个的差值
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+
+        // ── 5a：按站名分组告警 ──
+        Map<String, List<RawAlarm>> alarmsByStation = new LinkedHashMap<>();
         for (RawAlarm alarm : rawAlarms) {
-            String key;
-            if (!alarm.stName.isEmpty()) {
-                key = alarm.stName;
-                alarmWithName++;
-            } else {
-                key = "NONAME:" + alarm.stCode;
-                alarmNoName++;
-            }
+            String key = alarm.stName.isEmpty() ? "【未知站】" : alarm.stName;
             alarmsByStation.computeIfAbsent(key, k -> new ArrayList<>()).add(alarm);
         }
-        Logger.d("DoorData", "[蓝牙匹配] 告警有站名: " + alarmWithName + "条，无站名: " + alarmNoName + "条，去重后站数: " + alarmsByStation.size());
+        Logger.d("DoorData", "[分组] 共 " + alarmsByStation.size() + " 站，总告警 " + rawAlarms.size() + " 条");
 
-        // ════ Step 5：每站处理，每站只留一条（用站名匹配蓝牙记录） ════════════════════
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        List<DoorAlarmRow> finalRows = new ArrayList<>();
-        int matchedCount = 0;
+        // ── 5b：远程开门记录缓存（同一 FSU ID 只查一次） ──
+        Map<String, java.util.List<String>> remoteTimesCache = new HashMap<>();
+        boolean hasOmmsCookie = s.ommsCookie != null && !s.ommsCookie.isEmpty();
+
+        int btMatchCount = 0, remoteMatchCount = 0, totalStations = alarmsByStation.size();
+        int processedStations = 0;
+        List<DoorAlarmRow> allRows = new ArrayList<>();
 
         for (Map.Entry<String, List<RawAlarm>> entry : alarmsByStation.entrySet()) {
-            List<RawAlarm> stAlarms = entry.getValue();
-            String stCode = stAlarms.get(0).stCode;  // 站址运维ID（仅展示）
-            String stName = stAlarms.get(0).stName;
-
-            // ★ 用站名精确匹配蓝牙记录
-            List<String> btTimes = null;
-            if (!stName.isEmpty()) {
-                btTimes = btByName.getOrDefault(stName, null);
+            String stationName = entry.getKey();
+            List<RawAlarm> stationAlarms = entry.getValue();
+            processedStations++;
+            if (processedStations <= 3 || processedStations % 50 == 0) {
+                setStatus("🔍 匹配 " + processedStations + "/" + totalStations + "：" + stationName);
             }
-            if (btTimes == null || btTimes.isEmpty()) btTimes = null;
 
-            // ── 逐条告警尝试找合格蓝牙匹配 ──
-            DoorAlarmRow qualifiedRow = null;
-            DoorAlarmRow newestRow    = null;
+            // 取本站的蓝牙时间列表
+            List<String> btTimes = btByName.get(stationName);
 
-            for (RawAlarm alarm : stAlarms) {
-                Date alarmDate = parseDate(sdf, alarm.alarmTime);
-
-                // 找最新告警
-                if (newestRow == null || alarm.alarmTime.compareTo(newestRow.alarmTime) > 0) {
-                    DoorAlarmRow nr = new DoorAlarmRow();
-                    nr.stCode      = stCode;
-                    nr.stName      = stName;
-                    nr.alarmName   = alarm.alarmName;
-                    nr.alarmTime   = alarm.alarmTime;
-                    nr.btOpenTime  = "无";
-                    nr.diffMinutes = -1;
-                    nr.qualified   = false;
-                    newestRow = nr;
+            // 取本站的远程开门记录（用第一条告警的fsuid查询，同站一般共用FSU）
+            java.util.List<String> remoteTimes = null;
+            String stationFsuid = stationAlarms.get(0).deviceId;
+            if (hasOmmsCookie && stationFsuid != null && !stationFsuid.isEmpty()) {
+                remoteTimes = remoteTimesCache.get(stationFsuid);
+                if (remoteTimes == null) {
+                    remoteTimes = AccessControlApi.getAllRemoteOpenTimesByFsuid(stationFsuid);
+                    remoteTimesCache.put(stationFsuid, remoteTimes);
+                    Logger.d("DoorData", "[远程匹配] " + stationName + " fsuid=" + stationFsuid + " → " + remoteTimes.size() + "条记录");
                 }
+            }
 
-                if (qualifiedRow != null) continue;
+            // 遍历本站所有告警，计算每条的蓝牙+远程匹配
+            DoorAlarmRow bestQualified = null;  // 最近的合格告警
+            DoorAlarmRow bestUnqualified = null; // 最近的不合格告警（全不合格时用）
 
-                if (alarmDate == null || btTimes == null || btTimes.isEmpty()) continue;
+            for (RawAlarm alarm : stationAlarms) {
+                DoorAlarmRow row = new DoorAlarmRow();
+                row.stCode           = alarm.stCode;
+                row.stName           = alarm.stName;
+                row.alarmName        = alarm.alarmName;
+                row.alarmTime        = alarm.alarmTime;
+                row.btOpenTime       = "无";
+                row.diffMinutes      = -1;
+                row.remoteOpenTime   = "无";
+                row.remoteDiffMinutes = -1;
+                row.qualified        = false;
+                row.qualifyReason    = "";
+                row.fsuid            = alarm.deviceId;
 
-                for (String btTime : btTimes) {
-                    Date btDate = parseDate(sdf, btTime);
-                    if (btDate == null) continue;
-                    long diffMs  = Math.abs(alarmDate.getTime() - btDate.getTime());
-                    int  diffMin = (int)(diffMs / 60000);
-                    if (diffMin <= MATCH_THRESHOLD_MIN) {
-                        qualifiedRow = new DoorAlarmRow();
-                        qualifiedRow.stCode      = stCode;
-                        qualifiedRow.stName      = stName;
-                        qualifiedRow.alarmName   = alarm.alarmName;
-                        qualifiedRow.alarmTime   = alarm.alarmTime;
-                        qualifiedRow.btOpenTime  = btTime;
-                        qualifiedRow.diffMinutes = diffMin;
-                        qualifiedRow.qualified   = true;
-                        matchedCount++;
-                        break;
-                    }
-                    // 顺便记录最接近的一次差值
-                    if (newestRow != null && alarm.alarmTime.equals(newestRow.alarmTime)) {
-                        if (newestRow.diffMinutes < 0 || diffMin < newestRow.diffMinutes) {
-                            newestRow.btOpenTime  = btTime;
-                            newestRow.diffMinutes = diffMin;
+                Date alarmDate = parseDate(sdf, alarm.alarmTime);
+                boolean btOk = false, remoteOk = false;
+                int closestBtDiff = Integer.MAX_VALUE;
+                int closestRemoteDiff = Integer.MAX_VALUE;
+
+                // ── 蓝牙匹配 ──
+                if (alarmDate != null && btTimes != null && !btTimes.isEmpty()) {
+                    String closestBtTime = null;
+                    for (String btTime : btTimes) {
+                        Date btDate = parseDate(sdf, btTime);
+                        if (btDate == null) continue;
+                        int diffMin = (int)(Math.abs(alarmDate.getTime() - btDate.getTime()) / 60000);
+                        if (diffMin < closestBtDiff) {
+                            closestBtDiff = diffMin;
+                            closestBtTime = btTime;
                         }
                     }
+                    if (closestBtTime != null) {
+                        row.btOpenTime  = closestBtTime;
+                        row.diffMinutes = closestBtDiff;
+                        if (closestBtDiff <= MATCH_THRESHOLD_MIN) btOk = true;
+                    }
+                }
+
+                // ── 远程匹配 ──
+                if (alarmDate != null && remoteTimes != null && !remoteTimes.isEmpty()) {
+                    String closestRemoteTime = null;
+                    for (String rt : remoteTimes) {
+                        Date rd = parseDate(sdf, rt);
+                        if (rd == null) continue;
+                        int diffMin = (int)(Math.abs(alarmDate.getTime() - rd.getTime()) / 60000);
+                        if (diffMin < closestRemoteDiff) {
+                            closestRemoteDiff = diffMin;
+                            closestRemoteTime = rt;
+                        }
+                    }
+                    if (closestRemoteTime != null) {
+                        row.remoteOpenTime    = closestRemoteTime;
+                        row.remoteDiffMinutes = closestRemoteDiff;
+                        if (closestRemoteDiff <= MATCH_THRESHOLD_MIN) remoteOk = true;
+                    }
+                }
+
+                // ── 判定合格 ──
+                if (btOk || remoteOk) {
+                    row.qualified = true;
+                    // 合格原因：取时间差更小的那个；如果都是合格的，也取更近的
+                    if (btOk && remoteOk) {
+                        row.qualifyReason = (closestBtDiff <= closestRemoteDiff) ? "蓝牙" : "远程";
+                    } else if (btOk) {
+                        row.qualifyReason = "蓝牙";
+                        btMatchCount++;
+                    } else {
+                        row.qualifyReason = "远程";
+                        remoteMatchCount++;
+                    }
+                    // ★ 双方都合格时，统计到时间差更小的那个
+                    if (btOk && remoteOk) {
+                        if (closestBtDiff <= closestRemoteDiff) btMatchCount++;
+                        else remoteMatchCount++;
+                    }
+
+                    // 选最近的合格告警（离当前时间最近的告警时间）
+                    if (bestQualified == null || row.alarmTime.compareTo(bestQualified.alarmTime) > 0) {
+                        bestQualified = row;
+                    }
+                } else {
+                    // 不合格
+                    if (bestUnqualified == null || row.alarmTime.compareTo(bestUnqualified.alarmTime) > 0) {
+                        bestUnqualified = row;
+                    }
                 }
             }
 
-            DoorAlarmRow chosen = (qualifiedRow != null) ? qualifiedRow : newestRow;
-            if (chosen != null) finalRows.add(chosen);
+            // ── 每站只取1条 ──
+            if (bestQualified != null) {
+                allRows.add(bestQualified);
+            } else if (bestUnqualified != null) {
+                allRows.add(bestUnqualified);
+            }
         }
 
-        Logger.d("DoorData", "[蓝牙匹配] 完成：总站数=" + finalRows.size() + "，匹配合格=" + matchedCount + "，不合格=" + (finalRows.size() - matchedCount) + "，蓝牙站名表=" + btByName.size());
+        Logger.d("DoorData", "[最终匹配] " + totalStations + "站，蓝牙合格=" + btMatchCount + "，远程合格=" + remoteMatchCount
+                + "，展示 " + allRows.size() + " 条");
 
         // ════ Step 6：初始排序（合格在前，同类按告警时间降序） ════════════
-        finalRows.sort((a, b) -> {
+        allRows.sort((a, b) -> {
             if (a.qualified != b.qualified) return a.qualified ? -1 : 1;
             return b.alarmTime.compareTo(a.alarmTime);
         });
-        for (int i = 0; i < finalRows.size(); i++) finalRows.get(i).index = i + 1;
+        for (int i = 0; i < allRows.size(); i++) allRows.get(i).index = i + 1;
 
         int okCount = 0, failCount = 0;
-        for (DoorAlarmRow r : finalRows) { if (r.qualified) okCount++; else failCount++; }
-        setStatus("✅ 完成：" + finalRows.size() + " 站，合格 " + okCount + " / 不合格 " + failCount);
-        return finalRows;
+        for (DoorAlarmRow r : allRows) { if (r.qualified) okCount++; else failCount++; }
+        setStatus("✅ 完成：" + allRows.size() + " 条告警，合格 " + okCount + " / 不合格 " + failCount);
+        return allRows;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -671,6 +767,7 @@ public class DoorDataFragment extends Fragment {
         String stationCode = "";  // col[44] 站址编码（18位）
         String alarmName   = "";  // col[13] 告警名称
         String alarmTime   = "";  // col[20] 产生时间
+        String deviceId    = "";  // col[16] 设备ID（FSU ID，用于查询远程开门时间）
     }
 
     private static final int MAX_PAGES = 200; // 安全上限，实际由服务器总页数控制
@@ -943,6 +1040,7 @@ public class DoorDataFragment extends Fragment {
             row.stCode      = safeGet(allTds, 11);  // col[11] = 站址运维ID（12位，非站址编码！）
             row.stationCode = safeGet(allTds, 44);  // col[44] = 站址编码（18位）
             row.alarmName   = safeGet(allTds, 13);  // col[13] = 告警名称
+            row.deviceId    = safeGet(allTds, 16);  // col[16] = 设备ID（FSU ID）
 
             // 时间提取（col[20] = 产生时间，格式 "2026/03/01 12:32:11"）
             String rawTime = safeGet(allTds, 20);
@@ -1024,6 +1122,41 @@ public class DoorDataFragment extends Fragment {
     // ─────────────────────────────────────────────────────────────────────
     // 工具方法
     // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * 通过站名在 OMMS FSU 列表页查询 fsuid（objid）
+     * 用于远程开门时间匹配：站名 → queryFsuList → 解析 objid
+     * 返回第一个匹配的 fsuid，找不到返回空串
+     */
+    private String queryFsuidByStationName(String stationName) {
+        try {
+            String resp = AccessControlApi.queryFsuList(stationName);
+            if (resp == null || resp.isEmpty()) return "";
+            // 解析 AJAX HTML 响应中的 objid（FSU的唯一ID）
+            // OMMS 返回表格行，每行含 objid 字段（通常在链接或隐藏域中）
+            // 格式：<input type="hidden" name="..." value="fsuObjId"/>
+            //   或：javascript:showEntranceGuard('objid_value','...')
+            java.util.regex.Matcher m1 = java.util.regex.Pattern.compile(
+                    "showEntranceGuard\\('([^']+)'").matcher(resp);
+            if (m1.find()) return m1.group(1);
+
+            // 备选：找 objid 隐藏域
+            java.util.regex.Matcher m2 = java.util.regex.Pattern.compile(
+                    "fsuEntranceId[^=]*=([A-Za-z0-9]+)").matcher(resp);
+            if (m2.find()) return m2.group(1);
+
+            // 备选：链接中的 objid 参数
+            java.util.regex.Matcher m3 = java.util.regex.Pattern.compile(
+                    "objid=([A-Za-z0-9]+)").matcher(resp);
+            if (m3.find()) return m3.group(1);
+
+            Logger.d("DoorData", "[queryFsuid] 未解析到fsuid stationName=" + stationName
+                    + " respPreview=" + resp.substring(0, Math.min(300, resp.length())));
+        } catch (Exception e) {
+            Logger.e("DoorData", "[queryFsuid] 异常: " + e.getMessage());
+        }
+        return "";
+    }
 
     private static Date parseDate(SimpleDateFormat sdf, String s) {
         if (s == null || s.isEmpty()) return null;

@@ -10,7 +10,24 @@
 - col[44]的18位站址编码可直接与数运API的station_code匹配
 - 门禁蓝牙匹配现在可以用站址编码精确匹配（col[44] ↔ station_code），不再只能依赖站名
 
-### OMMS全自动登录（2026-04-03）
+### 远程开门时间接口修正（2026-04-05 晚）
+- **listEntrance.xhtml 是门禁设备列表页，不是远程开门记录页！** 用它查远程开门时间始终0条
+- **正确接口：方案C** POST `listFsu.xhtml`，传 `j_id670=j_id670&fsuEntranceId={FSU ID}&j_id670:j_id716=j_id670:j_id716`
+- 这是门禁系统Tab（AccessControlFragment）之前成功使用的方案，展开FSU行详情后从HTML中提取时间
+- `getAllRemoteOpenTimesByFsuid()` 已从 listEntrance.xhtml 改为方案C
+- `getRemoteOpenTime()` 的14位438路由也已移除（不再强制走错误的 listEntrance 流程）
+- FSU ID（14位438特征）可直接传给方案C的 `fsuEntranceId` 参数
+
+### 门禁数据匹配规则（2026-04-05 晚）
+- **按站分组，每站只取1条展示**
+- **合格判定**：蓝牙 OR 远程 |时间差| ≤ 30分钟
+- **不合格**：蓝牙 AND 远程都 > 30分钟或无记录
+- **合格原因** = 时间差更小的那个（蓝牙 or 远程）
+- **取哪条**：有合格→取离当前最近的合格告警；全不合格→取离当前最近的告警
+- **时差列**：显示蓝牙/远程中离告警时间更近的那个的差值
+- **蓝牙/远程时间颜色**：合格来源用绿色(蓝牙)/橙色(远程)标注
+
+
 - 用户需求：4A登录后不需要手动点"OMMS登录"按钮、不需要看到WebView页面
 - 实现：4A登录成功后自动调用 `TowerLoginApi.autoGetOmmsCookie()` 静默获取OMMS Cookie
 - `startMonitor()` 时如果 `ommsCookie` 为空但有 `tower4aSessionCookie`，也会自动尝试获取

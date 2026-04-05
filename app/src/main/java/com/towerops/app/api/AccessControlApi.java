@@ -579,10 +579,178 @@ public class AccessControlApi {
     }
 
     /**
-     * 查询某FSU的最近远程开门时间
-     * 对应易语言：子程序_远程开门时间()
+     * 用 FSU ID（14位，第7-9位=438）查对应门禁ID（14位，第7-9位=499）
      *
-     * ★★★ 重要说明 ★★★
+     * 流程：POST listEntrance.xhtml 传 fsuid（运维ID），从返回HTML中找第7-9位=499的运维ID
+     *
+     * 抓包来源（用户2026-04-05真实抓包）：
+     *   接口：listEntrance.xhtml
+     *   POST body 中 queryForm:j_id31=站名（URL编码）
+     *   返回HTML中 checkbox的id属性 = 运维ID（14位）
+     *   门禁ID特征：第7-9位固定为"499"
+     *   FSU ID特征：第7-9位固定为"438"
+     *
+     * ★ 本方法传入 FSU ID（438），通过同站门禁列表页找 checkbox id 中499特征的那个 = 门禁ID
+     *
+     * @param fsuid  FSU ID（col[16] 设备ID，14位，第7-9位=438）
+     * @return       门禁ID（14位，第7-9位=499），找不到返回空串
+     */
+    public static String queryEntranceDoorId(String fsuid) {
+        if (fsuid == null || fsuid.isEmpty()) return "";
+        try {
+            String url = "http://omms.chinatowercom.cn:9000/business/resMge/devMge/listEntrance.xhtml";
+            String cookie = Session.get().ommsCookie;
+
+            // POST body：传入 fsuid 作为查询条件（queryForm:j_id11 = FSU ID）
+            // 来自用户抓包：queryForm:j_id31=站名，这里我们用 fsuid 字段（j_id11或j_id15等），
+            // 参照抓包结构，用j_id11传fsuid（OMMS门禁管理页FSU运维ID字段）
+            String encodedFsuid = java.net.URLEncoder.encode(fsuid, "UTF-8");
+            String post = "AJAXREQUEST=_viewRoot"
+                    + "&queryForm=queryForm"
+                    + "&queryForm%3AunitHidden="
+                    + "&queryForm%3AqueryRoomIdHidden="
+                    + "&queryForm%3AqueryStationIdHidden="
+                    + "&queryForm%3Aj_id11=" + encodedFsuid   // ★ FSU运维ID
+                    + "&queryForm%3Aj_id15="
+                    + "&queryForm%3Aj_id19="
+                    + "&queryForm%3Aj_id23="
+                    + "&queryForm%3Aj_id27="
+                    + "&queryForm%3Aj_id31="
+                    + "&queryForm%3AquerySiteSourceCode="
+                    + "&queryForm%3AcurrPageObjId=1"
+                    + "&queryForm%3ApageSizeText=35"
+                    + "&javax.faces.ViewState=" + cachedViewState
+                    + "&queryForm%3Aj_id39=queryForm%3Aj_id39"
+                    + "&AJAX%3AEVENTS_COUNT=1&";
+
+            String headers = buildOmmsPostHeaders()
+                    .replace("listFsu.xhtml", "listEntrance.xhtml");
+
+            String resp = HttpUtil.post(url, post, headers, cookie);
+            android.util.Log.d(TAG, "queryEntranceDoorId fsuid=" + fsuid
+                    + " respLen=" + resp.length()
+                    + " preview=" + resp.substring(0, Math.min(500, resp.length())));
+
+            if (resp.isEmpty() || resp.contains("doPrevLogin") || resp.contains("uac/login")) {
+                return "";
+            }
+
+            // ★ 从 checkbox 的 id 或 value 中找14位数字、第7-9位=499 的门禁ID
+            // 格式：<input type="checkbox" id="33032649900229" ...> 或 value="33032649900229"
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                    "(?:id|value)=\"(\\d{14})\"").matcher(resp);
+            while (m.find()) {
+                String candidate = m.group(1);
+                // 第7-9位（0-indexed 6-8）=499
+                if (candidate.length() == 14 && candidate.substring(6, 9).equals("499")) {
+                    android.util.Log.d(TAG, "queryEntranceDoorId 找到门禁ID=" + candidate + " fsuid=" + fsuid);
+                    return candidate;
+                }
+            }
+
+            // 备选：直接在HTML文本中搜索499特征的14位数字
+            java.util.regex.Matcher m2 = java.util.regex.Pattern.compile(
+                    "\\b(\\d{6}499\\d{5})\\b").matcher(resp);
+            if (m2.find()) {
+                String candidate = m2.group(1);
+                android.util.Log.d(TAG, "queryEntranceDoorId [备选] 找到门禁ID=" + candidate + " fsuid=" + fsuid);
+                return candidate;
+            }
+
+            android.util.Log.w(TAG, "queryEntranceDoorId 未找到499特征门禁ID, fsuid=" + fsuid);
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "queryEntranceDoorId failed fsuid=" + fsuid, e);
+        }
+        return "";
+    }
+
+    /**
+     * 查询远程开门时间记录（完整流程：FSU ID → 门禁ID → 远程开门记录）
+     *
+     * 接口：POST listEntrance.xhtml（远程开门记录查询）
+     *
+     * ★ 两个参数均为14位数字：
+     *   - FSU ID  ：第7-9位=438（col[16] 设备ID，已从告警数据直接获得）
+     *   - 门禁ID  ：第7-9位=499（通过 queryEntranceDoorId() 查 listEntrance.xhtml 获得）
+     *
+     * POST body 参数（来自用户抓包）：
+     *   fsuId={FSU ID}      门禁控制器运维ID（438特征）
+     *   doorId={门禁ID}     门禁设备运维ID（499特征）
+     *
+     * @param fsuid  FSU ID（14位，第7-9位=438）
+     * @return       最近一条远程开门时间字符串（yyyy-MM-dd HH:mm:ss），失败返回空串
+     */
+    public static String getRemoteOpenTimeByFsuid(String fsuid) {
+        if (fsuid == null || fsuid.isEmpty()) return "";
+        try {
+            // Step 1：用 FSU ID 查门禁ID（499特征）
+            String doorId = queryEntranceDoorId(fsuid);
+            android.util.Log.d(TAG, "getRemoteOpenTimeByFsuid fsuid=" + fsuid + " doorId=" + doorId);
+
+            if (doorId.isEmpty()) {
+                android.util.Log.w(TAG, "getRemoteOpenTimeByFsuid 未找到门禁ID，直接用fsuid查");
+                doorId = fsuid; // 兜底：有些站FSU就是门禁
+            }
+
+            // Step 2：POST 查询远程开门时间记录
+            // 接口：listEntrance.xhtml AJAX，传 fsuId 和 doorId
+            String url = "http://omms.chinatowercom.cn:9000/business/resMge/devMge/listEntrance.xhtml";
+            String cookie = Session.get().ommsCookie;
+            String encodedFsuid = java.net.URLEncoder.encode(fsuid, "UTF-8");
+            String encodedDoorId = java.net.URLEncoder.encode(doorId, "UTF-8");
+            String post = "AJAXREQUEST=_viewRoot"
+                    + "&queryForm=queryForm"
+                    + "&queryForm%3AunitHidden="
+                    + "&queryForm%3AqueryRoomIdHidden="
+                    + "&queryForm%3AqueryStationIdHidden="
+                    + "&queryForm%3Aj_id11="
+                    + "&queryForm%3Aj_id15="
+                    + "&queryForm%3Aj_id19="
+                    + "&queryForm%3Aj_id23="
+                    + "&queryForm%3Aj_id27="
+                    + "&queryForm%3Aj_id31="
+                    + "&queryForm%3AquerySiteSourceCode="
+                    + "&queryForm%3AcurrPageObjId=1"
+                    + "&queryForm%3ApageSizeText=35"
+                    + "&fsuId=" + encodedFsuid
+                    + "&doorId=" + encodedDoorId
+                    + "&javax.faces.ViewState=" + cachedViewState
+                    + "&queryForm%3Aj_id39=queryForm%3Aj_id39"
+                    + "&AJAX%3AEVENTS_COUNT=1&";
+
+            String headers = buildOmmsPostHeaders()
+                    .replace("listFsu.xhtml", "listEntrance.xhtml");
+            String resp = HttpUtil.post(url, post, headers, cookie);
+            android.util.Log.d(TAG, "getRemoteOpenTimeByFsuid step2 respLen=" + resp.length()
+                    + " preview=" + resp.substring(0, Math.min(500, resp.length())));
+
+            if (resp.isEmpty() || resp.contains("doPrevLogin")) return "";
+
+            // 更新 ViewState
+            String newVs = extractViewState(resp);
+            if (newVs != null && !newVs.isEmpty()) cachedViewState = newVs;
+
+            // 从响应中提取时间
+            String t = extractTimeFromHtml(resp);
+            if (!t.isEmpty()) {
+                android.util.Log.d(TAG, "getRemoteOpenTimeByFsuid 命中: " + t);
+                return t;
+            }
+
+            android.util.Log.w(TAG, "getRemoteOpenTimeByFsuid 未找到时间, fsuid=" + fsuid + " doorId=" + doorId);
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "getRemoteOpenTimeByFsuid failed", e);
+        }
+        return "";
+    }
+
+
+    /**
+     * 查询某FSU的最近远程开门时间
+     *
+     * ★ 2026-04-05 升级：14位FSU ID（438特征）直接走 getRemoteOpenTimeByFsuid 新流程。
+     *
+     * ★★★ 旧说明（32位hex格式兜底）★★★
      * 远程开门时间 不在 listFsu.xhtml（FSU列表页），而在专门的"远程开门记录"接口。
      * 目前已知 OMMS 开门记录接口候选：
      *   A. GET  /business/resMge/pwMge/fsuMge/fsuDetail.xhtml?objid={fsuid}
@@ -591,13 +759,16 @@ public class AccessControlApi {
      *
      * 本方法尝试 A/C 两种，并把原始响应前500字符写进日志，方便用户抓包确认正确接口。
      *
-     * @param fsuid FSU的objid（来自告警数据的 objid 字段）
+     * @param fsuid FSU的objid（来自告警数据的 objid 字段，或14位FSU运维ID）
      */
     public static String getRemoteOpenTime(String fsuid) {
         if (fsuid == null || fsuid.isEmpty()) {
             android.util.Log.w(TAG, "getRemoteOpenTime: fsuid为空，跳过");
             return "";
         }
+
+        // ★ 14位438特征FSU ID 不再走旧的 getRemoteOpenTimeByFsuid（listEntrance.xhtml 是设备列表页，不是开门记录）
+        // 统一走下面的方案C（listFsu.xhtml 展开 FSU 行详情）
         String cookie = Session.get().ommsCookie;
         android.util.Log.d(TAG, "getRemoteOpenTime fsuid=" + fsuid
                 + " cookieLen=" + cookie.length()
@@ -684,7 +855,7 @@ public class AccessControlApi {
     }
 
     /**
-     * 从 HTML/JSON 响应中提取时间字符串
+     * 从 HTML/JSON 响应中提取单个时间字符串（第一个匹配）
      * 支持：YYYY-MM-DD HH:mm:ss / YYYY/MM/DD HH:mm:ss
      */
     private static String extractTimeFromHtml(String content) {
@@ -698,6 +869,80 @@ public class AccessControlApi {
                 "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}").matcher(content);
         if (m2.find()) return m2.group().replace("/", "-");
         return "";
+    }
+
+    /**
+     * 从 HTML/JSON 响应中提取所有时间字符串
+     * 支持：YYYY-MM-DD HH:mm:ss / YYYY/MM/DD HH:mm:ss / YYYY-MM-DDTHH:mm:ss
+     *
+     * @return 所有匹配到的时间列表（已统一为 yyyy-MM-dd HH:mm:ss 格式），空列表表示未找到
+     */
+    private static java.util.List<String> extractAllTimesFromHtml(String content) {
+        java.util.List<String> times = new java.util.ArrayList<>();
+        if (content == null || content.isEmpty()) return times;
+        // YYYY-MM-DD HH:mm:ss 或 YYYY-MM-DDTHH:mm:ss
+        java.util.regex.Matcher m1 = java.util.regex.Pattern.compile(
+                "\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2}").matcher(content);
+        while (m1.find()) {
+            times.add(m1.group().replace("T", " "));
+        }
+        // YYYY/MM/DD HH:mm:ss
+        java.util.regex.Matcher m2 = java.util.regex.Pattern.compile(
+                "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}").matcher(content);
+        while (m2.find()) {
+            times.add(m2.group().replace("/", "-"));
+        }
+        return times;
+    }
+
+    /**
+     * 查询某FSU的所有远程开门时间记录
+     *
+     * ★★★ 2026-04-05 修正 ★★★
+     * 之前用 listEntrance.xhtml（门禁设备列表页），返回的是设备列表不是开门日志，始终0条。
+     * 现在改用与门禁系统Tab相同的方案C：
+     *   POST listFsu.xhtml（j_id670:j_id716 展开 FSU 行详情），从展开 HTML 中提取所有远程开门时间。
+     *   这与 getRemoteOpenTime() 方案C 完全一致，只是返回所有时间供取最近的。
+     *
+     * @param fsuid  FSU ID（14位，第7-9位=438，col[16] 设备ID）
+     * @return       所有远程开门时间列表（yyyy-MM-dd HH:mm:ss），失败返回空列表
+     */
+    public static java.util.List<String> getAllRemoteOpenTimesByFsuid(String fsuid) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        if (fsuid == null || fsuid.isEmpty()) return result;
+        try {
+            // ★ 2026-04-05 修正：用方案C（POST listFsu.xhtml j_id670:j_id716 展开 FSU 行详情）
+            // 之前用 listEntrance.xhtml 返回的是设备列表不是开门日志，始终0条
+            // 现在与门禁系统Tab getRemoteOpenTime() 方案C 完全一致
+            String url = "http://omms.chinatowercom.cn:9000/business/resMge/pwMge/fsuMge/listFsu.xhtml";
+            String cookie = Session.get().ommsCookie;
+            String encodedViewState = java.net.URLEncoder.encode(cachedViewState, "UTF-8");
+            String post = "AJAXREQUEST=_viewRoot"
+                    + "&j_id670=j_id670"
+                    + "&autoScroll="
+                    + "&javax.faces.ViewState=" + encodedViewState
+                    + "&fsuEntranceId=" + fsuid
+                    + "&j_id670%3Aj_id716=j_id670%3Aj_id716"
+                    + "&AJAX%3AEVENTS_COUNT=1&";
+            String resp = HttpUtil.post(url, post, buildOmmsPostHeaders(), cookie);
+            android.util.Log.d(TAG, "getAllRemoteOpenTimesByFsuid fsuid=" + fsuid
+                    + " respLen=" + resp.length());
+
+            if (resp.isEmpty() || resp.contains("doPrevLogin") || resp.contains("uac/login")) {
+                return result;
+            }
+
+            // 更新 ViewState
+            String newVs = extractViewState(resp);
+            if (newVs != null && !newVs.isEmpty()) cachedViewState = newVs;
+
+            // 提取所有时间
+            result = extractAllTimesFromHtml(resp);
+            android.util.Log.d(TAG, "getAllRemoteOpenTimesByFsuid 找到 " + result.size() + " 条时间记录, fsuid=" + fsuid);
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "getAllRemoteOpenTimesByFsuid failed", e);
+        }
+        return result;
     }
 
     /**

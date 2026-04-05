@@ -93,8 +93,6 @@
             android:textSize="9sp"
             android:textColor="#374151"
             android:includeFontPadding="false"
-            android:ellipsize="end"
-            android:singleLine="true"
             android:text="无" />
 
         <!-- 时差（分钟） -->

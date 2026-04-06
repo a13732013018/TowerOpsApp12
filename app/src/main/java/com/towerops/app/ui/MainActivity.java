@@ -490,7 +490,8 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
 
         // 设置页面之间的间距，产生滑动分隔感
-        viewPager.setPageMargin(0);
+        // ViewPager2 使用 CompositePageTransformer 设置间距
+        viewPager.setOffscreenPageLimit(8);
 
         // 设置UserInputEnabled，允许/禁止手动滑动
         // viewPager.setUserInputEnabled(true); // 默认true
@@ -566,7 +567,7 @@ public class MainActivity extends AppCompatActivity {
         tabAnimationHelper = new TabAnimationHelper(tabLayout, viewPager);
 
         // 设置Tab指示器动画模式
-        tabLayout.setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_WARP);
+        tabLayout.setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_ELASTIC);
     }
 
     /**

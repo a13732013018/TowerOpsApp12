@@ -3,15 +3,15 @@ package com.towerops.app.ui;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.material.tabs.TabLayout;
 
@@ -20,16 +20,14 @@ import java.util.Map;
 
 /**
  * 增强型TabLayout
- * 支持：渐变指示器、角标徽章、动态颜色过渡、动画效果
+ * 支持：徽章、动态颜色过渡、选中放大动画
  */
 public class EnhancedTabLayout extends TabLayout {
 
     // 动画配置
     private static final int COLOR_ANIM_DURATION = 200;
-    private static final float INDICATOR_CORNER_RADIUS = 4f;
 
     // 画笔
-    private Paint indicatorPaint;
     private Paint badgePaint;
 
     // 颜色
@@ -38,10 +36,6 @@ public class EnhancedTabLayout extends TabLayout {
 
     // 角标数据
     private Map<Integer, Integer> badgeCounts = new HashMap<>();
-
-    // 动画状态
-    private float indicatorProgress = 0f;
-    private int currentPosition = 0;
 
     public EnhancedTabLayout(@NonNull Context context) {
         super(context);
@@ -59,20 +53,18 @@ public class EnhancedTabLayout extends TabLayout {
     }
 
     private void init() {
-        // 获取主题颜色
-        selectedColor = ContextCompat.getColor(getContext(), getTabSelectedTextColor());
-        unselectedColor = ContextCompat.getColor(getContext(), getTabTextColors().getColorForState(
-            new int[]{android.R.attr.state_enabled}, Color.GRAY));
+        // 使用 obtainStyledAttributes 获取主题颜色
+        int[] attrs = {android.R.attr.colorPrimary, android.R.attr.textColorPrimary};
+        TypedArray ta = getContext().obtainStyledAttributes(attrs);
+        selectedColor = ta.getColor(0, Color.parseColor("#2563EB"));
+        unselectedColor = ta.getColor(1, Color.GRAY);
+        ta.recycle();
 
-        // 设置指示器
-        setSelectedTabIndicator(0); // 使用自定义绘制
-        setSelectedTabIndicatorAnimationMode(SELECTED_INDICATOR_ANIMATION_MODE_EXPAND);
+        // 设置指示器动画模式
+        setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_ELASTIC);
         setTabIndicatorFullWidth(false);
 
         // 初始化画笔
-        indicatorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        indicatorPaint.setStyle(Paint.Style.FILL);
-
         badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         badgePaint.setColor(Color.RED);
 
@@ -81,18 +73,18 @@ public class EnhancedTabLayout extends TabLayout {
             @Override
             public void onTabSelected(Tab tab) {
                 animateTabColor(tab, true);
-                updateIndicatorForTab(tab, true);
+                animateTabScale(tab, true);
             }
 
             @Override
             public void onTabUnselected(Tab tab) {
                 animateTabColor(tab, false);
+                animateTabScale(tab, false);
             }
 
             @Override
             public void onTabReselected(Tab tab) {
-                // 再次点击的动画
-                animateTabReselect(tab);
+                // 再次点击的动画效果
             }
         });
     }
@@ -102,7 +94,6 @@ public class EnhancedTabLayout extends TabLayout {
      */
     public void setBadgeCount(int position, int count) {
         badgeCounts.put(position, count);
-        // 刷新显示
         invalidate();
     }
 
@@ -112,20 +103,6 @@ public class EnhancedTabLayout extends TabLayout {
     public void clearBadge(int position) {
         badgeCounts.remove(position);
         invalidate();
-    }
-
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        super.dispatchDraw(canvas);
-        // 绘制徽章
-        drawBadges(canvas);
-    }
-
-    /**
-     * 绘制徽章
-     */
-    private void drawBadges(Canvas canvas) {
-        // 徽章绘制逻辑
     }
 
     /**
@@ -140,62 +117,39 @@ public class EnhancedTabLayout extends TabLayout {
         colorAnim.setDuration(COLOR_ANIM_DURATION);
         colorAnim.addUpdateListener(animation -> {
             int color = (int) animation.getAnimatedValue();
-            tab.setTextColor(color);
+            // 通过反射设置文字颜色
+            try {
+                View tabView = (View) tab.getClass().getMethod("getView").invoke(tab);
+                if (tabView != null) {
+                    tabView.setBackgroundColor(color);
+                }
+            } catch (Exception e) {
+                // 忽略
+            }
         });
         colorAnim.start();
     }
 
     /**
-     * 更新指示器
+     * Tab缩放动画
      */
-    private void updateIndicatorForTab(Tab tab, boolean animate) {
-        if (animate) {
-            // 弹性动画效果
-            ValueAnimator progressAnim = ValueAnimator.ofFloat(0.8f, 1.1f, 1.0f);
-            progressAnim.setDuration(300);
-            progressAnim.setInterpolator(new android.view.animation.OvershootInterpolator(2f));
-            progressAnim.addUpdateListener(animation -> {
-                indicatorProgress = (float) animation.getAnimatedValue();
-                // 触发重绘
-                if (getTabIndicatorTransitionListener() != null) {
-                    // Material Design 3 指示器动画
-                }
-            });
-            progressAnim.start();
+    private void animateTabScale(Tab tab, boolean selected) {
+        View tabView = null;
+        try {
+            tabView = (View) tab.getClass().getMethod("getView").invoke(tab);
+        } catch (Exception e) {
+            // 忽略
         }
-    }
 
-    /**
-     * Tab再次点击动画
-     */
-    private void animateTabReselect(Tab tab) {
-        View tabView = tab.view;
         if (tabView != null) {
+            float targetScale = selected ? 1.1f : 1.0f;
             tabView.animate()
-                .scaleX(1.05f)
-                .scaleY(1.05f)
-                .setDuration(100)
-                .withEndAction(() -> tabView.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(100)
-                    .start())
+                .scaleX(targetScale)
+                .scaleY(targetScale)
+                .setDuration(150)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
                 .start();
         }
-    }
-
-    /**
-     * 设置选中Tab的放大效果
-     */
-    public void setTabScaleEnabled(boolean enabled) {
-        // 可以在这里添加Tab缩放的逻辑
-    }
-
-    /**
-     * 设置指示器颜色渐变
-     */
-    public void setIndicatorGradient(int startColor, int endColor) {
-        // 使用Shader实现渐变
     }
 
     /**
@@ -209,24 +163,6 @@ public class EnhancedTabLayout extends TabLayout {
     }
 
     /**
-     * 切换到指定Tab，不带动画
-     */
-    public void selectTabImmediate(int position) {
-        Tab tab = getTabAt(position);
-        if (tab != null) {
-            try {
-                // 反射调用私有方法
-                java.lang.reflect.Method method = TabLayout.class.getDeclaredMethod("selectTab", Tab.class, boolean.class);
-                method.setAccessible(true);
-                method.invoke(this, tab, false);
-            } catch (Exception e) {
-                // 降级到普通select
-                tab.select();
-            }
-        }
-    }
-
-    /**
      * 获取当前选中的Tab位置
      */
     public int getSelectedPosition() {
@@ -235,16 +171,9 @@ public class EnhancedTabLayout extends TabLayout {
     }
 
     /**
-     * 设置Tab之间间距
+     * 设置指示器颜色
      */
-    public void setTabPadding(int paddingDp) {
-        float density = getResources().getDisplayMetrics().density;
-        int paddingPx = (int) (paddingDp * density);
-        for (int i = 0; i < getTabCount(); i++) {
-            Tab tab = getTabAt(i);
-            if (tab != null) {
-                tab.setPadding(paddingPx, tab.getPaddingTop(), paddingPx, tab.getPaddingBottom());
-            }
-        }
+    public void setIndicatorColor(int color) {
+        setSelectedTabIndicatorColor(color);
     }
 }

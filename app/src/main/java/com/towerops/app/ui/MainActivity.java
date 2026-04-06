@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -79,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
     private TabLayout        tabLayout;
     private ViewPager2       viewPager;
     private MainPagerAdapter pagerAdapter;
+    // 动画控制器
+    private TabAnimationHelper tabAnimationHelper;
+    private TouchFeedbackHelper touchFeedbackHelper;
     // 服务绑定
     private MonitorService  monitorService;
     private boolean         serviceBound = false;
@@ -404,7 +408,13 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setAdapter(pagerAdapter);
         // 设置 offscreenPageLimit 确保所有 Fragment 都保持活跃状态
         viewPager.setOffscreenPageLimit(8);
- 
+
+        // ===== 配置页面切换动画 =====
+        setupViewPagerAnimations();
+
+        // ===== 配置触摸反馈 =====
+        setupTouchFeedback();
+
         // 连接TabLayout和ViewPager2，实现滑动切换
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
@@ -419,6 +429,9 @@ public class MainActivity extends AppCompatActivity {
                 case 8: tab.setText("我的待办"); break;
             }
         }).attach();
+
+        // ===== 配置Tab动画效果 =====
+        setupTabAnimations();
     }
 
     /**
@@ -457,6 +470,213 @@ public class MainActivity extends AppCompatActivity {
         // 1. 点击"开启监控"按钮时会立即刷新
         // 2. 工单处理完成后会自动刷新
         // 3. 用户切换Tab时不需要额外刷新,避免"加载中"文字闪烁
+    }
+
+    // ══════════════════ Tab切换动画配置 ══════════════════
+
+    /**
+     * 配置ViewPager2页面切换动画
+     * 提供多种专业动画效果可选
+     */
+    private void setupViewPagerAnimations() {
+        // 选择动画效果：
+        // 1. DepthPageTransformer - 深度缩放效果（推荐，类似Google Photos）
+        // 2. ZoomOutPageTransformer - 缩放+旋转效果
+        // 3. CubePageTransformer - 3D立方体旋转
+        // 4. AccordionPageTransformer - 折叠效果
+        // 5. StackPageTransformer - 堆叠效果
+        // 6. FidgetPageTransformer - 弹性效果
+
+        viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
+
+        // 设置页面之间的间距，产生滑动分隔感
+        viewPager.setPageMargin(0);
+
+        // 设置UserInputEnabled，允许/禁止手动滑动
+        // viewPager.setUserInputEnabled(true); // 默认true
+
+        // 注册页面切换回调（Fragment动画）
+        setupFragmentAnimations();
+    }
+
+    /**
+     * 配置Fragment进入/退出动画
+     */
+    private void setupFragmentAnimations() {
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            private int previousPosition = 0;
+
+            @Override
+            public void onPageSelected(int position) {
+                // 获取当前Fragment并播放进入动画
+                Fragment currentFragment = pagerAdapter.getFragment(position);
+                if (currentFragment != null && currentFragment.getView() != null) {
+                    animateFragmentEnter(currentFragment.getView());
+                }
+
+                // 获取前一个Fragment并播放退出动画
+                if (previousPosition != position) {
+                    Fragment prevFragment = pagerAdapter.getFragment(previousPosition);
+                    if (prevFragment != null && prevFragment.getView() != null) {
+                        animateFragmentExit(prevFragment.getView());
+                    }
+                }
+
+                previousPosition = position;
+            }
+        });
+    }
+
+    /**
+     * Fragment进入动画
+     */
+    private void animateFragmentEnter(View view) {
+        view.setAlpha(0f);
+        view.setTranslationX(60);
+        view.setScaleX(0.92f);
+        view.setScaleY(0.92f);
+
+        view.animate()
+            .alpha(1f)
+            .translationX(0)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(280)
+            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+            .start();
+    }
+
+    /**
+     * Fragment退出动画
+     */
+    private void animateFragmentExit(View view) {
+        view.animate()
+            .alpha(0.6f)
+            .translationX(-30)
+            .setDuration(180)
+            .setInterpolator(new android.view.animation.AccelerateInterpolator())
+            .start();
+    }
+
+    /**
+     * 配置Tab动画效果
+     */
+    private void setupTabAnimations() {
+        // 初始化Tab动画助手
+        tabAnimationHelper = new TabAnimationHelper(tabLayout, viewPager);
+
+        // 设置Tab指示器动画模式
+        tabLayout.setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_WARP);
+    }
+
+    /**
+     * 配置触摸反馈
+     */
+    private void setupTouchFeedback() {
+        touchFeedbackHelper = new TouchFeedbackHelper(this);
+
+        // 为TabLayout添加触摸反馈
+        touchFeedbackHelper.attachToView(tabLayout);
+
+        // 为Tab的每个TabItem添加反馈
+        for (int i = 0; i < tabLayout.getTabCount(); i++) {
+            View tabView = tabLayout.getTabAt(i) != null ? tabLayout.getTabAt(i).view : null;
+            if (tabView != null) {
+                touchFeedbackHelper.attachToView(tabView);
+            }
+        }
+    }
+
+    /**
+     * 切换到指定Tab（带动画）
+     */
+    public void switchToTab(int position) {
+        if (position >= 0 && position < 9) {
+            viewPager.setCurrentItem(position, true);
+            // 播放触觉反馈
+            if (touchFeedbackHelper != null) {
+                touchFeedbackHelper.performClickFeedback();
+            }
+        }
+    }
+
+    /**
+     * 切换到指定Tab（无动画，快速跳转）
+     */
+    public void switchToTabImmediate(int position) {
+        if (position >= 0 && position < 9) {
+            viewPager.setCurrentItem(position, false);
+        }
+    }
+
+    /**
+     * 获取当前Tab位置
+     */
+    public int getCurrentTabPosition() {
+        return viewPager.getCurrentItem();
+    }
+
+    /**
+     * 切换到下一个Tab
+     */
+    public void switchToNextTab() {
+        int current = viewPager.getCurrentItem();
+        if (current < 8) {
+            switchToTab(current + 1);
+        }
+    }
+
+    /**
+     * 切换到上一个Tab
+     */
+    public void switchToPrevTab() {
+        int current = viewPager.getCurrentItem();
+        if (current > 0) {
+            switchToTab(current - 1);
+        }
+    }
+
+    /**
+     * 设置页面切换动画类型
+     * @param type 0=深度缩放, 1=缩放旋转, 2=3D旋转, 3=折叠, 4=堆叠, 5=弹性
+     */
+    public void setPageAnimation(int type) {
+        switch (type) {
+            case 0:
+                viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
+                break;
+            case 1:
+                viewPager.setPageTransformer(new PageTransformers.ZoomOutPageTransformer());
+                break;
+            case 2:
+                viewPager.setPageTransformer(new PageTransformers.CubePageTransformer());
+                break;
+            case 3:
+                viewPager.setPageTransformer(new PageTransformers.AccordionPageTransformer());
+                break;
+            case 4:
+                viewPager.setPageTransformer(new PageTransformers.StackPageTransformer());
+                break;
+            case 5:
+                viewPager.setPageTransformer(new PageTransformers.FidgetPageTransformer());
+                break;
+        }
+    }
+
+    /**
+     * 禁用页面切换动画
+     */
+    public void disablePageAnimation() {
+        viewPager.setPageTransformer(null);
+    }
+
+    /**
+     * 设置触觉反馈开关
+     */
+    public void setHapticFeedbackEnabled(boolean enabled) {
+        if (touchFeedbackHelper != null) {
+            touchFeedbackHelper.setHapticEnabled(enabled);
+        }
     }
 
     // ===== 获取 PowerOutageFragment =====

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab指示器动画样式 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底部阴影 -->
+    <item android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="@color/tab_indicator" />
+        </shape>
+    </item>
+</layer-list>

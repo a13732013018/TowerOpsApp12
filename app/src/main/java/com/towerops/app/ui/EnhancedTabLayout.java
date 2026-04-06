@@ -4,9 +4,7 @@ import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -26,9 +24,6 @@ public class EnhancedTabLayout extends TabLayout {
 
     // 动画配置
     private static final int COLOR_ANIM_DURATION = 200;
-
-    // 画笔
-    private Paint badgePaint;
 
     // 颜色
     private int selectedColor;
@@ -60,13 +55,8 @@ public class EnhancedTabLayout extends TabLayout {
         unselectedColor = ta.getColor(1, Color.GRAY);
         ta.recycle();
 
-        // 设置指示器动画模式
-        setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_ELASTIC);
+        // 设置指示器不占满宽度
         setTabIndicatorFullWidth(false);
-
-        // 初始化画笔
-        badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        badgePaint.setColor(Color.RED);
 
         // 添加Tab选中监听
         addOnTabSelectedListener(new OnTabSelectedListener() {
@@ -166,8 +156,7 @@ public class EnhancedTabLayout extends TabLayout {
      * 获取当前选中的Tab位置
      */
     public int getSelectedPosition() {
-        Tab tab = getSelectedTab();
-        return tab != null ? tab.getPosition() : 0;
+        return getSelectedTabPosition();
     }
 
     /**

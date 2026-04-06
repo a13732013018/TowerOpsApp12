@@ -566,8 +566,7 @@ public class MainActivity extends AppCompatActivity {
         // 初始化Tab动画助手
         tabAnimationHelper = new TabAnimationHelper(tabLayout, viewPager);
 
-        // 设置Tab指示器动画模式
-        tabLayout.setSelectedTabIndicatorAnimationMode(TabLayout.INDICATOR_ANIMATION_MODE_ELASTIC);
+        // Tab指示器使用默认动画模式
     }
 
     /**

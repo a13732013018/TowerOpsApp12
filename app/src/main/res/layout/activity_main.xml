@@ -207,7 +207,6 @@
         app:tabGravity="center"
         app:tabIndicatorHeight="3dp"
         app:tabIndicatorFullWidth="false"
-        app:tabIndicatorAnimationMode="elastic"
         app:tabRippleColor="@color/primary_light"
         app:tabTextAppearance="@style/TabTextStyle"
         app:tabPaddingStart="8dp"

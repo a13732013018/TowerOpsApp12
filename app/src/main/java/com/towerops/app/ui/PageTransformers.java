@@ -1,62 +1,137 @@
 package com.towerops.app.ui;
 
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 import androidx.viewpager2.widget.ViewPager2;
 
 /**
- * ViewPager2 页面切换动画转换器集合
- * 提供多种专业的滑动效果
+ * ViewPager2 页面切换动画转换器集合 v2.0
+ * 提供更流畅、更丝滑的专业滑动效果
+ *
+ * 核心理念：让每一次滑动都成为视觉享受
  */
 public class PageTransformers {
 
+    // ═══════════════════════════════════════════════════════════════
+    // 丝滑视差效果 (Silky Parallax) - 推荐默认使用
+    // ═══════════════════════════════════════════════════════════════
     /**
-     * 深度缩放效果 (Depth Transformer)
-     * - 当前页面保持正常
-     * - 滑出页面缩小+淡出
-     * - 新页面从右侧淡入
-     * 类似Google Photos的切换效果
+     * 丝滑视差效果 - 现代感十足
+     * - 页面以不同速度滑动产生视差
+     * - 缩放平滑过渡
+     * - 透明度渐变自然
+     */
+    public static class SilkyParallaxTransformer implements ViewPager2.PageTransformer {
+        private static final float MIN_SCALE = 0.88f;
+        private static final float MIN_ALPHA = 0.6f;
+        private static final float PARALLAX_FACTOR = 0.15f;
+
+        @Override
+        public void transformPage(@NonNull View page, float position) {
+            if (position < -1f || position > 1f) {
+                page.setAlpha(0f);
+                return;
+            }
+
+            // 缩放：边缘页略微缩小
+            float scale = Math.max(MIN_SCALE, 1f - Math.abs(position) * 0.25f);
+            page.setScaleX(scale);
+            page.setScaleY(scale);
+
+            // 透明度：边缘页渐隐
+            float alpha = Math.max(MIN_ALPHA, 1f - Math.abs(position) * 0.8f);
+            page.setAlpha(alpha);
+
+            // 视差位移
+            float offset = -position * page.getWidth() * PARALLAX_FACTOR;
+            page.setTranslationX(offset);
+
+            // Z轴阴影效果
+            page.setTranslationZ(-Math.abs(position));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 苹果风弹性效果 (Apple Elastic) - 丝滑且有弹性
+    // ═══════════════════════════════════════════════════════════════
+    /**
+     * 苹果风弹性效果
+     * - 缩放+位移+旋转的完美组合
+     * - 轻微的3D透视感
+     */
+    public static class AppleElasticTransformer implements ViewPager2.PageTransformer {
+        private static final float MIN_SCALE = 0.9f;
+
+        @Override
+        public void transformPage(@NonNull View page, float position) {
+            if (position < -1 || position > 1) {
+                page.setAlpha(0f);
+                return;
+            }
+
+            if (position <= 0) {
+                // 左侧页面
+                page.setAlpha(1f);
+                page.setPivotX(page.getWidth());
+                page.setRotationY(90 * position);
+                page.setTranslationX(0);
+            } else {
+                // 右侧页面
+                page.setAlpha(1f - position);
+                page.setPivotX(0);
+                page.setRotationY(90 * position);
+                page.setTranslationX(-page.getWidth() * position);
+
+                float scale = MIN_SCALE + (1 - MIN_SCALE) * (1 - position);
+                page.setScaleX(scale);
+                page.setScaleY(scale);
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 深度缩放效果 (Depth) - 经典Google Photos风格
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * 深度缩放效果 - Google Photos风格优化版
+     * 特点：当前页保持正常，滑出页缩小淡出，新页从右侧淡入
      */
     public static class DepthPageTransformer implements ViewPager2.PageTransformer {
-        private static final float MIN_SCALE = 0.75f;
-        private static final float MIN_ALPHA = 0.5f;
+        private static final float MIN_SCALE = 0.78f;
+        private static final float MIN_ALPHA = 0.55f;
 
         @Override
         public void transformPage(@NonNull View page, float position) {
             int pageWidth = page.getWidth();
 
             if (position < -1) {
-                // 页面已经滑出左侧屏幕
                 page.setAlpha(0f);
             } else if (position <= 0) {
-                // 当前页面（即将滑出）
                 page.setAlpha(1f);
                 page.setTranslationX(0);
-                page.setTranslationZ(0);
                 page.setScaleX(1);
                 page.setScaleY(1);
             } else if (position <= 1) {
-                // 新页面（正在滑入）
                 page.setAlpha(1 - position);
                 page.setTranslationX(pageWidth * -position);
-                // 向下滑动以增加深度感
                 page.setTranslationZ(-1);
-
-                float scaleFactor = MIN_SCALE + (1 - MIN_SCALE) * (1 - Math.abs(position));
-                page.setScaleX(scaleFactor);
-                page.setScaleY(scaleFactor);
+                float scale = MIN_SCALE + (1 - MIN_SCALE) * (1 - Math.abs(position));
+                page.setScaleX(scale);
+                page.setScaleY(scale);
             } else {
-                // 页面已经滑出右侧屏幕
                 page.setAlpha(0f);
             }
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 缩放+旋转效果 (Zoom Out) - 轻微3D透视
+    // ═══════════════════════════════════════════════════════════════
     /**
-     * 缩放+旋转效果 (Zoom Out Transformer)
-     * - 页面缩小并淡出
-     * - 添加轻微的Z轴旋转
+     * 缩放+旋转效果 - 页面缩小并淡出，添加轻微透视
      */
     public static class ZoomOutPageTransformer implements ViewPager2.PageTransformer {
         private static final float MIN_SCALE = 0.85f;

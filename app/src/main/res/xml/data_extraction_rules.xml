@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ 数据提取规则 (Data Extraction Rules)
+    用于卸载后数据保留和设备间迁移
+-->
+<data-extraction-rules>
+    <!-- 云端备份规则 -->
+    <cloud-backup>
+        <!-- 包含所有 SharedPreferences -->
+        <include domain="sharedpref" path="." />
+
+        <!-- 包含数据库 -->
+        <include domain="database" path="." />
+
+        <!-- 包含文件 -->
+        <include domain="file" path="." />
+
+        <!-- 排除缓存 -->
+        <exclude domain="cache" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+
+    <!-- 设备端备份规则（通过USB传输时使用） -->
+    <device-transfer>
+        <!-- 包含所有数据 -->
+        <include domain="sharedpref" path="." />
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+
+        <exclude domain="cache" path="." />
+    </device-transfer>
+</data-extraction-rules>

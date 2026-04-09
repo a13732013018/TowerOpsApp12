@@ -5,10 +5,12 @@ import android.app.DatePickerDialog;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.tabs.TabLayout;
 import com.towerops.app.R;
+import com.towerops.app.cloud.TencentCosSync;
 import com.towerops.app.model.Session;
 import com.towerops.app.model.TodoItem;
 
@@ -42,6 +45,8 @@ import java.util.Locale;
  */
 public class TodoFragment extends Fragment {
 
+    private static final String TAG = "TodoFragment";
+
     // ── 全量数据（按创建时间倒序） ───────────────────────────────────────
     private final List<TodoItem> allItems    = new ArrayList<>();
     // ── 当前展示的子列表（由 tab 决定） ─────────────────────────────────
@@ -49,10 +54,16 @@ public class TodoFragment extends Fragment {
 
     private RecyclerView   rvTodo;
     private TextView       tvEmpty;
+    private TextView       tvSyncStatus;
     private TabLayout      tabTodo;
     private TodoAdapter    adapter;
+    private ProgressBar    progressBar;
 
     private int currentTab = 0; // 0=待办, 1=已办
+
+    // 腾讯云同步服务
+    private TencentCosSync cloudSync;
+    private boolean isLoadingFromCloud = false;
 
     // ── 生命周期 ────────────────────────────────────────────────────────
 
@@ -70,7 +81,9 @@ public class TodoFragment extends Fragment {
 
         rvTodo  = view.findViewById(R.id.rvTodo);
         tvEmpty = view.findViewById(R.id.tvEmpty);
+        tvSyncStatus = view.findViewById(R.id.tvSyncStatus);
         tabTodo = view.findViewById(R.id.tabTodo);
+        progressBar = view.findViewById(R.id.progressSync);
 
         // 初始化 RecyclerView
         adapter = new TodoAdapter(displayList,
@@ -96,10 +109,157 @@ public class TodoFragment extends Fragment {
         // 新增按钮
         view.findViewById(R.id.btnAddTodo).setOnClickListener(v -> showAddDialog());
 
-        // 从持久化加载
-        allItems.clear();
-        allItems.addAll(Session.get().loadTodos(requireContext()));
-        refreshDisplay();
+        // 初始化腾讯云同步
+        initCloudSync();
+    }
+
+    /**
+     * 初始化腾讯云同步服务并尝试恢复数据
+     */
+    private void initCloudSync() {
+        cloudSync = TencentCosSync.getInstance(requireContext());
+
+        // 显示同步状态
+        if (tvSyncStatus != null) {
+            tvSyncStatus.setVisibility(View.VISIBLE);
+            tvSyncStatus.setText("正在检查云端备份...");
+        }
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
+        // 初始化腾讯云服务
+        cloudSync.initialize(new TencentCosSync.OnInitCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "腾讯云服务初始化成功");
+
+                // 从本地加载数据
+                allItems.clear();
+                allItems.addAll(Session.get().loadTodos(requireContext()));
+
+                // 如果本地有数据，显示本地数据
+                if (!allItems.isEmpty()) {
+                    Log.d(TAG, "本地有 " + allItems.size() + " 条待办，尝试同步云端");
+                    refreshDisplay();
+                    hideSyncProgress();
+                    // 后台上传本地数据到云端
+                    uploadToCloud();
+                } else {
+                    // 本地没有数据，尝试从云端恢复
+                    Log.d(TAG, "本地无数据，尝试从云端恢复...");
+                    if (tvSyncStatus != null) {
+                        tvSyncStatus.setText("正在从云端恢复...");
+                    }
+                    downloadFromCloud();
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "腾讯云初始化失败: " + error);
+                // 降级到本地模式
+                allItems.clear();
+                allItems.addAll(Session.get().loadTodos(requireContext()));
+                refreshDisplay();
+                hideSyncProgress();
+                if (tvSyncStatus != null) {
+                    tvSyncStatus.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
+    /**
+     * 从云端下载待办数据
+     */
+    private void downloadFromCloud() {
+        if (cloudSync == null) return;
+
+        cloudSync.downloadTodos(new TencentCosSync.SyncCallback() {
+            @Override
+            public void onSuccess(List<TodoItem> items) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        if (!items.isEmpty()) {
+                            Log.d(TAG, "从云端恢复 " + items.size() + " 条待办");
+                            allItems.clear();
+                            allItems.addAll(items);
+                            // 保存到本地
+                            persist();
+                            refreshDisplay();
+                            showSyncSuccess("已从云端恢复 " + items.size() + " 条待办");
+                        } else {
+                            Log.d(TAG, "云端无数据");
+                            refreshDisplay();
+                            showSyncStatus("本地模式");
+                        }
+                        hideSyncProgress();
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        Log.d(TAG, "云端恢复失败: " + error);
+                        refreshDisplay();
+                        showSyncStatus("本地模式");
+                        hideSyncProgress();
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * 上传待办数据到云端
+     */
+    private void uploadToCloud() {
+        if (cloudSync == null || allItems.isEmpty()) return;
+
+        cloudSync.uploadTodos(allItems, new TencentCosSync.UploadCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "待办已同步到云端");
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        showSyncStatus("已同步");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.d(TAG, "云端同步失败: " + error);
+            }
+        });
+    }
+
+    private void showSyncStatus(String text) {
+        if (tvSyncStatus != null) {
+            tvSyncStatus.setVisibility(View.VISIBLE);
+            tvSyncStatus.setText(text);
+        }
+    }
+
+    private void showSyncSuccess(String text) {
+        if (tvSyncStatus != null) {
+            tvSyncStatus.setVisibility(View.VISIBLE);
+            tvSyncStatus.setText(text);
+            tvSyncStatus.postDelayed(() -> {
+                if (tvSyncStatus != null && isAdded()) {
+                    tvSyncStatus.setVisibility(View.GONE);
+                }
+            }, 3000);
+        }
+    }
+
+    private void hideSyncProgress() {
+        if (progressBar != null) {
+            progressBar.setVisibility(View.GONE);
+        }
     }
 
     // ── 展示刷新 ────────────────────────────────────────────────────────
@@ -322,6 +482,8 @@ public class TodoFragment extends Fragment {
 
     private void persist() {
         Session.get().saveTodos(requireContext(), allItems);
+        // 同时上传到云端
+        uploadToCloud();
     }
 
     // ════════════════════════════════════════════════════════════════════

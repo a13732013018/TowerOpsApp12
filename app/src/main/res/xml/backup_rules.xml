@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Auto Backup / Huawei 云备份 配置
+    卸载后重新安装自动恢复数据
+
+    重要：在华为手机上，即使没有 Google 账号，
+    系统也会自动将数据备份到华为云（需要登录华为账号）。
+
+    待办数据保存位置：
+    /sdcard/Android/data/com.towerops.app/files/todos_*.json
+-->
+<full-backup-content>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 待办数据备份（关键）                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- 外部私有文件目录（包含 todos_*.json）                        -->
+    <!-- 华为手机会自动备份此目录到华为云！                           -->
+    <include domain="external-files" path="." />
+
+    <!-- 备份 SharedPreferences（包含 Session 和所有设置）              -->
+    <include domain="sharedpref" path="." />
+
+    <!-- 备份数据库 -->
+    <include domain="database" path="." />
+
+    <!-- 备份内部文件目录 -->
+    <include domain="file" path="." />
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 排除项（不备份缓存和临时文件）                               -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <exclude domain="cache" path="." />
+    <exclude domain="external-cache" path="." />
+
+    <!-- 排除日志文件 -->
+    <exclude domain="file" path="logs/" />
+    <exclude domain="file" path="debug/" />
+</full-backup-content>

@@ -1,0 +1,490 @@
+package com.towerops.app.cloud;
+
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.huawei.agconnect.AGConnectInstance;
+import com.huawei.agconnect.auth.AGConnectAuth;
+import com.huawei.agconnect.auth.SignInResult;
+import com.huawei.agconnect.cloud.storage.core.StorageReference;
+import com.huawei.agconnect.cloud.storage.core.FilePath;
+import com.huawei.agconnect.cloud.storage.core.UploadTask;
+import com.huawei.agconnect.cloud.storage.core.DownloadTask;
+import com.towerops.app.model.Session;
+import com.towerops.app.model.TodoItem;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 华为云待办数据同步服务（多账号版）
+ *
+ * 每个登录账号的数据完全隔离：
+ * - 本地文件：todos_{userid}.json
+ * - 云端路径：todo_data/todos_{userid}.json
+ *
+ * 实现原理：
+ * 1. Android Auto Backup 自动备份到华为云（无需额外代码）
+ * 2. 华为云同步用于跨设备同步（同一华为账号下的不同设备）
+ */
+public class HuaweiTodoSync {
+
+    private static final String TAG = "HuaweiTodoSync";
+
+    private static HuaweiTodoSync instance;
+    private final Context context;
+    private final ExecutorService executor;
+    private final Handler mainHandler;
+    private boolean isInitialized = false;
+
+    // 当前账号的userid，用于云端路径隔离
+    private String currentUserId = "";
+
+    // 回调接口
+    public interface SyncCallback {
+        void onSuccess(List<TodoItem> items);
+        void onError(String error);
+    }
+
+    public interface UploadCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public interface OnInitCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public interface OnCheckCallback {
+        void onResult(boolean hasBackup);
+    }
+
+    private HuaweiTodoSync(Context context) {
+        this.context = context.getApplicationContext();
+        this.executor = Executors.newSingleThreadExecutor();
+        this.mainHandler = new Handler(Looper.getMainLooper());
+    }
+
+    public static synchronized HuaweiTodoSync getInstance(Context context) {
+        if (instance == null) {
+            instance = new HuaweiTodoSync(context);
+        }
+        return instance;
+    }
+
+    /**
+     * 初始化华为云服务，并记录当前账号
+     */
+    public void initialize(OnInitCallback callback) {
+        // 获取当前登录账号的userid，用于云端路径隔离
+        currentUserId = Session.get().userid;
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = "default";
+        }
+        Log.d(TAG, "当前账号userid: " + currentUserId);
+
+        if (isInitialized) {
+            notifySuccess(callback);
+            return;
+        }
+
+        try {
+            // 初始化 AGConnect
+            AGConnectInstance.initialize(context);
+            isInitialized = true;
+            Log.d(TAG, "AGConnect 初始化成功");
+
+            // 尝试匿名登录（华为设备用户会自动关联华为账号）
+            try {
+                AGConnectAuth.getInstance().signInAnonymously()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            SignInResult result = task.getResult();
+                            Log.d(TAG, "匿名登录成功, UID: " + result.getUser().getUid());
+                        } else {
+                            Log.d(TAG, "匿名登录失败（可能已通过华为账号认证）: "
+                                + task.getException());
+                        }
+                        notifySuccess(callback);
+                    });
+            } catch (Exception e) {
+                Log.d(TAG, "登录跳过: " + e.getMessage());
+                notifySuccess(callback);
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "初始化失败: " + e.getMessage());
+            notifyError(callback, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取云端文件路径（按账号隔离）
+     */
+    private String getCloudFileName() {
+        return "todos_" + currentUserId + ".json";
+    }
+
+    /**
+     * 获取本地缓存文件（按账号隔离）
+     */
+    private File getLocalCacheFile() {
+        return new File(context.getCacheDir(), getCloudFileName());
+    }
+
+    /**
+     * 上传待办数据到云端（账号隔离）
+     */
+    public void uploadTodos(List<TodoItem> items, UploadCallback callback) {
+        executor.execute(() -> {
+            try {
+                String json = todosToJson(items);
+
+                // 1. 保存到本地缓存
+                File localFile = getLocalCacheFile();
+                try (FileOutputStream fos = new FileOutputStream(localFile)) {
+                    fos.write(json.getBytes("UTF-8"));
+                    fos.flush();
+                }
+                Log.d(TAG, "待办已保存到本地缓存: " + localFile.getAbsolutePath());
+
+                // 2. 上传到云端（按账号隔离路径）
+                uploadToCloud(localFile, callback);
+
+            } catch (Exception e) {
+                Log.e(TAG, "上传待办失败: " + e.getMessage());
+                notifyUploadError(callback, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * 从云端下载待办数据（账号隔离）
+     */
+    public void downloadTodos(SyncCallback callback) {
+        executor.execute(() -> {
+            try {
+                // 1. 优先从云端下载（按账号隔离路径）
+                downloadFromCloud(new SyncCallback() {
+                    @Override
+                    public void onSuccess(List<TodoItem> items) {
+                        Log.d(TAG, "从云端恢复 " + items.size() + " 条待办（账号: " + currentUserId + "）");
+                        // 保存到本地缓存
+                        saveToLocalCache(todosToJson(items));
+                        notifySyncSuccess(callback, items);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.d(TAG, "云端下载失败: " + error);
+                        // 2. 回退到本地缓存
+                        loadFromLocalCache(new SyncCallback() {
+                            @Override
+                            public void onSuccess(List<TodoItem> items) {
+                                notifySyncSuccess(callback, items);
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                notifySyncSuccess(callback, new ArrayList<>());
+                            }
+                        });
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "下载待办失败: " + e.getMessage());
+                notifySyncSuccess(callback, new ArrayList<>());
+            }
+        });
+    }
+
+    private void notifySuccess(OnInitCallback callback) {
+        if (callback != null) {
+            mainHandler.post(callback::onSuccess);
+        }
+    }
+
+    private void notifyError(OnInitCallback callback, String error) {
+        if (callback != null) {
+            mainHandler.post(() -> callback.onError(error));
+        }
+    }
+
+    /**
+     * 上传待办数据到云端
+     */
+    public void uploadTodos(List<TodoItem> items, UploadCallback callback) {
+        executor.execute(() -> {
+            try {
+                // 1. 保存到本地文件
+                String json = todosToJson(items);
+                File localFile = saveToLocalFile(json);
+                Log.d(TAG, "待办已保存到本地: " + localFile.getAbsolutePath());
+
+                // 2. 尝试上传到云端
+                uploadToCloud(localFile, callback);
+
+            } catch (Exception e) {
+                Log.e(TAG, "上传待办失败: " + e.getMessage());
+                notifyUploadError(callback, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * 从云端下载待办数据
+     */
+    public void downloadTodos(SyncCallback callback) {
+        executor.execute(() -> {
+            try {
+                // 1. 先从云端下载
+                downloadFromCloud(new SyncCallback() {
+                    @Override
+                    public void onSuccess(List<TodoItem> items) {
+                        Log.d(TAG, "从云端恢复 " + items.size() + " 条待办");
+                        // 保存到本地
+                        saveToLocalFile(todosToJson(items));
+                        notifySyncSuccess(callback, items);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.d(TAG, "云端下载失败: " + error);
+                        // 2. 回退到本地文件
+                        loadFromLocal(new SyncCallback() {
+                            @Override
+                            public void onSuccess(List<TodoItem> items) {
+                                notifySyncSuccess(callback, items);
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                notifySyncSuccess(callback, new ArrayList<>());
+                            }
+                        });
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "下载待办失败: " + e.getMessage());
+                notifySyncSuccess(callback, new ArrayList<>());
+            }
+        });
+    }
+
+    /**
+     * 上传到华为云存储（按账号隔离）
+     */
+    private void uploadToCloud(File localFile, UploadCallback callback) {
+        try {
+            StorageReference storageRef = AGConnectInstance.getInstance()
+                    .getStorageReference();
+
+            // 云端路径按账号隔离
+            FilePath cloudPath = new FilePath("todo_data", getCloudFileName());
+            StorageReference todoRef = storageRef.child(cloudPath);
+
+            UploadTask uploadTask = todoRef.putFile(localFile);
+
+            uploadTask.addOnSuccessListener(snapshot -> {
+                Log.d(TAG, "上传云端成功（账号: " + currentUserId + "）");
+                mainHandler.post(() -> {
+                    if (callback != null) callback.onSuccess();
+                });
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "上传云端失败: " + e.getMessage());
+                mainHandler.post(() -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+            });
+
+        } catch (Exception e) {
+            Log.e(TAG, "上传异常: " + e.getMessage());
+            notifyUploadError(callback, e.getMessage());
+        }
+    }
+
+    private void notifyUploadError(UploadCallback callback, String error) {
+        mainHandler.post(() -> {
+            if (callback != null) callback.onError(error);
+        });
+    }
+
+    /**
+     * 从华为云存储下载（按账号隔离）
+     */
+    private void downloadFromCloud(SyncCallback callback) {
+        try {
+            StorageReference storageRef = AGConnectInstance.getInstance()
+                    .getStorageReference();
+
+            // 云端路径按账号隔离
+            FilePath cloudPath = new FilePath("todo_data", getCloudFileName());
+            StorageReference todoRef = storageRef.child(cloudPath);
+
+            // 获取下载链接
+            todoRef.getDownloadUri().addOnSuccessListener(uri -> {
+                String url = uri.toString();
+                Log.d(TAG, "获取下载链接: " + url);
+
+                // 下载文件
+                File tempFile = getLocalCacheFile();
+                DownloadTask downloadTask = storageRef.download(url, tempFile);
+
+                downloadTask.addOnSuccessListener(file -> {
+                    try {
+                        String content = readFileContent(file);
+                        List<TodoItem> items = jsonToTodos(content);
+                        mainHandler.post(() -> {
+                            if (callback != null) callback.onSuccess(items);
+                        });
+                    } catch (Exception e) {
+                        mainHandler.post(() -> {
+                            if (callback != null) callback.onError("解析失败");
+                        });
+                    }
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "下载失败: " + e.getMessage());
+                    mainHandler.post(() -> {
+                        if (callback != null) callback.onError(e.getMessage());
+                    });
+                });
+
+            }).addOnFailureListener(e -> {
+                Log.d(TAG, "云端文件不存在（账号: " + currentUserId + "）: " + e.getMessage());
+                mainHandler.post(() -> {
+                    if (callback != null) callback.onError("文件不存在");
+                });
+            });
+
+        } catch (Exception e) {
+            Log.e(TAG, "下载异常: " + e.getMessage());
+            mainHandler.post(() -> {
+                if (callback != null) callback.onError(e.getMessage());
+            });
+        }
+    }
+
+    private void notifySyncSuccess(SyncCallback callback, List<TodoItem> items) {
+        mainHandler.post(() -> {
+            if (callback != null) callback.onSuccess(items);
+        });
+    }
+
+    /**
+     * 保存到本地缓存（按账号隔离）
+     */
+    private void saveToLocalCache(String json) throws Exception {
+        File file = getLocalCacheFile();
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(json.getBytes("UTF-8"));
+            fos.flush();
+        }
+    }
+
+    /**
+     * 从本地缓存读取（按账号隔离）
+     */
+    private void loadFromLocalCache(SyncCallback callback) {
+        try {
+            File file = getLocalCacheFile();
+            if (!file.exists() || file.length() < 2) {
+                Log.d(TAG, "本地缓存为空（账号: " + currentUserId + "）");
+                notifySyncSuccess(callback, new ArrayList<>());
+                return;
+            }
+
+            String content = readFileContent(file);
+            List<TodoItem> items = jsonToTodos(content);
+            notifySyncSuccess(callback, items);
+
+        } catch (Exception e) {
+            Log.e(TAG, "读取本地缓存失败: " + e.getMessage());
+            notifySyncSuccess(callback, new ArrayList<>());
+        }
+    }
+
+    /**
+     * 读取文件内容
+     */
+    private String readFileContent(File file) throws Exception {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            return new String(data, "UTF-8");
+        }
+    }
+
+    /**
+     * 待办列表转JSON
+     */
+    private String todosToJson(List<TodoItem> items) {
+        JSONArray array = new JSONArray();
+        for (TodoItem item : items) {
+            try {
+                JSONObject obj = new JSONObject();
+                obj.put("id", item.getId());
+                obj.put("title", item.getTitle());
+                obj.put("content", item.getContent());
+                obj.put("createTime", item.getCreateTime());
+                obj.put("completed", item.isCompleted());
+                obj.put("completedTime", item.getCompletedTime());
+                obj.put("priority", item.getPriority());
+                obj.put("dueTime", item.getDueTime());
+                array.put(obj);
+            } catch (Exception e) {
+                Log.e(TAG, "JSON转换失败: " + e.getMessage());
+            }
+        }
+        return array.toString();
+    }
+
+    /**
+     * JSON转待办列表
+     */
+    private List<TodoItem> jsonToTodos(String json) {
+        List<TodoItem> items = new ArrayList<>();
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.getJSONObject(i);
+                TodoItem item = new TodoItem(
+                    obj.getString("id"),
+                    obj.getString("title"),
+                    obj.optString("content", ""),
+                    obj.getLong("createTime")
+                );
+                item.setCompleted(obj.getBoolean("completed"));
+                item.setCompletedTime(obj.optLong("completedTime", 0));
+                item.setPriority(obj.optInt("priority", 0));
+                item.setDueTime(obj.optLong("dueTime", 0));
+                items.add(item);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "JSON解析失败: " + e.getMessage());
+        }
+        return items;
+    }
+
+    /**
+     * 获取本地缓存文件路径（按账号隔离）
+     */
+    public String getLocalBackupPath() {
+        File file = getLocalCacheFile();
+        return file.exists() ? file.getAbsolutePath() : null;
+    }
+}

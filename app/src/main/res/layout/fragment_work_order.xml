@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 优化版工单监控界面 - ConstraintLayout布局，更丝滑的交互 -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/bg_base">
 
-    <!-- ======== 控制面板 CardView ======== -->
+    <!-- ===== 优化控制面板 CardView ===== -->
     <androidx.cardview.widget.CardView
         android:id="@+id/controlPanel"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
@@ -17,274 +18,343 @@
         android:layout_marginBottom="6dp"
         app:cardCornerRadius="14dp"
         app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/bg_card">
+        app:cardBackgroundColor="@color/bg_card"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
+        <!-- 使用优化布局减少嵌套 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:paddingTop="10dp"
             android:paddingBottom="10dp">
 
-            <!-- ── 行1：开关组 + 操作按钮 ── -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <!-- 开关组 - 链式布局 -->
+            <CheckBox
+                android:id="@+id/cbAutoFeedback"
+                android:layout_width="0dp"
                 android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:text="自动反馈"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:buttonTint="@color/colorPrimary"
+                android:checked="true"
+                android:minHeight="0dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/cbAutoAccept"
+                app:layout_constraintHorizontal_chainStyle="spread"/>
 
-                <CheckBox
-                    android:id="@+id/cbAutoFeedback"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="自动反馈"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:buttonTint="@color/colorPrimary"
-                    android:checked="true"
-                    android:minHeight="0dp"
-                    android:gravity="center_vertical"/>
+            <CheckBox
+                android:id="@+id/cbAutoAccept"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:text="自动接单"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:buttonTint="@color/colorPrimary"
+                android:checked="true"
+                android:minHeight="0dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/cbAutoFeedback"
+                app:layout_constraintEnd_toStartOf="@+id/cbAutoRevert"/>
 
-                <CheckBox
-                    android:id="@+id/cbAutoAccept"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="自动接单"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:buttonTint="@color/colorPrimary"
-                    android:checked="true"
-                    android:minHeight="0dp"
-                    android:gravity="center_vertical"/>
+            <CheckBox
+                android:id="@+id/cbAutoRevert"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:text="自动回单"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:buttonTint="@color/colorPrimary"
+                android:checked="true"
+                android:minHeight="0dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/cbAutoAccept"
+                app:layout_constraintEnd_toStartOf="@+id/btnStartMonitor"/>
 
-                <CheckBox
-                    android:id="@+id/cbAutoRevert"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="自动回单"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:buttonTint="@color/colorPrimary"
-                    android:checked="true"
-                    android:minHeight="0dp"
-                    android:gravity="center_vertical"/>
+            <!-- 按钮组 -->
+            <Button
+                android:id="@+id/btnStartMonitor"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:text="开启监控"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_inverse"
+                android:background="@drawable/bg_button_primary_gradient"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/cbAutoRevert"
+                app:layout_constraintEnd_toStartOf="@+id/btnStopMonitor"/>
 
-                <Button
-                    android:id="@+id/btnStartMonitor"
-                    android:layout_width="0dp"
-                    android:layout_height="32dp"
-                    android:layout_weight="1.3"
-                    android:layout_marginStart="4dp"
-                    android:text="开启监控"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_inverse"
-                    android:background="@drawable/bg_button_primary_gradient"
-                    android:stateListAnimator="@null"
-                    android:letterSpacing="0"/>
+            <Button
+                android:id="@+id/btnStopMonitor"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:text="停止"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_inverse"
+                android:background="@drawable/bg_button_gray"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/btnStartMonitor"
+                app:layout_constraintEnd_toEndOf="parent"/>
 
-                <Button
-                    android:id="@+id/btnStopMonitor"
-                    android:layout_width="0dp"
-                    android:layout_height="32dp"
-                    android:layout_weight="0.8"
-                    android:layout_marginStart="4dp"
-                    android:text="停止"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_inverse"
-                    android:background="@drawable/bg_button_gray"
-                    android:stateListAnimator="@null"
-                    android:letterSpacing="0"/>
-            </LinearLayout>
-
-            <!-- 细分割线 -->
+            <!-- 分割线 -->
             <View
-                android:layout_width="match_parent"
+                android:id="@+id/dividerControls"
+                android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:background="@color/divider"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toBottomOf="@+id/cbAutoFeedback"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
 
-            <!-- ── 行2：参数配置行 ── -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <!-- 参数配置行 - ConstraintLayout优化 -->
+            <TextView
+                android:id="@+id/labelPoll"
+                android:layout_width="wrap_content"
                 android:layout_height="26dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:text="轮询"
+                android:textColor="@color/text_tertiary"
+                android:textSize="10sp"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toBottomOf="@+id/dividerControls"
+                app:layout_constraintStart_toStartOf="parent"/>
 
-                <!-- 轮询 -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="轮询"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="10sp"/>
+            <EditText
+                android:id="@+id/etIntervalMin"
+                android:layout_width="32dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="90"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelPoll"
+                app:layout_constraintBottom_toBottomOf="@+id/labelPoll"
+                app:layout_constraintStart_toEndOf="@+id/labelPoll"/>
 
-                <EditText
-                    android:id="@+id/etIntervalMin"
-                    android:layout_width="32dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="90"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
+            <TextView
+                android:id="@+id/labelTilde1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="~"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:layout_marginStart="1dp"
+                app:layout_constraintTop_toTopOf="@+id/labelPoll"
+                app:layout_constraintBottom_toBottomOf="@+id/labelPoll"
+                app:layout_constraintStart_toEndOf="@+id/etIntervalMin"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="~"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="9sp"
-                    android:layout_marginStart="1dp"/>
+            <EditText
+                android:id="@+id/etIntervalMax"
+                android:layout_width="32dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="1dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="120"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelTilde1"
+                app:layout_constraintBottom_toBottomOf="@+id/labelTilde1"
+                app:layout_constraintStart_toEndOf="@+id/labelTilde1"/>
 
-                <EditText
-                    android:id="@+id/etIntervalMax"
-                    android:layout_width="32dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="1dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="120"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
+            <TextView
+                android:id="@+id/labelSec1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="秒"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:layout_marginStart="2dp"
+                app:layout_constraintTop_toTopOf="@+id/labelPoll"
+                app:layout_constraintBottom_toBottomOf="@+id/labelPoll"
+                app:layout_constraintStart_toEndOf="@+id/etIntervalMax"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="秒"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="9sp"
-                    android:layout_marginStart="2dp"/>
+            <!-- 分割竖线 -->
+            <View
+                android:id="@+id/divider1"
+                android:layout_width="1dp"
+                android:layout_height="10dp"
+                android:background="@color/divider_strong"
+                android:layout_marginStart="8dp"
+                app:layout_constraintTop_toTopOf="@+id/labelPoll"
+                app:layout_constraintBottom_toBottomOf="@+id/labelPoll"
+                app:layout_constraintStart_toEndOf="@+id/labelSec1"/>
 
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="10dp"
-                    android:background="@color/divider_strong"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+            <!-- 反馈延迟 -->
+            <TextView
+                android:id="@+id/labelFeedback"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:text="反馈"
+                android:textColor="@color/text_tertiary"
+                android:textSize="10sp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                app:layout_constraintTop_toTopOf="@+id/labelPoll"
+                app:layout_constraintBottom_toBottomOf="@+id/labelPoll"
+                app:layout_constraintStart_toEndOf="@+id/divider1"/>
 
-                <!-- 反馈延迟 -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="反馈"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="10sp"/>
+            <EditText
+                android:id="@+id/etFeedbackMin"
+                android:layout_width="28dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="70"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelFeedback"
+                app:layout_constraintBottom_toBottomOf="@+id/labelFeedback"
+                app:layout_constraintStart_toEndOf="@+id/labelFeedback"/>
 
-                <EditText
-                    android:id="@+id/etFeedbackMin"
-                    android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="70"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
+            <TextView
+                android:id="@+id/labelTilde2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="~"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:layout_marginStart="1dp"
+                app:layout_constraintTop_toTopOf="@+id/labelFeedback"
+                app:layout_constraintBottom_toBottomOf="@+id/labelFeedback"
+                app:layout_constraintStart_toEndOf="@+id/etFeedbackMin"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="~"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="9sp"
-                    android:layout_marginStart="1dp"/>
+            <EditText
+                android:id="@+id/etFeedbackMax"
+                android:layout_width="28dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="1dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="90"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelTilde2"
+                app:layout_constraintBottom_toBottomOf="@+id/labelTilde2"
+                app:layout_constraintStart_toEndOf="@+id/labelTilde2"/>
 
-                <EditText
-                    android:id="@+id/etFeedbackMax"
-                    android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="1dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="90"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
+            <!-- 分割竖线2 -->
+            <View
+                android:id="@+id/divider2"
+                android:layout_width="1dp"
+                android:layout_height="10dp"
+                android:background="@color/divider_strong"
+                android:layout_marginStart="8dp"
+                app:layout_constraintTop_toTopOf="@+id/labelFeedback"
+                app:layout_constraintBottom_toBottomOf="@+id/labelFeedback"
+                app:layout_constraintStart_toEndOf="@+id/etFeedbackMax"/>
 
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="10dp"
-                    android:background="@color/divider_strong"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+            <!-- 接单延迟 -->
+            <TextView
+                android:id="@+id/labelAccept"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:text="接单"
+                android:textColor="@color/text_tertiary"
+                android:textSize="10sp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                app:layout_constraintTop_toTopOf="@+id/divider2"
+                app:layout_constraintBottom_toBottomOf="@+id/divider2"
+                app:layout_constraintStart_toEndOf="@+id/divider2"/>
 
-                <!-- 接单延迟 -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="接单"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="10sp"/>
+            <EditText
+                android:id="@+id/etAcceptMin"
+                android:layout_width="28dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="60"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelAccept"
+                app:layout_constraintBottom_toBottomOf="@+id/labelAccept"
+                app:layout_constraintStart_toEndOf="@+id/labelAccept"/>
 
-                <EditText
-                    android:id="@+id/etAcceptMin"
-                    android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="60"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
+            <TextView
+                android:id="@+id/labelTilde3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="~"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:layout_marginStart="1dp"
+                app:layout_constraintTop_toTopOf="@+id/labelAccept"
+                app:layout_constraintBottom_toBottomOf="@+id/labelAccept"
+                app:layout_constraintStart_toEndOf="@+id/etAcceptMin"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="~"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="9sp"
-                    android:layout_marginStart="1dp"/>
+            <EditText
+                android:id="@+id/etAcceptMax"
+                android:layout_width="28dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="1dp"
+                android:background="@drawable/bg_input_white"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="90"
+                android:textColor="@color/text_primary"
+                android:textSize="9sp"
+                android:inputType="number"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                app:layout_constraintTop_toTopOf="@+id/labelTilde3"
+                app:layout_constraintBottom_toBottomOf="@+id/labelTilde3"
+                app:layout_constraintStart_toEndOf="@+id/labelTilde3"/>
 
-                <EditText
-                    android:id="@+id/etAcceptMax"
-                    android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="1dp"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:text="90"
-                    android:textColor="@color/text_primary"
-                    android:textSize="9sp"
-                    android:inputType="number"
-                    android:gravity="center"/>
-
-            </LinearLayout>
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- ======== 排序工具栏 ======== -->
+    <!-- ===== 优化排序工具栏 ===== -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/sortToolbar"
+        android:layout_width="0dp"
         android:layout_height="36dp"
         android:orientation="horizontal"
         android:background="@color/background_secondary"
         android:paddingStart="12dp"
         android:paddingEnd="8dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@+id/controlPanel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:layout_width="wrap_content"
@@ -313,6 +383,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
+                <!-- 排序按钮 - 使用优化样式 -->
                 <TextView
                     android:id="@+id/btnSortBillTime"
                     android:layout_width="wrap_content"
@@ -385,22 +456,30 @@
         </HorizontalScrollView>
     </LinearLayout>
 
+    <!-- 底部分割线 -->
     <View
-        android:layout_width="match_parent"
+        android:id="@+id/dividerSort"
+        android:layout_width="0dp"
         android:layout_height="1dp"
-        android:background="@color/divider_strong"/>
+        android:background="@color/divider_strong"
+        app:layout_constraintTop_toBottomOf="@+id/sortToolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- ======== 工单列表 ======== -->
+    <!-- ===== 优化工单列表 ===== -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerWorkOrders"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:background="@color/background_primary"
         android:clipToPadding="false"
         android:paddingStart="6dp"
         android:paddingEnd="6dp"
         android:paddingTop="4dp"
-        android:paddingBottom="8dp"/>
+        android:paddingBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/dividerSort"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

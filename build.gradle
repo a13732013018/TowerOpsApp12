@@ -1,3 +1,16 @@
+buildscript {
+    ext {
+        agp_version = '7.4.2'
+    }
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    }
+    dependencies {
+        classpath files('libs/agconnect-classpath-plugin-1.9.1.301.jar')
+    }
+}
 plugins {
-    id 'com.android.application' version '8.2.0' apply false
+    id 'com.android.application' version '7.4.2' apply false
 }

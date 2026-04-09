@@ -477,20 +477,23 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 配置ViewPager2页面切换动画
      * 提供多种专业动画效果可选
+     * v2.0: 使用更丝滑的SilkyParallaxTransformer
      */
     private void setupViewPagerAnimations() {
         // 选择动画效果：
-        // 1. DepthPageTransformer - 深度缩放效果（推荐，类似Google Photos）
-        // 2. ZoomOutPageTransformer - 缩放+旋转效果
-        // 3. CubePageTransformer - 3D立方体旋转
-        // 4. AccordionPageTransformer - 折叠效果
-        // 5. StackPageTransformer - 堆叠效果
-        // 6. FidgetPageTransformer - 弹性效果
+        // 1. SilkyParallaxTransformer - 丝滑视差（v2.0新增，默认推荐）
+        // 2. AppleElasticTransformer - 苹果风弹性
+        // 3. DepthPageTransformer - 深度缩放效果（类似Google Photos）
+        // 4. ZoomOutPageTransformer - 缩放+旋转效果
+        // 5. CubePageTransformer - 3D立方体旋转
+        // 6. AccordionPageTransformer - 折叠效果
+        // 7. StackPageTransformer - 堆叠效果
+        // 8. FidgetPageTransformer - 弹性效果
 
-        viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
+        // v2.0 默认使用丝滑视差效果
+        viewPager.setPageTransformer(new PageTransformers.SilkyParallaxTransformer());
 
         // 设置页面之间的间距，产生滑动分隔感
-        // ViewPager2 使用 CompositePageTransformer 设置间距
         viewPager.setOffscreenPageLimit(8);
 
         // 设置UserInputEnabled，允许/禁止手动滑动
@@ -529,32 +532,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Fragment进入动画
+     * Fragment进入动画 v2.0 - 更丝滑
      */
     private void animateFragmentEnter(View view) {
         view.setAlpha(0f);
-        view.setTranslationX(60);
-        view.setScaleX(0.92f);
-        view.setScaleY(0.92f);
+        view.setTranslationX(40);
+        view.setScaleX(0.95f);
+        view.setScaleY(0.95f);
 
         view.animate()
             .alpha(1f)
             .translationX(0)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(280)
-            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+            .setDuration(250)  // 优化：稍微加快，减少等待感
+            .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f))
             .start();
     }
 
     /**
-     * Fragment退出动画
+     * Fragment退出动画 v2.0 - 更丝滑
      */
     private void animateFragmentExit(View view) {
         view.animate()
-            .alpha(0.6f)
-            .translationX(-30)
-            .setDuration(180)
+            .alpha(0.7f)
+            .translationX(-20)
+            .scaleX(0.98f)
+            .scaleY(0.98f)
+            .setDuration(150)
             .setInterpolator(new android.view.animation.AccelerateInterpolator())
             .start();
     }
@@ -637,29 +642,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 设置页面切换动画类型
-     * @param type 0=深度缩放, 1=缩放旋转, 2=3D旋转, 3=折叠, 4=堆叠, 5=弹性
+     * 设置页面切换动画类型 v2.0
+     * @param type 0=丝滑视差(默认), 1=苹果风弹性, 2=深度缩放, 3=缩放旋转, 4=3D旋转, 5=折叠, 6=堆叠, 7=弹性
      */
     public void setPageAnimation(int type) {
         switch (type) {
             case 0:
-                viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
+                viewPager.setPageTransformer(new PageTransformers.SilkyParallaxTransformer());
                 break;
             case 1:
-                viewPager.setPageTransformer(new PageTransformers.ZoomOutPageTransformer());
+                viewPager.setPageTransformer(new PageTransformers.AppleElasticTransformer());
                 break;
             case 2:
-                viewPager.setPageTransformer(new PageTransformers.CubePageTransformer());
+                viewPager.setPageTransformer(new PageTransformers.DepthPageTransformer());
                 break;
             case 3:
-                viewPager.setPageTransformer(new PageTransformers.AccordionPageTransformer());
+                viewPager.setPageTransformer(new PageTransformers.ZoomOutPageTransformer());
                 break;
             case 4:
-                viewPager.setPageTransformer(new PageTransformers.StackPageTransformer());
+                viewPager.setPageTransformer(new PageTransformers.CubePageTransformer());
                 break;
             case 5:
+                viewPager.setPageTransformer(new PageTransformers.AccordionPageTransformer());
+                break;
+            case 6:
+                viewPager.setPageTransformer(new PageTransformers.StackPageTransformer());
+                break;
+            case 7:
                 viewPager.setPageTransformer(new PageTransformers.FidgetPageTransformer());
                 break;
+            default:
+                viewPager.setPageTransformer(new PageTransformers.SilkyParallaxTransformer());
         }
     }
 

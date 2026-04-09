@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
@@ -194,14 +195,11 @@ public class TencentCosSync {
     }
 
     /**
-     * 上传到腾讯云COS（使用临时签名）
+     * 上传到腾讯云COS
      */
     private void uploadToCloud(String content, UploadCallback callback) {
         String cosPath = "/todo_data/" + getCloudFileName();
         String url = "https://" + COS_HOST + cosPath;
-
-        // 生成COS签名
-        String sign = generateSimpleSign();
 
         RequestBody body = RequestBody.create(content, MediaType.parse("application/json"));
 
@@ -210,7 +208,6 @@ public class TencentCosSync {
                 .put(body)
                 .addHeader("Host", COS_HOST)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", sign)
                 .build();
 
         httpClient.newCall(request).enqueue(new Callback() {
@@ -247,13 +244,10 @@ public class TencentCosSync {
         String cosPath = "/todo_data/" + getCloudFileName();
         String url = "https://" + COS_HOST + cosPath;
 
-        String sign = generateSimpleSign();
-
         Request request = new Request.Builder()
                 .url(url)
                 .get()
                 .addHeader("Host", COS_HOST)
-                .addHeader("Authorization", sign)
                 .build();
 
         httpClient.newCall(request).enqueue(new Callback() {
@@ -287,24 +281,58 @@ public class TencentCosSync {
     }
 
     /**
-     * 生成COS签名
+     * 生成COS签名（简化版，适用于简单上传下载）
      */
     private String generateSimpleSign() {
-        long expiredTime = System.currentTimeMillis() / 1000 + 3600;
-        String signTime = expiredTime + ";";
-        
         try {
-            String signKey = hmacSHA1(COS_SECRET_KEY, signTime);
-            String signStr = "a=" + COS_SECRET_ID + "&b=" + COS_BUCKET + "&t=" + signTime + "&r=" + expiredTime;
-            String orignal = signStr + "&k=" + signKey;
-            String signature = hmacSHA1(COS_SECRET_KEY, orignal);
+            long startTime = System.currentTimeMillis() / 1000;
+            long expiredTime = startTime + 3600;
             
-            return "q-sign-algorithm=sha1&q-ak=" + COS_SECRET_ID + 
-                   "&q-sign-time=" + signTime + 
-                   "&q-key-time=" + signTime + 
-                   "&q-header-list=host&q-url-param-list=&q-signature=" + signature;
+            String signTime = startTime + ";" + expiredTime;
+            
+            // 生成SignKey
+            String signKey = hmacSHA1Hex(COS_SECRET_KEY, signTime);
+            
+            // 生成Original
+            String httpString = "put\n/todo_data/" + getCloudFileName() + "\n\nhost=" + COS_HOST + "\n";
+            String sha1HttpString = sha1Hex(httpString);
+            
+            // 生成Signature
+            String signature = hmacSHA1Hex(signKey, sha1HttpString);
+            
+            // 组合签名
+            String sign = "q-sign-algorithm=sha1&q-ak=" + COS_SECRET_ID + 
+                         "&q-sign-time=" + signTime + 
+                         "&q-key-time=" + signTime + 
+                         "&q-header-list=host&q-url-param-list=&q-signature=" + signature;
+            
+            Log.d(TAG, "生成签名成功，有效期至: " + expiredTime);
+            return sign;
         } catch (Exception e) {
             Log.e(TAG, "签名失败: " + e.getMessage());
+            return "";
+        }
+    }
+    
+    private String hmacSHA1Hex(String key, String data) {
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA1");
+            javax.crypto.spec.SecretKeySpec secretKeySpec = 
+                new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA1");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    private String sha1Hex(String data) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] hash = md.digest(data.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
             return "";
         }
     }

@@ -560,6 +560,9 @@ public class DoorDataFragment extends Fragment {
         final String startDate = queryStartDate;
         final String endDate   = queryEndDate;
 
+        // 调试日志：确认日期范围
+        android.util.Log.d("DoorData", ">>> fetchAndMatch 日期范围: startDate=" + startDate + " endDate=" + endDate);
+
         // ════ Step 1：拉取所有 OMMS 门禁告警（分页） ════════════════════════
         setStatus("📡 正在拉取OMMS门禁告警（翻页中）...");
         List<RawAlarm> rawAlarms = fetchAllOmmsAlarms(startDate, endDate);

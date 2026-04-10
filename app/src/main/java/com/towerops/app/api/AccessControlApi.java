@@ -1145,6 +1145,7 @@ public class AccessControlApi {
         String cookie = "userOrgCode=100033";
 
         android.util.Log.d(TAG, "getAll4aOpenRecords dateRange=" + startTime + " ~ " + endTime + " county=" + county);
+        android.util.Log.d(TAG, "getAll4aOpenRecords 使用Token=" + token.substring(0, Math.min(20, token.length())) + "...(前20字符)");
 
         int page = 1;
         int pageSize = 100;
@@ -1167,6 +1168,7 @@ public class AccessControlApi {
                 postJson.put("accountSource", "");
                 postJson.put("userType", "");
                 postJson.put("belongingDepartment", "");
+                postJson.put("undefined", "");
                 postJson.put("openResult", "");
                 postJson.put("type", "");
                 postJson.put("openSource", "");
@@ -1181,6 +1183,8 @@ public class AccessControlApi {
                 postJson.put("countyCodeList", countyList);
                 postJson.put("pageNum", page);
                 postJson.put("pageSize", pageSize);
+                // 调试：打印实际发送的请求体
+                android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " postJson=" + postJson.toString());
             } catch (Exception e) {
                 android.util.Log.e(TAG, "getAll4aOpenRecords buildPost failed", e);
                 break;
@@ -1189,13 +1193,21 @@ public class AccessControlApi {
             try {
                 String resp = HttpUtil.post(url, postJson.toString(), headers, cookie);
                 if (resp == null || resp.isEmpty()) {
-                    android.util.Log.w(TAG, "getAll4aOpenRecords p" + page + " 空响应，停止");
+                    android.util.Log.w(TAG, "getAll4aOpenRecords p" + page + " 空响应(HTTP可能失败)，停止");
                     break;
                 }
+                // 打印完整响应（前500字符），方便调试
+                String respPreview = resp.length() > 500 ? resp.substring(0, 500) + "...(截断)" : resp;
                 android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " respLen=" + resp.length()
-                        + " preview=" + resp.substring(0, Math.min(300, resp.length())));
+                        + " resp=" + respPreview);
 
-                org.json.JSONObject obj = new org.json.JSONObject(resp);
+                org.json.JSONObject obj;
+                try {
+                    obj = new org.json.JSONObject(resp);
+                } catch (Exception e) {
+                    android.util.Log.e(TAG, "getAll4aOpenRecords JSON解析失败: " + e.getMessage() + " resp=" + respPreview, e);
+                    break;
+                }
                 org.json.JSONArray rows = null;
 
                 // 尝试从 data.records / data.rows / data.list / data 中取数组
@@ -1204,9 +1216,14 @@ public class AccessControlApi {
                     rows = data.optJSONArray("records");
                     if (rows == null) rows = data.optJSONArray("rows");
                     if (rows == null) rows = data.optJSONArray("list");
+                    // 打印data的key，方便调试
+                    android.util.Log.d(TAG, "getAll4aOpenRecords data keys=" + data.keys().toString());
                 }
                 if (rows == null) rows = obj.optJSONArray("data");
+                // 检查是否找到了数据
                 if (rows == null || rows.length() == 0) {
+                    // 打印完整的obj结构
+                    android.util.Log.d(TAG, "getAll4aOpenRecords 无数据: obj=" + obj.toString().substring(0, Math.min(300, obj.toString().length())));
                     android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " 无更多数据，停止");
                     break;
                 }

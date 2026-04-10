@@ -498,9 +498,16 @@ public class DoorDataFragment extends Fragment {
         btn4AGet.setText("获取中...");
         setStatus("🔄 正在启动登录页面...");
         
-        // 直接启动TymjLoginActivity，通过ActivityResult获取结果
-        Intent intent = new Intent(requireContext(), TymjLoginActivity.class);
-        startActivityForResult(intent, REQ_4A_TOKEN);
+        try {
+            // 直接启动TymjLoginActivity，通过ActivityResult获取结果
+            Intent intent = new Intent(requireContext(), TymjLoginActivity.class);
+            startActivityForResult(intent, REQ_4A_TOKEN);
+        } catch (Exception e) {
+            btn4AGet.setEnabled(true);
+            btn4AGet.setText("获取4A");
+            Toast.makeText(requireContext(), "❌ 启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            android.util.Log.e("DoorData", "启动TymjLoginActivity失败", e);
+        }
     }
 
     @Override

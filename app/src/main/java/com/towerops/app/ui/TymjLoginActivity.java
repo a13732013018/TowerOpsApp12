@@ -164,7 +164,7 @@ public class TymjLoginActivity extends Activity {
         ws.setDomStorageEnabled(true);
         ws.setDatabaseEnabled(true);
         ws.setJavaScriptCanOpenWindowsAutomatically(true);
-        ws.setSupportMultipleWindows(false);  // 改为false，避免创建新窗口
+        ws.setSupportMultipleWindows(true);  // 改为true，真机上某些页面需要创建新窗口
         ws.setUserAgentString(UA);
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
         ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);

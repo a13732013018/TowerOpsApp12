@@ -28,6 +28,7 @@ import com.towerops.app.api.AccessControlApi;
 import com.towerops.app.api.LoginApi;
 
 import com.towerops.app.api.TowerLoginApi;
+import com.towerops.app.api.TymjWebViewHelper;
 import com.towerops.app.model.AccessControlItem;
 import com.towerops.app.model.AccountConfig;
 import com.towerops.app.model.Session;
@@ -94,7 +95,9 @@ public class AccessControlFragment extends Fragment {
     // ── 4A Token 输入控件 ─────────────────────────────────────────────────
     private EditText    et4AToken;
     private EditText    et4ACountyCode;
+    private EditText    et4ASsoPwd;
     private Button      btn4ASave;
+    private Button      btn4AGet;
 
     // OMMS登录Activity请求码
     private static final int REQ_OMMS_LOGIN = 0x1001;
@@ -153,7 +156,9 @@ public class AccessControlFragment extends Fragment {
         // 4A Token 输入控件（用于门禁数据Tab查询4A开门记录）
         et4AToken      = view.findViewById(R.id.et4AToken);
         et4ACountyCode = view.findViewById(R.id.et4ACountyCode);
+        et4ASsoPwd     = view.findViewById(R.id.et4ASsoPwd);
         btn4ASave      = view.findViewById(R.id.btn4ASave);
+        btn4AGet       = view.findViewById(R.id.btn4AGet);
 
         // 恢复已保存的4A Token
         Session s4a = Session.get();
@@ -181,6 +186,57 @@ public class AccessControlFragment extends Fragment {
                         tokenInput.isEmpty() ? "4A Token 已清空" : "✅ 4A Token 已保存（len=" + tokenInput.length() + "）",
                         Toast.LENGTH_SHORT).show();
                 appendLog("4A Token 已保存 len=" + tokenInput.length() + " county=" + countyInput);
+            });
+        }
+
+        // 从4A获取Token按钮 - 通过soaprequest SSO自动获取Bearer Token
+        if (btn4AGet != null) {
+            btn4AGet.setOnClickListener(v -> {
+                Session s = Session.get();
+                String tower4aCookie = s.tower4aSessionCookie;
+                if (tower4aCookie == null || tower4aCookie.isEmpty()) {
+                    Toast.makeText(requireContext(), "请先完成4A账号登录", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String ssoPwd = et4ASsoPwd != null ? et4ASsoPwd.getText().toString().trim() : "";
+                if (ssoPwd.isEmpty()) {
+                    Toast.makeText(requireContext(), "请先输入 ssoPwd（从浏览器F12抓包获取）", Toast.LENGTH_LONG).show();
+                    appendLog("❌ 从4A获取失败：ssoPwd 为空");
+                    return;
+                }
+                // URL decode ssoPwd（因为抓包是URL编码的）
+                try {
+                    ssoPwd = java.net.URLDecoder.decode(ssoPwd, "UTF-8");
+                } catch (Exception ignored) {}
+                btn4AGet.setEnabled(false);
+                btn4AGet.setText("获取中...");
+                appendLog("🔄 从4A获取Bearer Token，ssoPwd len=" + ssoPwd.length() + "...");
+                TymjWebViewHelper.fetchBearerToken(requireContext(), tower4aCookie, ssoPwd,
+                        new TymjWebViewHelper.Callback() {
+                            @Override
+                            public void onSuccess(String token) {
+                                if (et4AToken != null) et4AToken.setText(token);
+                                if (et4ACountyCode != null && et4ACountyCode.getText().toString().isEmpty()) {
+                                    et4ACountyCode.setText("330326");
+                                }
+                                String county = et4ACountyCode != null ? et4ACountyCode.getText().toString().trim() : "";
+                                Session.get().tower4aCountyCode = county;
+                                Session.get().saveTower4aToken(requireContext());
+                                btn4AGet.setEnabled(true);
+                                btn4AGet.setText("从4A获取");
+                                Toast.makeText(requireContext(),
+                                        "✅ Bearer Token 获取成功（len=" + token.length() + "）",
+                                        Toast.LENGTH_SHORT).show();
+                                appendLog("✅ Bearer Token 获取成功（len=" + token.length() + "），已自动保存");
+                            }
+                            @Override
+                            public void onFail(String reason) {
+                                btn4AGet.setEnabled(true);
+                                btn4AGet.setText("从4A获取");
+                                Toast.makeText(requireContext(), "❌ 获取失败: " + reason, Toast.LENGTH_LONG).show();
+                                appendLog("❌ 从4A获取失败: " + reason);
+                            }
+                        });
             });
         }
 

@@ -722,7 +722,7 @@ public class DoorDataFragment extends Fragment {
         // 打印前5条4A站名示例
         int sampleCount = 0;
         for (Map.Entry<String, List<String>> fa : fourAByName.entrySet()) {
-            Logger.d("DoorData", "[4A站名示例" + (++sampleCount) + "] 4A站名='" + fa.getKey() + "' 时间数=" + fa.getValue().size()
+            Logger.d("DoorData", "[4A站名示例" + (++sampleCount) + "] 4A站名='" + fa.getKey() + "' norm=" + normName(fa.getKey()) + " 时间数=" + fa.getValue().size()
                     + " 首条=" + (fa.getValue().isEmpty() ? "" : fa.getValue().get(0)));
             if (sampleCount >= 5) break;
         }
@@ -1356,7 +1356,12 @@ public class DoorDataFragment extends Fragment {
     }
 
     private static String normName(String name) {
-        return name.replaceAll("基站|铁塔|站$", "").trim();
+        if (name == null || name.isEmpty()) return "";
+        // 去掉基站、铁塔、末尾的站
+        return name.trim()
+                .replaceAll("基站|铁塔", "")
+                .replaceAll("站$", "")
+                .trim();
     }
 
     private static boolean matchesChinese(String s) {

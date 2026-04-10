@@ -1195,8 +1195,12 @@ public class AccessControlApi {
 
             try {
                 String resp = HttpUtil.post(url, postJson.toString(), headers, cookie);
-                if (resp == null || resp.isEmpty()) {
-                    android.util.Log.w(TAG, "getAll4aOpenRecords p" + page + " 空响应(HTTP可能失败)，停止");
+                if (resp == null) {
+                    android.util.Log.e(TAG, "getAll4aOpenRecords p" + page + " HTTP响应为null（网络错误或超时）");
+                    break;
+                }
+                if (resp.isEmpty()) {
+                    android.util.Log.e(TAG, "getAll4aOpenRecords p" + page + " 响应为空字符串（HTTP " + java.net.HttpURLConnection.HTTP_OK + "但body为空，或HTTP失败）");
                     break;
                 }
                 // 打印完整响应（前500字符），方便调试
@@ -1209,6 +1213,10 @@ public class AccessControlApi {
                     obj = new org.json.JSONObject(resp);
                 } catch (Exception e) {
                     android.util.Log.e(TAG, "getAll4aOpenRecords JSON解析失败: " + e.getMessage() + " resp=" + respPreview, e);
+                    // 检查是否是因为响应是HTML（登录页/错误页）
+                    if (resp.contains("<!DOCTYPE") || resp.contains("<html")) {
+                        android.util.Log.e(TAG, "getAll4aOpenRecords 收到HTML页面，可能是Token失效或需要重新登录");
+                    }
                     break;
                 }
                 org.json.JSONArray rows = null;
@@ -1235,19 +1243,13 @@ public class AccessControlApi {
                     try {
                         org.json.JSONObject row = rows.getJSONObject(i);
                         FourARecord rec = new FourARecord();
-                        // 站点名（优先 deviceName，其次 roomName、stationName）
-                        rec.stationName = row.optString("deviceName", "").trim();
+                        // 站点名：直接用 areaName（不带/门禁XX后缀），兜底 deviceName
+                        rec.stationName = row.optString("areaName", "").trim();
+                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
+                            rec.stationName = row.optString("deviceName", "").trim();
+                        }
                         if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
                             rec.stationName = row.optString("roomName", "").trim();
-                        }
-                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
-                            rec.stationName = row.optString("stationName", "").trim();
-                        }
-                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
-                            rec.stationName = row.optString("name", "").trim();
-                        }
-                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
-                            rec.stationName = row.optString("doorName", "").trim();
                         }
                         if ("null".equals(rec.stationName)) rec.stationName = "";
                         // 开门时间（accessTime）- 尝试多个可能字段名

@@ -641,6 +641,19 @@ public class DoorDataFragment extends Fragment {
             }
         }
         Logger.d("DoorData", "[4A匹配] 4A记录有站名: " + fourAWithName + "条，无站名: " + fourANoName + "条，去重后站数: " + fourAByName.size());
+        // 打印前3条4A站名示例
+        int sampleCount = 0;
+        for (Map.Entry<String, List<String>> fa : fourAByName.entrySet()) {
+            Logger.d("DoorData", "[4A站名示例" + (++sampleCount) + "] 4A站名='" + fa.getKey() + "' 时间数=" + fa.getValue().size()
+                    + " 首条=" + (fa.getValue().isEmpty() ? "" : fa.getValue().get(0)));
+            if (sampleCount >= 5) break;
+        }
+        // 打印前3条OMMS站名示例
+        sampleCount = 0;
+        for (String ommsStation : alarmsByStation.keySet()) {
+            Logger.d("DoorData", "[OMMS站名示例" + (++sampleCount) + "] OMMS站名='" + ommsStation + "'");
+            if (sampleCount >= 5) break;
+        }
 
         // ════ Step 5：按站分组 + 蓝牙/远程/4A匹配 + 每站取1条 ══════════════════════
         // ★★★ 2026-04-10 更新：增加4A匹配 ★★★
@@ -693,6 +706,7 @@ public class DoorDataFragment extends Fragment {
 
             // 取本站的4A开门时间列表（先精确匹配站名，找不到再模糊匹配）
             List<String> fourATimes = fourAByName.get(stationName);
+            String fourAMatchInfo = fourATimes != null ? "精确匹配" : "未匹配";
             if (fourATimes == null && !fourAByName.isEmpty()) {
                 // 模糊匹配：4A站名可能比OMMS站名短（去掉"基站"等后缀）
                 String normStation = normName(stationName);
@@ -701,10 +715,18 @@ public class DoorDataFragment extends Fragment {
                     if (!normStation.isEmpty() && !normFa.isEmpty()
                             && (normFa.contains(normStation) || normStation.contains(normFa))) {
                         fourATimes = fa.getValue();
+                        fourAMatchInfo = "模糊匹配→" + fa.getKey();
                         Logger.d("DoorData", "[4A模糊匹配] " + stationName + " → " + fa.getKey() + " (" + fa.getValue().size() + "条)");
                         break;
                     }
                 }
+            }
+            // 前10条记录打印4A匹配详情
+            if (processedStations <= 10) {
+                Logger.d("DoorData", "[4A匹配详情" + processedStations + "] " + stationName
+                        + " fourAByName.get=" + (fourAByName.get(stationName) != null ? "有" : "无")
+                        + " fourATimes=" + (fourATimes != null ? fourATimes.size() + "条" : "null")
+                        + " 匹配=" + fourAMatchInfo);
             }
 
             // 遍历本站所有告警，计算每条的蓝牙+远程+4A匹配
@@ -787,6 +809,11 @@ public class DoorDataFragment extends Fragment {
                         row.fourAOpenTime    = closestFourATime;
                         row.fourADiffMinutes = closestFourADiff;
                         if (closestFourADiff <= MATCH_THRESHOLD_MIN) fourAOk = true;
+                    }
+                    // 前10条记录打印4A赋值结果
+                    if (processedStations <= 10) {
+                        Logger.d("DoorData", "[4A赋值" + processedStations + "] " + stationName
+                                + " fourAOpenTime=" + row.fourAOpenTime + " diff=" + row.fourADiffMinutes + " fourAOk=" + fourAOk);
                     }
                 }
 

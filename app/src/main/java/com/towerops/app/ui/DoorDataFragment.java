@@ -1,5 +1,7 @@
 package com.towerops.app.ui;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -10,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -77,8 +80,10 @@ public class DoorDataFragment extends Fragment {
 
     // ── 控件 ──────────────────────────────────────────────────────────────
     private Spinner      spnRegion;
-    private Button       btnQuery, btnExport, btn4AGet;
+    private Button       btnQuery, btnExport, btn4AGet, btn4ASave;
     private TextView     tvStatus, tvStartDate, tvEndDate;
+    private EditText     et4AToken;
+    private Spinner      spinnerCounty;
     private LinearLayout layoutSummary, layoutHeader;
     private TextView     tvTotal, tvOk, tvFail;
     private TextView     thStName, thAlarmTime, thBtTime, thDiff, thRemoteTime, thFourATime, thQualified;
@@ -97,6 +102,11 @@ public class DoorDataFragment extends Fragment {
 
     private ExecutorService executor;
     private volatile boolean querying = false;
+
+    // ── 4A Token 区县选择器 ──────────────────────────────────────────────
+    private static final String[] DOOR_COUNTY_CODES = {"330326", "330329", "330302", "330327", "330328", "330381", "330382", "330303", "330305", "330324", "330383"};
+    private static final String[] DOOR_COUNTY_NAMES = {"平阳", "泰顺", "鹿城", "苍南", "文成", "瑞安", "乐清", "龙湾", "洞头", "永嘉", "龙港"};
+    private int selectedDoorCountyIndex = 0;
 
     // ─────────────────────────────────────────────────────────────────────
     // 数据模型
@@ -143,6 +153,9 @@ public class DoorDataFragment extends Fragment {
         btnQuery.setOnClickListener(v2 -> doQuery());
         btnExport.setOnClickListener(v2 -> doExport());
         btn4AGet.setOnClickListener(v2 -> doGet4AToken());
+        // 初始化4A Token和区县选择器
+        init4ATokenConfig();
+        btn4ASave.setOnClickListener(v2 -> doSave4AToken());
         refreshStatus();
         return v;
     }
@@ -158,6 +171,7 @@ public class DoorDataFragment extends Fragment {
         btnQuery      = v.findViewById(R.id.btnDoorDataQuery);
         btnExport     = v.findViewById(R.id.btnDoorDataExport);
         btn4AGet     = v.findViewById(R.id.btnDoorData4AGet);
+        btn4ASave    = v.findViewById(R.id.btnDoorData4ASave);
         tvStatus      = v.findViewById(R.id.tvDoorDataStatus);
         tvStartDate   = v.findViewById(R.id.tvDoorStartDate);
         tvEndDate     = v.findViewById(R.id.tvDoorEndDate);
@@ -167,6 +181,9 @@ public class DoorDataFragment extends Fragment {
         tvOk          = v.findViewById(R.id.tvDoorDataOk);
         tvFail        = v.findViewById(R.id.tvDoorDataFail);
         rvDoorData    = v.findViewById(R.id.rvDoorData);
+        // 4A Token配置
+        et4AToken     = v.findViewById(R.id.etDoorData4AToken);
+        spinnerCounty = v.findViewById(R.id.spinnerDoorDataCounty);
         // 表头
         thStName    = v.findViewById(R.id.thDoorStName);
         thAlarmTime = v.findViewById(R.id.thDoorAlarmTime);
@@ -177,17 +194,19 @@ public class DoorDataFragment extends Fragment {
         thQualified = v.findViewById(R.id.thDoorQualified);
     }
 
-    /** 初始化默认日期：本月1日 ~ 今日 */
+    /** 初始化默认日期：本月1日 ~ 明日 */
     private void initDefaultDates() {
         java.util.Calendar cal = java.util.Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         String today = sdf.format(cal.getTime());
+        cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        String tomorrow = sdf.format(cal.getTime());
         cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
         String firstDay = sdf.format(cal.getTime());
         queryStartDate = firstDay;
-        queryEndDate   = today;
+        queryEndDate   = tomorrow;
         tvStartDate.setText(firstDay);
-        tvEndDate.setText(today);
+        tvEndDate.setText(tomorrow);
     }
 
     /** 初始化区域选择Spinner（泰顺/平阳） */
@@ -465,48 +484,53 @@ public class DoorDataFragment extends Fragment {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 获取4A Bearer Token（自动）
+    // 获取4A Bearer Token（通过TymjLoginActivity）
     // ─────────────────────────────────────────────────────────────────────
 
+    private static final int REQ_4A_TOKEN = 1001;
+
     /**
-     * 自动获取4A Bearer Token
-     * 需要先在门禁Tab完成4A账号登录（有tower4aSessionCookie）
+     * 获取4A Bearer Token
+     * 直接启动TymjLoginActivity，让用户在WebView中完成4A登录并获取Bearer Token
      */
     private void doGet4AToken() {
-        Session s = Session.get();
-        String tower4aCookie = s.tower4aSessionCookie;
-        if (tower4aCookie == null || tower4aCookie.isEmpty()) {
-            Toast.makeText(requireContext(), "请先在门禁Tab完成4A账号登录", Toast.LENGTH_LONG).show();
-            return;
-        }
         btn4AGet.setEnabled(false);
         btn4AGet.setText("获取中...");
-        setStatus("🔄 正在从4A系统获取Bearer Token...");
-        com.towerops.app.api.TymjWebViewHelper.fetchBearerToken(requireContext(), tower4aCookie,
-                new com.towerops.app.api.TymjWebViewHelper.Callback() {
-                    @Override
-                    public void onSuccess(String token) {
-                        Session.get().tower4aToken = token;
-                        Session.get().tower4aCountyCode = "330326"; // 默认平阳县
-                        Session.get().saveTower4aToken(requireContext());
-                        ThreadManager.runOnUiThread(() -> {
-                            btn4AGet.setEnabled(true);
-                            btn4AGet.setText("获取4A");
-                            Toast.makeText(requireContext(),
-                                    "✅ Bearer Token 获取成功（len=" + token.length() + "）", Toast.LENGTH_SHORT).show();
-                            setStatus("✅ 4A Token 已获取，点击查询可获取4A开门记录");
-                        });
-                    }
-                    @Override
-                    public void onFail(String reason) {
-                        ThreadManager.runOnUiThread(() -> {
-                            btn4AGet.setEnabled(true);
-                            btn4AGet.setText("获取4A");
-                            Toast.makeText(requireContext(), "❌ 获取失败: " + reason, Toast.LENGTH_LONG).show();
-                            setStatus("❌ 4A Token 获取失败: " + reason);
-                        });
-                    }
-                });
+        setStatus("🔄 正在启动登录页面...");
+        
+        // 直接启动TymjLoginActivity，通过ActivityResult获取结果
+        Intent intent = new Intent(requireContext(), TymjLoginActivity.class);
+        startActivityForResult(intent, REQ_4A_TOKEN);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (requestCode == REQ_4A_TOKEN) {
+            btn4AGet.setEnabled(true);
+            btn4AGet.setText("获取4A");
+            
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                String token = data.getStringExtra(TymjLoginActivity.EXTRA_TOKEN);
+                if (token != null && !token.isEmpty()) {
+                    // Bearer Token获取成功
+                    Session.get().tower4aToken = token;
+                    Session.get().tower4aCountyCode = "330326"; // 默认平阳县
+                    Session.get().saveTower4aToken(requireContext());
+                    
+                    Toast.makeText(requireContext(),
+                            "✅ Bearer Token 获取成功（len=" + token.length() + "）", Toast.LENGTH_SHORT).show();
+                    setStatus("✅ 4A Token 已获取，点击查询可获取4A开门记录");
+                } else {
+                    setStatus("❌ Token为空，请重试");
+                    Toast.makeText(requireContext(), "❌ Token为空", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                // 用户取消或失败
+                setStatus("已取消");
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -1363,5 +1387,87 @@ public class DoorDataFragment extends Fragment {
             if (!isAdded() || tvStatus == null) return;
             tvStatus.setText(msg);
         });
+    }
+
+    // ── 4A Token 配置 ───────────────────────────────────────────────────
+
+    /**
+     * 初始化4A Token配置：恢复已保存的Token和区县选择
+     */
+    private void init4ATokenConfig() {
+        Session s = Session.get();
+
+        // 恢复Token
+        if (et4AToken != null && s.tower4aToken != null && !s.tower4aToken.isEmpty()) {
+            et4AToken.setText(s.tower4aToken);
+        }
+
+        // 初始化区县选择器
+        if (spinnerCounty != null) {
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(requireContext(),
+                    android.R.layout.simple_spinner_item, DOOR_COUNTY_NAMES) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View v = super.getView(position, convertView, parent);
+                    ((TextView) v).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 9);
+                    return v;
+                }
+                @Override
+                public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                    View v = super.getDropDownView(position, convertView, parent);
+                    ((TextView) v).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10);
+                    return v;
+                }
+            };
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerCounty.setAdapter(adapter);
+
+            // 恢复保存的区县选择
+            if (s.tower4aCountyCode != null && !s.tower4aCountyCode.isEmpty()) {
+                for (int i = 0; i < DOOR_COUNTY_CODES.length; i++) {
+                    if (DOOR_COUNTY_CODES[i].equals(s.tower4aCountyCode)) {
+                        spinnerCounty.setSelection(i);
+                        selectedDoorCountyIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // 区县选择监听
+            spinnerCounty.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    selectedDoorCountyIndex = position;
+                    Session.get().tower4aCountyCode = DOOR_COUNTY_CODES[position];
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                }
+            });
+        }
+    }
+
+    /**
+     * 保存4A Token和区县代码
+     */
+    private void doSave4AToken() {
+        String tokenInput = et4AToken != null ? et4AToken.getText().toString().trim() : "";
+        String countyCode = DOOR_COUNTY_CODES[selectedDoorCountyIndex];
+        String countyName = DOOR_COUNTY_NAMES[selectedDoorCountyIndex];
+
+        // 自动去掉 "Bearer " 前缀
+        if (tokenInput.toLowerCase().startsWith("bearer ")) {
+            tokenInput = tokenInput.substring(7).trim();
+        }
+
+        Session sv = Session.get();
+        sv.tower4aToken = tokenInput;
+        sv.tower4aCountyCode = countyCode;
+        sv.saveTower4aToken(requireContext());
+
+        Toast.makeText(requireContext(),
+                tokenInput.isEmpty() ? "4A Token 已清空" : "✅ 已保存: " + countyName + "(" + tokenInput.length() + "字符)",
+                Toast.LENGTH_SHORT).show();
     }
 }

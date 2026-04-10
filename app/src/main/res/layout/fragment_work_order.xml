@@ -80,8 +80,10 @@
             <Button
                 android:id="@+id/btnStartMonitor"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="4dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="开启监控"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -95,7 +97,7 @@
 
             <Button
                 android:id="@+id/btnStopMonitor"
-                android:layout_width="0dp"
+                android:layout_width="56dp"
                 android:layout_height="32dp"
                 android:layout_marginStart="4dp"
                 android:text="停止"

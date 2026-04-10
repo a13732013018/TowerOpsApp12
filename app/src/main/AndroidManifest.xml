@@ -67,6 +67,12 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".ui.TymjLoginActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
+
         <!--
             前台服务：
             - stopWithTask="false"：从最近任务划掉 APP 后服务不停止

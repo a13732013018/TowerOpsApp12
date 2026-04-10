@@ -1145,7 +1145,10 @@ public class AccessControlApi {
         String cookie = "userOrgCode=100033";
 
         android.util.Log.d(TAG, "getAll4aOpenRecords dateRange=" + startTime + " ~ " + endTime + " county=" + county);
-        android.util.Log.d(TAG, "getAll4aOpenRecords 使用Token=" + token.substring(0, Math.min(20, token.length())) + "...(前20字符)");
+        android.util.Log.d(TAG, "getAll4aOpenRecords 使用Token(长度=" + token.length() + ")=" + token.substring(0, Math.min(30, token.length())) + "...");
+        // 判断Token格式
+        boolean isJWT = token.contains(".");
+        android.util.Log.d(TAG, "Token格式: " + (isJWT ? "JWT(无效)" : "Bearer/Hex(有效)"));
 
         int page = 1;
         int pageSize = 100;

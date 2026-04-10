@@ -81,13 +81,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="8dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:gravity="center_vertical">
 
             <Button
                 android:id="@+id/btnDoorDataQuery"
                 android:layout_width="60dp"
-                android:layout_height="36dp"
+                android:layout_height="32dp"
                 android:text="查询"
                 android:textSize="12sp"
                 android:textColor="#FFFFFF"
@@ -99,7 +102,7 @@
             <Button
                 android:id="@+id/btnDoorData4AGet"
                 android:layout_width="72dp"
-                android:layout_height="36dp"
+                android:layout_height="32dp"
                 android:layout_marginStart="4dp"
                 android:text="获取4A"
                 android:textSize="11sp"
@@ -112,7 +115,7 @@
             <Button
                 android:id="@+id/btnDoorDataExport"
                 android:layout_width="60dp"
-                android:layout_height="36dp"
+                android:layout_height="32dp"
                 android:layout_marginStart="4dp"
                 android:text="导出"
                 android:textSize="12sp"
@@ -122,13 +125,81 @@
                 android:letterSpacing="0"
                 android:layout_gravity="center_vertical"
                 android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- 4A Token配置行（新增） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="4A-T:"
+                android:textSize="10sp"
+                android:textColor="#64748B" />
+
+            <EditText
+                android:id="@+id/etDoorData4AToken"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:hint="粘贴4A Bearer Token"
+                android:textSize="9sp"
+                android:textColor="#1E293B"
+                android:textColorHint="#94A3B8"
+                android:background="@android:drawable/edit_text"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <Spinner
+                android:id="@+id/spinnerDoorDataCounty"
+                android:layout_width="52dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:background="@android:drawable/spinner_background"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp" />
+
+            <Button
+                android:id="@+id/btnDoorData4ASave"
+                android:layout_width="52dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:text="保存"
+                android:textSize="10sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#059669"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0" />
+        </LinearLayout>
+
+        <!-- 状态行 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tvDoorDataStatus"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
                 android:textSize="11sp"
                 android:textColor="#555555"
                 android:maxLines="2"

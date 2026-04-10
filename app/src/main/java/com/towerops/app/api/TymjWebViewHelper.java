@@ -1,400 +1,269 @@
 package com.towerops.app.api;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Base64;
+import android.util.Log;
 import android.webkit.CookieManager;
-import android.webkit.ValueCallback;
-import android.webkit.WebResourceRequest;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import com.towerops.app.model.Session;
 
-import org.json.JSONObject;
-
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * 静默获取 tymj 门禁 Bearer Token（全自动化，无需手动抓包）
+ * 获取 tymj 门禁 Bearer Token
  *
- * 流程（类似 OmmsWebViewHelper，完全自动）：
- *   1. OkHttp 带4A Cookie POST /uac/home/soaprequest(r=360650, s=100033, ssoPwd="")
- *   2. 拿到 SSO URL
- *   3. 把4A Cookie 注入 WebView CookieManager
- *   4. WebView 加载 SSO URL，完整走 SSO 跳转链
- *   5. onPageFinished 后用 JS 从 localStorage/sessionStorage 获取 Authorization Token
- *   6. 同时检查 tymj 域 Cookie 中是否有 Authorization 字段
- *
- * Bearer Token 用途：
- *   POST http://tymj.chinatowercom.cn:8006/api/recordAccess/getPage
- *   Header: Authorization: Bearer {token}
+ * 流程：
+ *   1. WebView加载4A首页
+ *   2. 注入JS查找门禁链接并获取跳转URL
+ *   3. 加载门禁系统
+ *   4. 拦截门禁API请求，捕获 Authorization Bearer Token
  */
 public class TymjWebViewHelper {
 
     private static final String TAG           = "TymjWebViewHelper";
-    private static final String BASE_4A      = "http://4a.chinatowercom.cn:20000";
-    private static final String UA4A_HOME     = BASE_4A + "/uac/home";
+    private static final String BASE_4A       = "http://4a.chinatowercom.cn:20000";
+    private static final String UA4A_INDEX    = BASE_4A + "/uac/index";
     private static final String TYMS_HOST     = "http://tymj.chinatowercom.cn:8006";
 
-    // soaprequest 参数：门禁系统 (r=360650)
+    // 门禁系统参数
     private static final String R_TYMJ = "360650";
     private static final String S_TYMJ = "100033";
 
     public interface Callback {
-        /** token 不带 "Bearer " 前缀，原始值 */
         void onSuccess(String bearerToken);
         void onFail(String reason);
     }
 
+    public interface LoginCallback {
+        void onLoginRequired();
+        void onLoginSuccess();
+        void onLoginFailed(String reason);
+    }
+
     /**
-     * 全自动 SSO 流程：soaprequest → WebView 加载 SSO URL → 捕获 Bearer Token
-     *
-     * @param context       Activity/Fragment Context（必须主线程调用）
-     * @param tower4aCookie 4A 登录拿到的 SESSION/route Cookie 字符串
-     * @param callback      结果回调（主线程）
+     * 获取 Bearer Token
+     * 如果4A Cookie无效，自动启动TymjLoginActivity让用户重新登录
      */
-    public static void fetchBearerToken(Context context,
-                                        String tower4aCookie,
-                                        Callback callback) {
+    public static void fetchBearerToken(Context context, LoginCallback loginCallback, Callback callback) {
         Handler mainHandler = new Handler(Looper.getMainLooper());
+        final LoginCallback lc = loginCallback;
+        final Callback cb = callback;
+        final Context ctx = context.getApplicationContext();
 
-        new Thread(() -> {
-            try {
-                // Step 1：调 soaprequest 获取 SSO URL（空 ssoPwd，跟 OMMS 一样）
-                SoapResult result = callSoaprequest(tower4aCookie);
-                android.util.Log.d(TAG, "soaprequest status=" + result.status + " url=" + result.url);
-
-                if (result.status == null) {
-                    mainHandler.post(() -> callback.onFail("soaprequest 网络错误或4A Session已过期"));
-                    return;
-                }
-
-                if ("success".equals(result.status)) {
-                    // 正常 SSO URL → WebView 加载
-                    mainHandler.post(() -> loadSsoInWebView(context, tower4aCookie, result.url,
-                            mainHandler, callback));
-                } else {
-                    // 降级：soaprequest 失败，直接访问 tymj 首页
-                    android.util.Log.w(TAG, "soaprequest 失败（FALLBACK），直接访问 tymj 首页");
-                    mainHandler.post(() -> loadSsoInWebView(context, tower4aCookie, TYMS_HOST + "/",
-                            mainHandler, callback));
-                }
-
-            } catch (Exception e) {
-                android.util.Log.e(TAG, "fetchBearerToken error: " + e.getMessage(), e);
-                mainHandler.post(() -> callback.onFail("网络错误: " + e.getMessage()));
-            }
-        }).start();
-    }
-
-    // ─── soaprequest 调用（空 ssoPwd，跟 OMMS 一样）──────────────────────────────
-
-    private static class SoapResult {
-        String status;   // "success" / null
-        String url;      // SSO URL（当 status=success 时）
-        String message;  // 错误消息
-    }
-
-    /**
-     * OkHttp 调 4A soaprequest 接口（r=360650），ssoPwd 为空。
-     */
-    private static SoapResult callSoaprequest(String cookieStr) throws IOException {
-        SoapResult result = new SoapResult();
-
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .followRedirects(false)
-                .followSslRedirects(false)
-                .build();
-
-        String url = UA4A_HOME + "/soaprequest?r=" + System.currentTimeMillis();
-
-        FormBody body = new FormBody.Builder()
-                .add("r", R_TYMJ)
-                .add("s", S_TYMJ)
-                .add("ssoPwd", "")          // 空字符串，跟 OMMS 一样
-                .add("superUserCode", "")
-                .add("superRandom", "")
-                .build();
-
-        Request req = new Request.Builder()
-                .url(url)
-                .post(body)
-                .header("Accept", "application/json, text/javascript, */*; q=0.01")
-                .header("Accept-Encoding", "gzip, deflate")
-                .header("Accept-Language", "zh-CN,zh;q=0.9")
-                .header("Cache-Control", "no-cache")
-                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                .header("Host", "4a.chinatowercom.cn:20000")
-                .header("Origin", BASE_4A)
-                .header("Referer", UA4A_HOME + "/index")
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36")
-                .header("X-Requested-With", "XMLHttpRequest")
-                .header("Cookie", cookieStr != null ? cookieStr : "")
-                .build();
-
-        try (Response resp = client.newCall(req).execute()) {
-            String respBody = resp.body() != null ? resp.body().string() : "";
-
-            // 302 → Session 过期
-            if (resp.code() == 302 || resp.code() == 301) {
-                android.util.Log.e(TAG, "soaprequest 302 Location=" + resp.header("Location"));
-                result.status = null;
-                result.message = "4A Session 已过期（302）";
-                return result;
-            }
-
-            if (!resp.isSuccessful() && resp.code() != 200) {
-                android.util.Log.e(TAG, "soaprequest HTTP " + resp.code());
-                result.status = null;
-                result.message = "HTTP " + resp.code();
-                return result;
-            }
-
-            // 返回了 HTML 登录页 → Session 过期
-            if (respBody.contains("<html") || respBody.contains("doPrevLogin")) {
-                android.util.Log.e(TAG, "soaprequest returned HTML (session expired)");
-                result.status = null;
-                result.message = "4A Session 已过期（HTML重定向）";
-                return result;
-            }
-
-            try {
-                JSONObject j = new JSONObject(respBody);
-                result.status = j.optString("status", "");
-                result.url = j.optString("url", "");
-                result.message = j.optString("message", j.optString("msg", ""));
-
-                android.util.Log.d(TAG, "soaprequest: status=" + result.status
-                        + " url=" + (result.url.length() > 100 ? result.url.substring(0, 100) : result.url));
-
-                if (!"success".equals(result.status) || result.url.isEmpty()) {
-                    android.util.Log.e(TAG, "soaprequest not success: " + respBody.substring(0, Math.min(300, respBody.length())));
-                    result.status = null; // 触发 FALLBACK
-                }
-                return result;
-
-            } catch (org.json.JSONException e) {
-                android.util.Log.e(TAG, "soaprequest JSON parse error: " + e.getMessage()
-                        + " body=" + respBody.substring(0, Math.min(200, respBody.length())));
-                result.status = null;
-                return result;
-            }
+        String tower4aCookie = Session.get().tower4aSessionCookie;
+        
+        // 检查Cookie是否有效（包含关键字段）
+        boolean cookieValid = tower4aCookie != null && !tower4aCookie.isEmpty() 
+                && (tower4aCookie.contains("SESSION=") || tower4aCookie.contains("Tnuocca="));
+        
+        if (!cookieValid) {
+            Log.d(TAG, "4A Cookie无效或为空，启动TymjLoginActivity...");
+            lc.onLoginRequired();
+            
+            // 清空旧Cookie（已无效）
+            Session session = Session.get();
+            session.tower4aSessionCookie = "";
+            
+            // 启动TymjLoginActivity让用户在WebView中登录4A
+            mainHandler.post(() -> {
+                Intent intent = new Intent(ctx, com.towerops.app.ui.TymjLoginActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(intent);
+            });
+            return;
         }
+
+        Log.d(TAG, "开始获取Bearer Token（Cookie有效）");
+
+        mainHandler.post(() -> {
+            lc.onLoginSuccess();
+            startWebViewFlow(context, tower4aCookie, cb);
+        });
     }
 
-    // ─── WebView SSO 加载 ─────────────────────────────────────────────────────
+    private static void startWebViewFlow(Context context, String tower4aCookie, Callback callback) {
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        final Callback cb = callback;
 
-    private static void loadSsoInWebView(Context context, String tower4aCookie,
-                                         String ssoUrl, Handler mainHandler,
-                                         Callback callback) {
+        Log.d(TAG, "startWebViewFlow: 加载4A首页");
+
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
-
-        // 清除旧的 tymj Cookie
-        cm.setCookie(TYMS_HOST, "Authorization=; Max-Age=0");
-        cm.setCookie(TYMS_HOST, "JSESSIONID=; Max-Age=0");
+        cm.removeAllCookies(null);
         cm.flush();
 
-        // 注入4A Cookie 到4A域
+        try { Thread.sleep(300); } catch (InterruptedException e) {}
+
+        // 注入4A Cookie
         if (tower4aCookie != null) {
             for (String pair : tower4aCookie.split(";")) {
                 pair = pair.trim();
                 if (!pair.isEmpty()) {
                     cm.setCookie(BASE_4A, pair);
-                }
-            }
-            // 4A Cookie 也注入到 tymj 域（SSO 跨域传递）
-            for (String pair : tower4aCookie.split(";")) {
-                pair = pair.trim();
-                if (!pair.isEmpty()) {
                     cm.setCookie(TYMS_HOST, pair);
                 }
             }
         }
-        // tymj 域基础 Cookie
-        cm.setCookie(TYMS_HOST, "userOrgCode=100033");
         cm.flush();
-
-        android.util.Log.d(TAG, "loadSsoInWebView: loading ssoUrl=" + ssoUrl);
 
         WebView wv = new WebView(context.getApplicationContext());
         WebSettings ws = wv.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
         ws.setDatabaseEnabled(true);
-        ws.setUserAgentString(
-                "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
-                        + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36");
+        ws.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
-
+        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, true);
 
+        // JS接口
         final boolean[] done = {false};
 
-        // 超时保护：30秒
-        Runnable timeoutRunnable = () -> {
-            if (!done[0]) {
-                done[0] = true;
-                android.util.Log.w(TAG, "WebView SSO 超时30s");
-                destroyWebView(wv);
-                callback.onFail("等待超时（30秒），请确保4A登录有效");
+        wv.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void setModuleUrl(String url) {
+                Log.d(TAG, "JS回调捕获URL: " + url);
+                if (url != null && url.contains("tymj") && !done[0]) {
+                    done[0] = true;
+                    mainHandler.post(() -> {
+                        Log.d(TAG, "跳转到门禁: " + url);
+                        wv.loadUrl(url);
+                    });
+                }
             }
-        };
-        mainHandler.postDelayed(timeoutRunnable, 30_000);
+        }, "androidBridge");
 
         wv.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                android.util.Log.d(TAG, "redirect -> " + request.getUrl());
+            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest req) {
+                String url = req.getUrl().toString();
+                Log.d(TAG, "nav -> " + url);
+
+                // 捕获门禁URL
+                if (url.contains("tymj.chinatowercom.cn")) {
+                    Log.d(TAG, "捕获到门禁URL");
+                }
+
+                // 登录页
+                if (url.contains("uac/login") || url.contains("doPrevLogin")) {
+                    if (!done[0]) {
+                        done[0] = true;
+                        destroyWebView(view);
+                        mainHandler.post(() -> cb.onFail("4A Session已过期"));
+                    }
+                    return true;
+                }
                 return false;
             }
 
             @Override
+            public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, android.webkit.WebResourceRequest req) {
+                String url = req.getUrl().toString();
+                if (!done[0] && url.contains("tymj.chinatowercom.cn")) {
+                    java.util.Map<String, String> headers = req.getRequestHeaders();
+                    String rawAuth = headers.get("Authorization");
+                    if (rawAuth != null && !rawAuth.isEmpty()) {
+                        Log.d(TAG, "拦截到 Authorization!");
+                        final String auth = rawAuth.startsWith("Bearer ") ? rawAuth.substring(7) : rawAuth;
+                        if (!done[0]) {
+                            done[0] = true;
+                            mainHandler.post(() -> {
+                                destroyWebView(view);
+                                cb.onSuccess(auth);
+                            });
+                        }
+                    }
+                }
+                return super.shouldInterceptRequest(view, req);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                android.util.Log.d(TAG, "onPageFinished url=" + url);
+                Log.d(TAG, "onPageFinished: " + url);
                 if (done[0]) return;
 
-                // 被踢回4A登录页 → Session 过期
-                if (url.contains("uac/login") || url.contains("doPrevLogin")) {
-                    done[0] = true;
-                    mainHandler.removeCallbacks(timeoutRunnable);
-                    destroyWebView(view);
-                    callback.onFail("4A Session 已过期，请重新登录4A账号");
-                    return;
-                }
-
-                // tymj 相关页面 → 检查 Cookie 和 localStorage
-                if (url.contains("tymj.chinatowercom.cn")) {
+                // 4A首页加载完成，注入JS查找门禁链接
+                if (url.contains("4a.chinatowercom.cn") && !url.contains("login")) {
                     mainHandler.postDelayed(() -> {
                         if (done[0]) return;
-                        checkAndExtractToken(view, cm, mainHandler, timeoutRunnable, done, callback);
-                    }, 2000);
+                        injectJsFindDoorLink(view);
+                    }, 1000);
+                }
+
+                // 门禁页面
+                if (url.contains("tymj.chinatowercom.cn")) {
+                    mainHandler.postDelayed(() -> triggerApiRequest(view), 2000);
                 }
             }
         });
 
-        wv.loadUrl(ssoUrl);
-    }
-
-    /**
-     * 检查 WebView 中的 Authorization Token。
-     * 尝试多种方式：
-     *   1. Cookie: Authorization 字段（不带 Bearer 前缀）
-     *   2. localStorage.getItem("token")
-     *   3. localStorage.getItem("access_token")
-     *   4. sessionStorage.getItem("token")
-     *   5. JS 变量 window.token / window.authorizationToken
-     */
-    private static void checkAndExtractToken(WebView view, CookieManager cm,
-                                             Handler mainHandler,
-                                             Runnable timeoutRunnable,
-                                             boolean[] done, Callback callback) {
-        // 方式1：检查 Cookie 中的 Authorization
-        String rawCookie = cm.getCookie(TYMS_HOST);
-        android.util.Log.d(TAG, "checkAndExtractToken rawCookie=" + (rawCookie != null ? rawCookie.substring(0, Math.min(100, rawCookie.length())) : "null"));
-
-        String bearerToken = null;
-
-        if (rawCookie != null) {
-            for (String part : rawCookie.split(";")) {
-                part = part.trim();
-                if (part.startsWith("Authorization=") || part.startsWith("authorization=")) {
-                    bearerToken = part.substring(part.indexOf('=') + 1).trim();
-                    if (bearerToken.startsWith("Bearer ")) {
-                        bearerToken = bearerToken.substring("Bearer ".length());
-                    }
-                    break;
-                }
-            }
-        }
-
-        // 方式2-5：JS 注入读取 localStorage / sessionStorage / JS 变量
-        if (bearerToken == null || bearerToken.isEmpty()) {
-            String[] keys = {
-                    "token", "access_token", "bearerToken", "authorization",
-                    "Authorization", "tokenData", "authToken", "userToken"
-            };
-            for (String key : keys) {
-                String js = "(function(){"
-                        + "try{"
-                        + "var v=localStorage.getItem('" + key + "');"
-                        + "if(v)return v;"
-                        + "v=sessionStorage.getItem('" + key + "');"
-                        + "if(v)return v;"
-                        + "}catch(e){}"
-                        + "try{"
-                        + "if(window." + key + ")return window." + key + ";"
-                        + "}catch(e){}"
-                        + "return null;"
-                        + "})()";
-                final String fKey = key;
-                view.evaluateJavascript(js, new ValueCallback<String>() {
-                    @Override
-                    public void onReceiveValue(String value) {
-                        if (done[0]) return;
-                        if (value != null && !value.equals("null") && !value.equals("\"null\"")) {
-                            String v = value.replaceAll("^\"|\"$", "").trim();
-                            if (!v.isEmpty()) {
-                                android.util.Log.d(TAG, "Found token via key=" + fKey + " len=" + v.length());
-                                if (!done[0]) {
-                                    done[0] = true;
-                                    mainHandler.removeCallbacks(timeoutRunnable);
-                                    destroyWebView(view);
-                                    callback.onSuccess(v);
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // Cookie 方式直接成功
-        if (bearerToken != null && !bearerToken.isEmpty()) {
-            android.util.Log.d(TAG, "Found Bearer Token in Cookie len=" + bearerToken.length());
+        // 超时保护
+        mainHandler.postDelayed(() -> {
             if (!done[0]) {
                 done[0] = true;
-                mainHandler.removeCallbacks(timeoutRunnable);
-                destroyWebView(view);
-                callback.onSuccess(bearerToken);
+                destroyWebView(wv);
+                mainHandler.post(() -> cb.onFail("获取超时（90秒），请重试"));
             }
-            return;
-        }
+        }, 90000);
 
-        // 还没找到，再等一下下
-        mainHandler.postDelayed(() -> {
-            if (done[0]) return;
-            // 再试一次 Cookie
-            String retryCookie = cm.getCookie(TYMS_HOST);
-            if (retryCookie != null) {
-                for (String part : retryCookie.split(";")) {
-                    part = part.trim();
-                    if (part.startsWith("Authorization=") || part.startsWith("authorization=")) {
-                        String t = part.substring(part.indexOf('=') + 1).trim();
-                        if (t.startsWith("Bearer ")) t = t.substring("Bearer ".length());
-                        if (!t.isEmpty() && !done[0]) {
-                            done[0] = true;
-                            mainHandler.removeCallbacks(timeoutRunnable);
-                            destroyWebView(view);
-                            callback.onSuccess(t);
-                            return;
-                        }
-                    }
-                }
-            }
-        }, 3000);
+        // 加载4A首页
+        wv.loadUrl(UA4A_INDEX);
+    }
+
+    private static void injectJsFindDoorLink(WebView view) {
+        String js = "(function(){" +
+                // 查找所有链接，找到门禁相关的
+                "var foundUrl = null;" +
+                "document.querySelectorAll('a').forEach(function(a){" +
+                "  var href = a.href || '';" +
+                "  var onclick = a.getAttribute('onclick') || '';" +
+                "  if(href.indexOf('tymj') > 0 || onclick.indexOf('360650') > 0 || onclick.indexOf('gores') > 0){" +
+                "    foundUrl = href;" +
+                "  }" +
+                "});" +
+                "if(foundUrl){" +
+                "  window.androidBridge.setModuleUrl(foundUrl);" +
+                "} else if(typeof gores === 'function'){" +
+                "  try{" +
+                "    var result = gores('360650', '100033');" +
+                "    if(result && typeof result === 'object' && result.url){" +
+                "      window.androidBridge.setModuleUrl(result.url);" +
+                "    } else if(typeof result === 'string' && result.indexOf('http') > 0){" +
+                "      window.androidBridge.setModuleUrl(result);" +
+                "    }" +
+                "  } catch(e) { console.log('gores error'); }" +
+                "}" +
+                "})()";
+
+        view.evaluateJavascript(js, value -> {
+            Log.d(TAG, "JS注入结果: " + value);
+        });
+    }
+
+    private static void triggerApiRequest(WebView view) {
+        String js = "(function(){" +
+                "var xhr=new XMLHttpRequest();" +
+                "xhr.open('POST','http://tymj.chinatowercom.cn:8006/api/recordAccess/getPage',true);" +
+                "xhr.setRequestHeader('Content-Type','application/json');" +
+                "xhr.setRequestHeader('Accept','application/json');" +
+                "xhr.withCredentials=true;" +
+                "var body={'areaId':'','startTime':'2026-04-10 00:00:00','endTime':'2026-04-10 23:59:59'," +
+                "'pageNum':1,'pageSize':10};" +
+                "xhr.send(JSON.stringify(body));" +
+                "return 'triggered';" +
+                "})()";
+        view.evaluateJavascript(js, value -> Log.d(TAG, "API触发: " + value));
     }
 
     private static void destroyWebView(WebView wv) {
@@ -406,7 +275,7 @@ public class TymjWebViewHelper {
             wv.removeAllViews();
             wv.destroy();
         } catch (Exception e) {
-            android.util.Log.e(TAG, "destroyWebView error: " + e.getMessage());
+            Log.e(TAG, "destroyWebView error: " + e.getMessage());
         }
     }
 }

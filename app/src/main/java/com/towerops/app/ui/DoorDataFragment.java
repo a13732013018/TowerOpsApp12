@@ -641,17 +641,11 @@ public class DoorDataFragment extends Fragment {
             }
         }
         Logger.d("DoorData", "[4A匹配] 4A记录有站名: " + fourAWithName + "条，无站名: " + fourANoName + "条，去重后站数: " + fourAByName.size());
-        // 打印前3条4A站名示例
+        // 打印前5条4A站名示例
         int sampleCount = 0;
         for (Map.Entry<String, List<String>> fa : fourAByName.entrySet()) {
             Logger.d("DoorData", "[4A站名示例" + (++sampleCount) + "] 4A站名='" + fa.getKey() + "' 时间数=" + fa.getValue().size()
                     + " 首条=" + (fa.getValue().isEmpty() ? "" : fa.getValue().get(0)));
-            if (sampleCount >= 5) break;
-        }
-        // 打印前3条OMMS站名示例
-        sampleCount = 0;
-        for (String ommsStation : alarmsByStation.keySet()) {
-            Logger.d("DoorData", "[OMMS站名示例" + (++sampleCount) + "] OMMS站名='" + ommsStation + "'");
             if (sampleCount >= 5) break;
         }
 
@@ -672,6 +666,12 @@ public class DoorDataFragment extends Fragment {
             alarmsByStation.computeIfAbsent(key, k -> new ArrayList<>()).add(alarm);
         }
         Logger.d("DoorData", "[分组] 共 " + alarmsByStation.size() + " 站，总告警 " + rawAlarms.size() + " 条");
+        // 打印前5条OMMS站名示例
+        sampleCount = 0;
+        for (String ommsStation : alarmsByStation.keySet()) {
+            Logger.d("DoorData", "[OMMS站名示例" + (++sampleCount) + "] OMMS站名='" + ommsStation + "'");
+            if (sampleCount >= 5) break;
+        }
 
         // ── 5b：远程开门记录缓存（同一 FSU ID 只查一次） ──
         Map<String, java.util.List<String>> remoteTimesCache = new HashMap<>();

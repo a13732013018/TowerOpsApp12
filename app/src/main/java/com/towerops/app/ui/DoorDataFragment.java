@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -719,6 +721,12 @@ public class DoorDataFragment extends Fragment {
             }
         }
         Logger.d("DoorData", "[4A匹配] 4A记录有站名: " + fourAWithName + "条，无站名: " + fourANoName + "条，去重后站数: " + fourAByName.size());
+        // ★★★ 诊断：打印完整4A站名列表 ★★★
+        StringBuilder fourANamesBuilder = new StringBuilder("[4A完整站名列表] ");
+        for (String name : fourAByName.keySet()) {
+            fourANamesBuilder.append(name).append("; ");
+        }
+        Logger.d("DoorData", fourANamesBuilder.toString());
         // 打印前5条4A站名示例
         int sampleCount = 0;
         for (Map.Entry<String, List<String>> fa : fourAByName.entrySet()) {
@@ -744,12 +752,52 @@ public class DoorDataFragment extends Fragment {
             alarmsByStation.computeIfAbsent(key, k -> new ArrayList<>()).add(alarm);
         }
         Logger.d("DoorData", "[分组] 共 " + alarmsByStation.size() + " 站，总告警 " + rawAlarms.size() + " 条");
+        // ★★★ 诊断：打印完整OMMS站名列表 ★★★
+        StringBuilder ommsNamesBuilder = new StringBuilder("[OMMS完整站名列表] ");
+        for (String name : alarmsByStation.keySet()) {
+            ommsNamesBuilder.append(name).append("; ");
+        }
+        Logger.d("DoorData", ommsNamesBuilder.toString());
         // 打印前5条OMMS站名示例
         sampleCount = 0;
         for (String ommsStation : alarmsByStation.keySet()) {
             Logger.d("DoorData", "[OMMS站名示例" + (++sampleCount) + "] OMMS站名='" + ommsStation + "'");
             if (sampleCount >= 5) break;
         }
+        
+        // ★★★ 关键诊断：检查4A和OMMS站名是否有交集 ★★★
+        Set<String> intersection = new java.util.HashSet<>(fourAByName.keySet());
+        intersection.retainAll(alarmsByStation.keySet());
+        Logger.d("DoorData", "[★★★ 交叉匹配诊断 ★★★] 4A站数=" + fourAByName.size() 
+                + " OMMS站数=" + alarmsByStation.size() 
+                + " 交集=" + intersection.size() + " 交集内容=" + intersection);
+        
+        // 详细检查：每个4A站是否和任何OMMS站名相似
+        int matchFound = 0;
+        StringBuilder mismatchLog = new StringBuilder("[4A站名相似度检查] ");
+        for (String fourAName : fourAByName.keySet()) {
+            boolean hasMatch = false;
+            String fourANorm = normName(fourAName);
+            for (String ommsName : alarmsByStation.keySet()) {
+                String ommsNorm = normName(ommsName);
+                // 完全相等
+                if (fourANorm.equals(ommsNorm)) {
+                    hasMatch = true;
+                    break;
+                }
+                // 一个包含另一个（简化匹配）
+                if (fourANorm.contains(ommsNorm) || ommsNorm.contains(fourANorm)) {
+                    hasMatch = true;
+                    break;
+                }
+            }
+            if (hasMatch) {
+                matchFound++;
+            } else {
+                mismatchLog.append(fourANorm).append("✗; ");
+            }
+        }
+        Logger.d("DoorData", "[4A站名相似度检查] 匹配=" + matchFound + "/" + fourAByName.size() + " " + mismatchLog);
 
         // ── 5b：远程开门记录缓存（同一 FSU ID 只查一次） ──
         Map<String, java.util.List<String>> remoteTimesCache = new HashMap<>();

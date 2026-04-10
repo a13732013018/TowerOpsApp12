@@ -1262,10 +1262,13 @@ public class AccessControlApi {
                         // 调试：打印第一条的原始字段
                         if (i == 0) {
                             android.util.Log.d(TAG, "[4A解析] 首行JSON keys=" + row.keys().toString()
+                                    + " areaName=" + row.optString("areaName", "【空】")
+                                    + " deviceName=" + row.optString("deviceName", "【空】")
+                                    + " roomName=" + row.optString("roomName", "【空】")
                                     + " accessTime=" + row.optString("accessTime", "【空】")
                                     + " openTime=" + row.optString("openTime", "【空】")
-                                    + " access_time=" + row.optString("access_time", "【空】")
                                     + " createTime=" + row.optString("createTime", "【空】"));
+                            android.util.Log.d(TAG, "[4A解析] 解析后→ stationName='" + rec.stationName + "' openTime='" + rec.openTime + "'");
                         }
                         // 开门结果
                         rec.openResult = row.optString("openResult", "").trim();

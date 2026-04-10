@@ -91,6 +91,11 @@ public class AccessControlFragment extends Fragment {
     private TextView    tvLoggedInUser;
     private Button      btnLogout4A;
 
+    // ── 4A Token 输入控件 ─────────────────────────────────────────────────
+    private EditText    et4AToken;
+    private EditText    et4ACountyCode;
+    private Button      btn4ASave;
+
     // OMMS登录Activity请求码
     private static final int REQ_OMMS_LOGIN = 0x1001;
 
@@ -144,6 +149,40 @@ public class AccessControlFragment extends Fragment {
         layoutLoggedIn4A = view.findViewById(R.id.layoutLoggedIn4A);
         tvLoggedInUser   = view.findViewById(R.id.tvLoggedInUser);
         btnLogout4A      = view.findViewById(R.id.btnLogout4A);
+
+        // 4A Token 输入控件（用于门禁数据Tab查询4A开门记录）
+        et4AToken      = view.findViewById(R.id.et4AToken);
+        et4ACountyCode = view.findViewById(R.id.et4ACountyCode);
+        btn4ASave      = view.findViewById(R.id.btn4ASave);
+
+        // 恢复已保存的4A Token
+        Session s4a = Session.get();
+        if (et4AToken != null && s4a.tower4aToken != null && !s4a.tower4aToken.isEmpty()) {
+            et4AToken.setText(s4a.tower4aToken);
+        }
+        if (et4ACountyCode != null && s4a.tower4aCountyCode != null && !s4a.tower4aCountyCode.isEmpty()) {
+            et4ACountyCode.setText(s4a.tower4aCountyCode);
+        }
+
+        // 保存4A Token 按钮
+        if (btn4ASave != null) {
+            btn4ASave.setOnClickListener(v -> {
+                String tokenInput = et4AToken != null ? et4AToken.getText().toString().trim() : "";
+                String countyInput = et4ACountyCode != null ? et4ACountyCode.getText().toString().trim() : "";
+                // 自动去掉 "Bearer " 前缀（如果用户粘贴的是完整 Authorization 头值）
+                if (tokenInput.toLowerCase().startsWith("bearer ")) {
+                    tokenInput = tokenInput.substring(7).trim();
+                }
+                Session sv = Session.get();
+                sv.tower4aToken = tokenInput;
+                sv.tower4aCountyCode = countyInput;
+                sv.saveTower4aToken(requireContext());
+                Toast.makeText(requireContext(),
+                        tokenInput.isEmpty() ? "4A Token 已清空" : "✅ 4A Token 已保存（len=" + tokenInput.length() + "）",
+                        Toast.LENGTH_SHORT).show();
+                appendLog("4A Token 已保存 len=" + tokenInput.length() + " county=" + countyInput);
+            });
+        }
 
         tvLog.setMovementMethod(new ScrollingMovementMethod());
 

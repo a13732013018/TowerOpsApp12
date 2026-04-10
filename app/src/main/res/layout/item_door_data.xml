@@ -95,6 +95,17 @@
             android:includeFontPadding="false"
             android:text="无" />
 
+        <!-- 4A开门时间 -->
+        <TextView
+            android:id="@+id/tvDoor4ATime"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.3"
+            android:textSize="9sp"
+            android:textColor="#374151"
+            android:includeFontPadding="false"
+            android:text="无" />
+
         <!-- 时差（分钟） -->
         <TextView
             android:id="@+id/tvDoorDiff"

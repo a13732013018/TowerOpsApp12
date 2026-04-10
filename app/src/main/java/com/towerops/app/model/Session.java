@@ -131,6 +131,20 @@ public class Session {
     public volatile String tower4aSessionCookie = "";
 
     /**
+     * 铁塔4A门禁系统 Bearer Token
+     * 格式：Authorization: Bearer {tower4aToken}
+     * 从浏览器抓包（http://tymj.chinatowercom.cn:8006）的 Authorization 头获取
+     * 用于4A开门记录查询接口 /api/recordAccess/getPage
+     */
+    public volatile String tower4aToken = "";
+
+    /**
+     * 4A门禁系统县级代码（如 "330326"）
+     * 用于 /api/recordAccess/getPage 接口的 countyCodeList 参数
+     */
+    public volatile String tower4aCountyCode = "";
+
+    /**
      * 门禁Tab当前选中的账号下标（对应 AccountConfig.ACCOUNTS）
      * 用于 OmmsLoginActivity 自动重登录时知道用哪个账号+密码
      */
@@ -187,6 +201,8 @@ public class Session {
 
     // ---------- 铁塔4A持久化Key ----------
     public static final String KEY_TOWER4A_COOKIE = "tower4a_session_cookie";
+    private static final String KEY_TOWER4A_TOKEN  = "tower4a_token";
+    private static final String KEY_TOWER4A_COUNTY = "tower4a_county_code";
 
     // ---------- OMMS Cookie 持久化Key ----------
     private static final String KEY_OMMS_COOKIE = "omms_cookie";
@@ -301,6 +317,16 @@ public class Session {
             tower4aSessionCookie = saved4aCookie;
         }
 
+        // 恢复铁塔4A Bearer Token 和县级代码
+        String saved4aToken = PrefHelper.getString(ctx, PREF_SESSION, KEY_TOWER4A_TOKEN, "");
+        if (!saved4aToken.isEmpty()) {
+            tower4aToken = saved4aToken;
+        }
+        String saved4aCounty = PrefHelper.getString(ctx, PREF_SESSION, KEY_TOWER4A_COUNTY, "");
+        if (!saved4aCounty.isEmpty()) {
+            tower4aCountyCode = saved4aCounty;
+        }
+
         // 恢复OMMS Cookie
         String savedOmmsCookie = PrefHelper.getString(ctx, PREF_SESSION, KEY_OMMS_COOKIE, "");
         if (!savedOmmsCookie.isEmpty()) {
@@ -314,6 +340,17 @@ public class Session {
      */
     public void saveTower4aCookie(android.content.Context ctx) {
         PrefHelper.putString(ctx, PREF_SESSION, KEY_TOWER4A_COOKIE, tower4aSessionCookie, false);
+    }
+
+    /**
+     * 保存铁塔4A Bearer Token 和县级代码
+     * 用户在设置界面粘贴 Authorization 头后调用
+     */
+    public void saveTower4aToken(android.content.Context ctx) {
+        PrefHelper.edit(ctx, PREF_SESSION, editor -> {
+            editor.putString(KEY_TOWER4A_TOKEN,  tower4aToken);
+            editor.putString(KEY_TOWER4A_COUNTY, tower4aCountyCode);
+        }, true);
     }
 
     /**

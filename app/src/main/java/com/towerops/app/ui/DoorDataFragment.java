@@ -71,7 +71,7 @@ public class DoorDataFragment extends Fragment {
     private static final int MATCH_THRESHOLD_MIN = 30;
 
     // ── 排序枚举 ─────────────────────────────────────────────────────────
-    private enum SortCol { NONE, ST_NAME, ALARM_TIME, BT_TIME, DIFF, REMOTE_TIME, QUALIFIED }
+    private enum SortCol { NONE, ST_NAME, ALARM_TIME, BT_TIME, DIFF, REMOTE_TIME, FOUR_A_TIME, QUALIFIED }
     private SortCol  sortCol = SortCol.QUALIFIED;
     private boolean  sortAsc = false; // 默认：合格在前（desc）
 
@@ -81,7 +81,7 @@ public class DoorDataFragment extends Fragment {
     private TextView     tvStatus, tvStartDate, tvEndDate;
     private LinearLayout layoutSummary, layoutHeader;
     private TextView     tvTotal, tvOk, tvFail;
-    private TextView     thStName, thAlarmTime, thBtTime, thDiff, thRemoteTime, thQualified;
+    private TextView     thStName, thAlarmTime, thBtTime, thDiff, thRemoteTime, thFourATime, thQualified;
     private RecyclerView rvDoorData;
 
     /** 当前选中日期（yyyy-MM-dd，空串=不限） */
@@ -113,8 +113,10 @@ public class DoorDataFragment extends Fragment {
         public int     diffMinutes;      // |告警时间 - 蓝牙时间| 分钟，-1 = 无法计算
         public String  remoteOpenTime;   // 远程开门时间（"无" = 无记录）
         public int     remoteDiffMinutes; // |告警时间 - 远程开门时间| 分钟，-1 = 无法计算
-        public boolean qualified;        // true=合格（蓝牙或远程≤30min），false=不合格
-        public String  qualifyReason;    // 合格来源："蓝牙" / "远程"（取时间差更小的那个），不合格时为空
+        public String  fourAOpenTime;    // 4A开门时间（"无" = 无记录）
+        public int     fourADiffMinutes; // |告警时间 - 4A开门时间| 分钟，-1 = 无法计算
+        public boolean qualified;        // true=合格（蓝牙/远程/4A任一≤30min），false=不合格
+        public String  qualifyReason;    // 合格来源："蓝牙" / "远程" / "4A"（取时间差更小的），不合格时为空
         public String  fsuid;            // FSU ID（col[16] 设备ID，14位，第7-9位=438，用于查远程开门时间）
     }
 
@@ -169,6 +171,7 @@ public class DoorDataFragment extends Fragment {
         thBtTime    = v.findViewById(R.id.thDoorBtTime);
         thDiff      = v.findViewById(R.id.thDoorDiff);
         thRemoteTime = v.findViewById(R.id.thDoorRemoteTime);
+        thFourATime = v.findViewById(R.id.thDoor4ATime);
         thQualified = v.findViewById(R.id.thDoorQualified);
     }
 
@@ -269,6 +272,7 @@ public class DoorDataFragment extends Fragment {
         thBtTime.setOnClickListener(v -> onHeaderClick(SortCol.BT_TIME,    thBtTime));
         thDiff.setOnClickListener(v -> onHeaderClick(SortCol.DIFF,        thDiff));
         if (thRemoteTime != null) thRemoteTime.setOnClickListener(v -> onHeaderClick(SortCol.REMOTE_TIME, thRemoteTime));
+        if (thFourATime != null) thFourATime.setOnClickListener(v -> onHeaderClick(SortCol.FOUR_A_TIME, thFourATime));
         thQualified.setOnClickListener(v -> onHeaderClick(SortCol.QUALIFIED,  thQualified));
     }
 
@@ -291,14 +295,16 @@ public class DoorDataFragment extends Fragment {
         resetHeader(thBtTime,    "蓝牙时间", SortCol.BT_TIME);
         resetHeader(thDiff,      "时差",     SortCol.DIFF);
         if (thRemoteTime != null) resetHeader(thRemoteTime, "远程时间", SortCol.REMOTE_TIME);
+        if (thFourATime != null) resetHeader(thFourATime, "4A时间", SortCol.FOUR_A_TIME);
         resetHeader(thQualified, "结果",    SortCol.QUALIFIED);
     }
 
-    /** 取蓝牙/远程中离告警时间更近的差值（分钟） */
+    /** 取蓝牙/远程/4A中离告警时间更近的差值（分钟） */
     private static int bestDiff(DoorAlarmRow r) {
         int bt = r.diffMinutes >= 0 ? r.diffMinutes : Integer.MAX_VALUE;
         int rm = r.remoteDiffMinutes >= 0 ? r.remoteDiffMinutes : Integer.MAX_VALUE;
-        int min = Math.min(bt, rm);
+        int fa = r.fourADiffMinutes >= 0 ? r.fourADiffMinutes : Integer.MAX_VALUE;
+        int min = Math.min(Math.min(bt, rm), fa);
         return min == Integer.MAX_VALUE ? -1 : min;
     }
 
@@ -349,6 +355,12 @@ public class DoorDataFragment extends Fragment {
             case REMOTE_TIME:
                 sorted.sort((a, b) -> {
                     int c = safeStr(a.remoteOpenTime).compareTo(safeStr(b.remoteOpenTime));
+                    return asc ? c : -c;
+                });
+                break;
+            case FOUR_A_TIME:
+                sorted.sort((a, b) -> {
+                    int c = safeStr(a.fourAOpenTime).compareTo(safeStr(b.fourAOpenTime));
                     return asc ? c : -c;
                 });
                 break;
@@ -479,7 +491,7 @@ public class DoorDataFragment extends Fragment {
                 // BOM，让 Excel 正确识别 UTF-8
                 fw.write('\uFEFF');
                 // 表头
-                fw.write("序号,站名,站址编码,告警类型,告警时间,蓝牙进站时间,蓝牙时差(分钟),远程开门时间,远程时差(分钟),结果\n");
+                fw.write("序号,站名,站址编码,告警类型,告警时间,蓝牙进站时间,蓝牙时差(分钟),远程开门时间,远程时差(分钟),4A开门时间,4A时差(分钟),结果\n");
                 // 按当前展示顺序导出
                 for (DoorAlarmRow row : itemList) {
                     fw.write(csvCell(String.valueOf(row.index)));
@@ -499,6 +511,10 @@ public class DoorDataFragment extends Fragment {
                     fw.write(csvCell("无".equals(row.remoteOpenTime) ? "" : (row.remoteOpenTime == null ? "" : row.remoteOpenTime)));
                     fw.write(",");
                     fw.write(csvCell(row.remoteDiffMinutes >= 0 ? String.valueOf(row.remoteDiffMinutes) : ""));
+                    fw.write(",");
+                    fw.write(csvCell("无".equals(row.fourAOpenTime) ? "" : (row.fourAOpenTime == null ? "" : row.fourAOpenTime)));
+                    fw.write(",");
+                    fw.write(csvCell(row.fourADiffMinutes >= 0 ? String.valueOf(row.fourADiffMinutes) : ""));
                     fw.write(",");
                     fw.write(csvCell(row.qualified ? "合格(" + (row.qualifyReason != null ? row.qualifyReason : "") + ")" : "不合格"));
                     fw.write("\n");
@@ -569,10 +585,28 @@ public class DoorDataFragment extends Fragment {
                 Logger.d("DoorData", "[蓝牙诊断] 末条: stationName=" + lanyaList.get(lanyaList.size()-1).stationName
                     + " openTime=" + lanyaList.get(lanyaList.size()-1).openTime);
             }
-            setStatus("✓ 蓝牙记录共 " + lanyaList.size() + " 条（" + regionKeyword + "），正在匹配...");
+            setStatus("✓ 蓝牙记录共 " + lanyaList.size() + " 条（" + regionKeyword + "），正在拉取4A记录...");
         } else {
             android.util.Log.w("DoorData", "[蓝牙诊断] 数运未登录，跳过蓝牙记录拉取！蓝牙时间将全部显示'无'");
-            setStatus("⚠ 数运未登录，仅展示告警（无蓝牙匹配）");
+            setStatus("⚠ 数运未登录，跳过蓝牙匹配，正在拉取4A记录...");
+        }
+
+        // ════ Step 2b：拉取4A开门记录 ════════════════════════════════════
+        List<AccessControlApi.FourARecord> fourAList = new ArrayList<>();
+        boolean has4aToken = s.tower4aToken != null && !s.tower4aToken.isEmpty();
+        android.util.Log.d("DoorData", "[4A诊断] tower4aToken=" + (has4aToken ? "有(" + s.tower4aToken.length() + "字符)" : "空")
+                + " tower4aCountyCode=" + (s.tower4aCountyCode != null ? s.tower4aCountyCode : "空"));
+        if (has4aToken) {
+            fourAList = AccessControlApi.getAll4aOpenRecords(startDate, endDate, s.tower4aCountyCode);
+            Logger.d("DoorData", "[4A诊断] getAll4aOpenRecords返回 " + fourAList.size() + " 条");
+            if (!fourAList.isEmpty()) {
+                Logger.d("DoorData", "[4A诊断] 首条: stationName=" + fourAList.get(0).stationName
+                        + " openTime=" + fourAList.get(0).openTime);
+            }
+            setStatus("✓ 4A记录共 " + fourAList.size() + " 条，正在匹配...");
+        } else {
+            android.util.Log.w("DoorData", "[4A诊断] tower4aToken 未配置，跳过4A记录拉取！4A时间将全部显示'无'");
+            setStatus("⚠ 4A未配置Token，跳过4A匹配，正在匹配...");
         }
 
         // ════ Step 3：构建蓝牙查找表 ════
@@ -591,14 +625,28 @@ public class DoorDataFragment extends Fragment {
         }
         Logger.d("DoorData", "[蓝牙匹配] 蓝牙记录有站名: " + lanyaWithName + "条，无站名: " + lanyaNoName + "条，去重后站数: " + btByName.size());
 
-        // ════ Step 5：按站分组 + 蓝牙/远程匹配 + 每站取1条 ══════════════════════
-        // ★★★ 2026-04-05 重写规则 ★★★
-        // 规则1：蓝牙和远程，只要有一个≤30分钟 → 合格
-        // 规则2：蓝牙和远程都不满足 → 不合格
+        // ════ Step 3b：构建4A查找表 ════
+        Map<String, List<String>> fourAByName = new HashMap<>();  // 站名 → 所有4A开门时间列表
+        int fourAWithName = 0, fourANoName = 0;
+        for (AccessControlApi.FourARecord rec : fourAList) {
+            if (rec.openTime == null || rec.openTime.isEmpty()) continue;
+            if (rec.stationName != null && !rec.stationName.isEmpty()) {
+                fourAByName.computeIfAbsent(rec.stationName, k -> new ArrayList<>()).add(rec.openTime);
+                fourAWithName++;
+            } else {
+                fourANoName++;
+            }
+        }
+        Logger.d("DoorData", "[4A匹配] 4A记录有站名: " + fourAWithName + "条，无站名: " + fourANoName + "条，去重后站数: " + fourAByName.size());
+
+        // ════ Step 5：按站分组 + 蓝牙/远程/4A匹配 + 每站取1条 ══════════════════════
+        // ★★★ 2026-04-10 更新：增加4A匹配 ★★★
+        // 规则1：蓝牙/远程/4A只要有一个≤30分钟 → 合格
+        // 规则2：蓝牙/远程/4A都不满足 → 不合格
         // 规则3：每站只取1条展示
         //   - 有合格：取离当前最近的合格告警
         //   - 全不合格：取离当前最近的告警
-        // 规则4：时间差取蓝牙/远程中离告警时间最近的那个的差值
+        // 规则4：时间差取三者中离告警时间最近的那个的差值
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
         // ── 5a：按站名分组告警 ──
@@ -613,7 +661,7 @@ public class DoorDataFragment extends Fragment {
         Map<String, java.util.List<String>> remoteTimesCache = new HashMap<>();
         boolean hasOmmsCookie = s.ommsCookie != null && !s.ommsCookie.isEmpty();
 
-        int btMatchCount = 0, remoteMatchCount = 0, totalStations = alarmsByStation.size();
+        int btMatchCount = 0, remoteMatchCount = 0, fourAMatchCount = 0, totalStations = alarmsByStation.size();
         int processedStations = 0;
         List<DoorAlarmRow> allRows = new ArrayList<>();
 
@@ -640,28 +688,47 @@ public class DoorDataFragment extends Fragment {
                 }
             }
 
-            // 遍历本站所有告警，计算每条的蓝牙+远程匹配
+            // 取本站的4A开门时间列表（先精确匹配站名，找不到再模糊匹配）
+            List<String> fourATimes = fourAByName.get(stationName);
+            if (fourATimes == null && !fourAByName.isEmpty()) {
+                // 模糊匹配：4A站名可能比OMMS站名短（去掉"基站"等后缀）
+                String normStation = normName(stationName);
+                for (Map.Entry<String, List<String>> fa : fourAByName.entrySet()) {
+                    String normFa = normName(fa.getKey());
+                    if (!normStation.isEmpty() && !normFa.isEmpty()
+                            && (normFa.contains(normStation) || normStation.contains(normFa))) {
+                        fourATimes = fa.getValue();
+                        Logger.d("DoorData", "[4A模糊匹配] " + stationName + " → " + fa.getKey() + " (" + fa.getValue().size() + "条)");
+                        break;
+                    }
+                }
+            }
+
+            // 遍历本站所有告警，计算每条的蓝牙+远程+4A匹配
             DoorAlarmRow bestQualified = null;  // 最近的合格告警
             DoorAlarmRow bestUnqualified = null; // 最近的不合格告警（全不合格时用）
 
             for (RawAlarm alarm : stationAlarms) {
                 DoorAlarmRow row = new DoorAlarmRow();
-                row.stCode           = alarm.stCode;
-                row.stName           = alarm.stName;
-                row.alarmName        = alarm.alarmName;
-                row.alarmTime        = alarm.alarmTime;
-                row.btOpenTime       = "无";
-                row.diffMinutes      = -1;
-                row.remoteOpenTime   = "无";
+                row.stCode            = alarm.stCode;
+                row.stName            = alarm.stName;
+                row.alarmName         = alarm.alarmName;
+                row.alarmTime         = alarm.alarmTime;
+                row.btOpenTime        = "无";
+                row.diffMinutes       = -1;
+                row.remoteOpenTime    = "无";
                 row.remoteDiffMinutes = -1;
-                row.qualified        = false;
-                row.qualifyReason    = "";
-                row.fsuid            = alarm.deviceId;
+                row.fourAOpenTime     = "无";
+                row.fourADiffMinutes  = -1;
+                row.qualified         = false;
+                row.qualifyReason     = "";
+                row.fsuid             = alarm.deviceId;
 
                 Date alarmDate = parseDate(sdf, alarm.alarmTime);
-                boolean btOk = false, remoteOk = false;
+                boolean btOk = false, remoteOk = false, fourAOk = false;
                 int closestBtDiff = Integer.MAX_VALUE;
                 int closestRemoteDiff = Integer.MAX_VALUE;
+                int closestFourADiff = Integer.MAX_VALUE;
 
                 // ── 蓝牙匹配 ──
                 if (alarmDate != null && btTimes != null && !btTimes.isEmpty()) {
@@ -701,24 +768,40 @@ public class DoorDataFragment extends Fragment {
                     }
                 }
 
+                // ── 4A匹配 ──
+                if (alarmDate != null && fourATimes != null && !fourATimes.isEmpty()) {
+                    String closestFourATime = null;
+                    for (String fat : fourATimes) {
+                        Date faDate = parseDate(sdf, fat);
+                        if (faDate == null) continue;
+                        int diffMin = (int)(Math.abs(alarmDate.getTime() - faDate.getTime()) / 60000);
+                        if (diffMin < closestFourADiff) {
+                            closestFourADiff = diffMin;
+                            closestFourATime = fat;
+                        }
+                    }
+                    if (closestFourATime != null) {
+                        row.fourAOpenTime    = closestFourATime;
+                        row.fourADiffMinutes = closestFourADiff;
+                        if (closestFourADiff <= MATCH_THRESHOLD_MIN) fourAOk = true;
+                    }
+                }
+
                 // ── 判定合格 ──
-                if (btOk || remoteOk) {
+                if (btOk || remoteOk || fourAOk) {
                     row.qualified = true;
-                    // 合格原因：取时间差更小的那个；如果都是合格的，也取更近的
-                    if (btOk && remoteOk) {
-                        row.qualifyReason = (closestBtDiff <= closestRemoteDiff) ? "蓝牙" : "远程";
-                    } else if (btOk) {
-                        row.qualifyReason = "蓝牙";
-                        btMatchCount++;
-                    } else {
-                        row.qualifyReason = "远程";
-                        remoteMatchCount++;
-                    }
-                    // ★ 双方都合格时，统计到时间差更小的那个
-                    if (btOk && remoteOk) {
-                        if (closestBtDiff <= closestRemoteDiff) btMatchCount++;
-                        else remoteMatchCount++;
-                    }
+                    // 合格原因：取时间差最小的那个来源
+                    int minDiff = Integer.MAX_VALUE;
+                    String bestReason = "";
+                    if (btOk     && closestBtDiff     < minDiff) { minDiff = closestBtDiff;     bestReason = "蓝牙"; }
+                    if (remoteOk && closestRemoteDiff  < minDiff) { minDiff = closestRemoteDiff;  bestReason = "远程"; }
+                    if (fourAOk  && closestFourADiff   < minDiff) { minDiff = closestFourADiff;   bestReason = "4A"; }
+                    row.qualifyReason = bestReason;
+
+                    // 统计合格来源（只统计主合格原因）
+                    if ("蓝牙".equals(bestReason))  btMatchCount++;
+                    else if ("远程".equals(bestReason)) remoteMatchCount++;
+                    else if ("4A".equals(bestReason))   fourAMatchCount++;
 
                     // 选最近的合格告警（离当前时间最近的告警时间）
                     if (bestQualified == null || row.alarmTime.compareTo(bestQualified.alarmTime) > 0) {
@@ -740,7 +823,8 @@ public class DoorDataFragment extends Fragment {
             }
         }
 
-        Logger.d("DoorData", "[最终匹配] " + totalStations + "站，蓝牙合格=" + btMatchCount + "，远程合格=" + remoteMatchCount
+        Logger.d("DoorData", "[最终匹配] " + totalStations + "站，蓝牙合格=" + btMatchCount
+                + "，远程合格=" + remoteMatchCount + "，4A合格=" + fourAMatchCount
                 + "，展示 " + allRows.size() + " 条");
 
         // ════ Step 6：初始排序（合格在前，同类按告警时间降序） ════════════

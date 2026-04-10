@@ -287,6 +287,20 @@
             android:clickable="true"
             android:focusable="true" />
 
+        <!-- 4A开门时间（可排序） -->
+        <TextView
+            android:id="@+id/thDoor4ATime"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.3"
+            android:text="4A时间"
+            android:textSize="9sp"
+            android:textColor="#374151"
+            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true" />
+
         <!-- 时差（可排序） -->
         <TextView
             android:id="@+id/thDoorDiff"

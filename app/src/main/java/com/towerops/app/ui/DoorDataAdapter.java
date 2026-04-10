@@ -52,17 +52,13 @@ public class DoorDataAdapter extends RecyclerView.Adapter<DoorDataAdapter.VH> {
             h.tvBtTime.setTextColor(Color.parseColor("#374151")); // 默认
         }
 
-        // 时差列：显示蓝牙/远程中离告警时间更近的那个差值
+        // 时差列：显示蓝牙/远程/4A中离告警时间更近的那个差值
         int bestDiff;
-        if (row.diffMinutes >= 0 && row.remoteDiffMinutes >= 0) {
-            bestDiff = Math.min(row.diffMinutes, row.remoteDiffMinutes);
-        } else if (row.diffMinutes >= 0) {
-            bestDiff = row.diffMinutes;
-        } else if (row.remoteDiffMinutes >= 0) {
-            bestDiff = row.remoteDiffMinutes;
-        } else {
-            bestDiff = -1;
-        }
+        int bt  = row.diffMinutes >= 0 ? row.diffMinutes : Integer.MAX_VALUE;
+        int rm  = row.remoteDiffMinutes >= 0 ? row.remoteDiffMinutes : Integer.MAX_VALUE;
+        int fa  = row.fourADiffMinutes >= 0 ? row.fourADiffMinutes : Integer.MAX_VALUE;
+        int minAll = Math.min(Math.min(bt, rm), fa);
+        bestDiff = (minAll == Integer.MAX_VALUE) ? -1 : minAll;
         h.tvDiff.setText(bestDiff >= 0 ? bestDiff + "′" : "-");
         // 远程开门时间
         if (h.tvRemoteTime != null) {
@@ -76,11 +72,24 @@ public class DoorDataAdapter extends RecyclerView.Adapter<DoorDataAdapter.VH> {
             }
         }
 
+        // 4A开门时间
+        if (h.tvFourATime != null) {
+            String fat = row.fourAOpenTime;
+            h.tvFourATime.setText(fat != null && !fat.isEmpty() ? fat : "无");
+            // 4A时间颜色：合格且是4A匹配的用紫色标注
+            if (row.qualified && "4A".equals(row.qualifyReason)) {
+                h.tvFourATime.setTextColor(Color.parseColor("#7C3AED")); // 紫
+            } else {
+                h.tvFourATime.setTextColor(Color.parseColor("#374151")); // 默认
+            }
+        }
+
         // 合格/不合格颜色标记
         if (row.qualified) {
-            String label = "✓ 合格";
-            if ("远程".equals(row.qualifyReason)) label = "✓ 合格(远程)";
-            else if ("蓝牙".equals(row.qualifyReason)) label = "✓ 合格";
+            String label;
+            if ("远程".equals(row.qualifyReason))      label = "✓ 合格(远程)";
+            else if ("4A".equals(row.qualifyReason))   label = "✓ 合格(4A)";
+            else                                        label = "✓ 合格";
             h.tvQualified.setText(label);
             h.tvQualified.setTextColor(Color.parseColor("#16A34A"));  // 绿
             h.itemView.setBackgroundColor(Color.parseColor("#F0FFF4"));
@@ -95,7 +104,7 @@ public class DoorDataAdapter extends RecyclerView.Adapter<DoorDataAdapter.VH> {
     public int getItemCount() { return data.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvIdx, tvStName, tvStCode, tvAlarmName, tvAlarmTime, tvBtTime, tvDiff, tvRemoteTime, tvQualified;
+        TextView tvIdx, tvStName, tvStCode, tvAlarmName, tvAlarmTime, tvBtTime, tvDiff, tvRemoteTime, tvFourATime, tvQualified;
 
         VH(@NonNull View v) {
             super(v);
@@ -107,6 +116,7 @@ public class DoorDataAdapter extends RecyclerView.Adapter<DoorDataAdapter.VH> {
             tvBtTime     = v.findViewById(R.id.tvDoorBtTime);
             tvDiff       = v.findViewById(R.id.tvDoorDiff);
             tvRemoteTime = v.findViewById(R.id.tvDoorRemoteTime);
+            tvFourATime  = v.findViewById(R.id.tvDoor4ATime);
             tvQualified  = v.findViewById(R.id.tvDoorQualified);
         }
     }

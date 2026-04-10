@@ -1086,6 +1086,188 @@ public class AccessControlApi {
                 + "X-Requested-With: XMLHttpRequest";
     }
 
+    // =====================================================================
+    // 4. 4A系统 - 门禁开门记录（全量翻页）
+    //    接口：POST http://tymj.chinatowercom.cn:8006/api/recordAccess/getPage
+    //    认证：Authorization: Bearer {tower4aToken}
+    //    Cookie：userOrgCode=100033（来自抓包）
+    // =====================================================================
+
+    /** 4A开门单条记录 */
+    public static class FourARecord {
+        public String stationName;   // 站点名称（deviceName字段）
+        public String openTime;      // 开门时间（accessTime字段）
+        public String openResult;    // 开门结果（openResult字段）
+        public String operators;     // 操作人（operators字段）
+    }
+
+    /**
+     * 全量拉取4A开门记录，自动翻页合并。
+     *
+     * @param startDate  查询起始日期，格式 "yyyy-MM-dd"
+     * @param endDate    查询截止日期，格式 "yyyy-MM-dd"
+     * @param countyCode 县级代码（如 "330326"，来自 Session.tower4aCountyCode）
+     * @return 所有4A开门记录列表
+     */
+    public static java.util.List<FourARecord> getAll4aOpenRecords(String startDate, String endDate, String countyCode) {
+        java.util.List<FourARecord> all = new java.util.ArrayList<>();
+        Session s = Session.get();
+
+        // 4A接口需要 tower4aToken（Bearer Token）
+        String token = s.tower4aToken;
+        if (token == null || token.isEmpty()) {
+            android.util.Log.w(TAG, "getAll4aOpenRecords: tower4aToken 为空，未登录4A系统");
+            return all;
+        }
+
+        // 日期处理
+        String startTime = (startDate == null || startDate.isEmpty()) ? "2026-01-01 00:00:00"
+                : (startDate.length() == 10 ? startDate + " 00:00:00" : startDate);
+        String endTime = (endDate == null || endDate.isEmpty()) ? "2030-12-31 23:59:59"
+                : (endDate.length() == 10 ? endDate + " 23:59:59" : endDate);
+
+        // 县级代码（优先用传入参数，其次用 Session 中保存的）
+        String county = (countyCode != null && !countyCode.isEmpty()) ? countyCode
+                : (s.tower4aCountyCode != null && !s.tower4aCountyCode.isEmpty() ? s.tower4aCountyCode : "");
+
+        String url = "http://tymj.chinatowercom.cn:8006/api/recordAccess/getPage";
+        String headers = "Accept: application/json, text/plain, */*\n"
+                + "Accept-Language: zh-CN,zh;q=0.9\n"
+                + "Authorization: Bearer " + token + "\n"
+                + "Cache-Control: no-cache\n"
+                + "Connection: keep-alive\n"
+                + "Content-Type: application/json\n"
+                + "Host: tymj.chinatowercom.cn:8006\n"
+                + "Origin: http://tymj.chinatowercom.cn:8006\n"
+                + "Pragma: no-cache\n"
+                + "Referer: http://tymj.chinatowercom.cn:8006/\n"
+                + "User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36";
+        String cookie = "userOrgCode=100033";
+
+        android.util.Log.d(TAG, "getAll4aOpenRecords dateRange=" + startTime + " ~ " + endTime + " county=" + county);
+
+        int page = 1;
+        int pageSize = 100;
+        int maxPage = 200;
+        while (page <= maxPage) {
+            // 构建请求体（按抓包结构）
+            org.json.JSONObject postJson = new org.json.JSONObject();
+            try {
+                postJson.put("areaId", "");
+                postJson.put("areaName", "");
+                postJson.put("devCode", "");
+                postJson.put("startTime", startTime);
+                postJson.put("endTime", endTime);
+                postJson.put("roomId", "");
+                postJson.put("deviceCode", "");
+                postJson.put("operators", "");
+                postJson.put("bluetoothName", "");
+                postJson.put("deviceName", "");
+                postJson.put("userCode", "");
+                postJson.put("accountSource", "");
+                postJson.put("userType", "");
+                postJson.put("belongingDepartment", "");
+                postJson.put("openResult", "");
+                postJson.put("type", "");
+                postJson.put("openSource", "");
+                postJson.put("item1", "");
+                postJson.put("item2", "");
+                postJson.put("item3", "");
+                // 县级代码列表
+                org.json.JSONArray countyList = new org.json.JSONArray();
+                if (!county.isEmpty()) countyList.put(county);
+                postJson.put("provinceCodeList", new org.json.JSONArray());
+                postJson.put("cityCodeList", new org.json.JSONArray());
+                postJson.put("countyCodeList", countyList);
+                postJson.put("pageNum", page);
+                postJson.put("pageSize", pageSize);
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "getAll4aOpenRecords buildPost failed", e);
+                break;
+            }
+
+            try {
+                String resp = HttpUtil.post(url, postJson.toString(), headers, cookie);
+                if (resp == null || resp.isEmpty()) {
+                    android.util.Log.w(TAG, "getAll4aOpenRecords p" + page + " 空响应，停止");
+                    break;
+                }
+                android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " respLen=" + resp.length()
+                        + " preview=" + resp.substring(0, Math.min(300, resp.length())));
+
+                org.json.JSONObject obj = new org.json.JSONObject(resp);
+                org.json.JSONArray rows = null;
+
+                // 尝试从 data.records / data.rows / data.list / data 中取数组
+                org.json.JSONObject data = obj.optJSONObject("data");
+                if (data != null) {
+                    rows = data.optJSONArray("records");
+                    if (rows == null) rows = data.optJSONArray("rows");
+                    if (rows == null) rows = data.optJSONArray("list");
+                }
+                if (rows == null) rows = obj.optJSONArray("data");
+                if (rows == null || rows.length() == 0) {
+                    android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " 无更多数据，停止");
+                    break;
+                }
+
+                for (int i = 0; i < rows.length(); i++) {
+                    try {
+                        org.json.JSONObject row = rows.getJSONObject(i);
+                        FourARecord rec = new FourARecord();
+                        // 站点名（优先 deviceName，其次 roomName、stationName）
+                        rec.stationName = row.optString("deviceName", "").trim();
+                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
+                            rec.stationName = row.optString("roomName", "").trim();
+                        }
+                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
+                            rec.stationName = row.optString("stationName", "").trim();
+                        }
+                        if ("null".equals(rec.stationName)) rec.stationName = "";
+                        // 开门时间（accessTime）
+                        rec.openTime = row.optString("accessTime", "").trim();
+                        if ("null".equals(rec.openTime)) rec.openTime = "";
+                        // 开门结果
+                        rec.openResult = row.optString("openResult", "").trim();
+                        if ("null".equals(rec.openResult)) rec.openResult = "";
+                        // 操作人
+                        rec.operators = row.optString("operators", "").trim();
+                        if ("null".equals(rec.operators)) rec.operators = "";
+
+                        if (!rec.stationName.isEmpty() || !rec.openTime.isEmpty()) {
+                            all.add(rec);
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                android.util.Log.d(TAG, "getAll4aOpenRecords p" + page + " 本页=" + rows.length() + " 累计=" + all.size());
+
+                // 获取总页数判断是否继续翻页
+                int total = 0;
+                if (data != null) {
+                    total = data.optInt("total", 0);
+                    if (total == 0) total = data.optInt("totalCount", 0);
+                    if (total == 0) total = data.optInt("count", 0);
+                }
+                if (total == 0) total = obj.optInt("total", 0);
+                if (total > 0 && all.size() >= total) {
+                    android.util.Log.d(TAG, "getAll4aOpenRecords 已拉完全部 total=" + total);
+                    break;
+                }
+                if (rows.length() < pageSize) {
+                    android.util.Log.d(TAG, "getAll4aOpenRecords 本页不足" + pageSize + "条，停止");
+                    break;
+                }
+                page++;
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "getAll4aOpenRecords p" + page + " err=" + e.getMessage());
+                break;
+            }
+        }
+        android.util.Log.d(TAG, "getAll4aOpenRecords 完成，共 " + all.size() + " 条，pages=" + page);
+        return all;
+    }
+
     /**
      * 计算两个时间字符串之间的分钟差
      * 格式：yyyy-MM-dd HH:mm:ss

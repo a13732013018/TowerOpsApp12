@@ -25,14 +25,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * 用4A soaprequest → WebView SSO，静默获取 tymj门禁 Bearer Token
+ * 静默获取 tymj 门禁 Bearer Token（全自动化，无需手动抓包）
  *
- * 流程（类似 OmmsWebViewHelper，但目标是 tymj.chinatowercom.cn:8006）：
- *   1. OkHttp 带4A Cookie POST /uac/home/soaprequest(r=360650, s=100033, ssoPwd=...)
+ * 流程（类似 OmmsWebViewHelper，完全自动）：
+ *   1. OkHttp 带4A Cookie POST /uac/home/soaprequest(r=360650, s=100033, ssoPwd="")
  *   2. 拿到 SSO URL
  *   3. 把4A Cookie 注入 WebView CookieManager
  *   4. WebView 加载 SSO URL，完整走 SSO 跳转链
- *   5. onPageFinished 后用 JS 尝试从 localStorage / sessionStorage 获取 Authorization Token
+ *   5. onPageFinished 后用 JS 从 localStorage/sessionStorage 获取 Authorization Token
  *   6. 同时检查 tymj 域 Cookie 中是否有 Authorization 字段
  *
  * Bearer Token 用途：
@@ -57,43 +57,37 @@ public class TymjWebViewHelper {
     }
 
     /**
-     * 完整 SSO 流程：soaprequest → WebView 加载 SSO URL → 捕获 Bearer Token
+     * 全自动 SSO 流程：soaprequest → WebView 加载 SSO URL → 捕获 Bearer Token
      *
      * @param context       Activity/Fragment Context（必须主线程调用）
      * @param tower4aCookie 4A 登录拿到的 SESSION/route Cookie 字符串
-     * @param ssoPwd        4A SSO 密码（从浏览器抓包获取的 fFArt1XAJzWGxUcvyZearg== 类似值）
      * @param callback      结果回调（主线程）
      */
     public static void fetchBearerToken(Context context,
                                         String tower4aCookie,
-                                        String ssoPwd,
                                         Callback callback) {
         Handler mainHandler = new Handler(Looper.getMainLooper());
 
         new Thread(() -> {
             try {
-                // Step 1：调 soaprequest 获取 SSO URL
-                SoapResult result = callSoaprequest(tower4aCookie, ssoPwd);
+                // Step 1：调 soaprequest 获取 SSO URL（空 ssoPwd，跟 OMMS 一样）
+                SoapResult result = callSoaprequest(tower4aCookie);
                 android.util.Log.d(TAG, "soaprequest status=" + result.status + " url=" + result.url);
 
                 if (result.status == null) {
-                    mainHandler.post(() -> callback.onFail("soaprequest 网络错误或返回空"));
+                    mainHandler.post(() -> callback.onFail("soaprequest 网络错误或4A Session已过期"));
                     return;
                 }
 
                 if ("success".equals(result.status)) {
-                    // 正常 SSO URL
+                    // 正常 SSO URL → WebView 加载
                     mainHandler.post(() -> loadSsoInWebView(context, tower4aCookie, result.url,
                             mainHandler, callback));
-                } else if ("FALLBACK".equals(result.status)) {
-                    // soaprequest 失败，尝试直接访问 tymj 门禁首页
-                    android.util.Log.w(TAG, "soaprequest 失败，尝试直接访问 tymj 首页");
-                    String fallbackUrl = TYMS_HOST + "/";
-                    mainHandler.post(() -> loadSsoInWebView(context, tower4aCookie, fallbackUrl,
-                            mainHandler, callback));
                 } else {
-                    String msg = result.message != null ? result.message : "未知错误";
-                    mainHandler.post(() -> callback.onFail("soaprequest 失败: " + msg));
+                    // 降级：soaprequest 失败，直接访问 tymj 首页
+                    android.util.Log.w(TAG, "soaprequest 失败（FALLBACK），直接访问 tymj 首页");
+                    mainHandler.post(() -> loadSsoInWebView(context, tower4aCookie, TYMS_HOST + "/",
+                            mainHandler, callback));
                 }
 
             } catch (Exception e) {
@@ -103,22 +97,18 @@ public class TymjWebViewHelper {
         }).start();
     }
 
-    // ─── soaprequest 调用 ──────────────────────────────────────────────────────
+    // ─── soaprequest 调用（空 ssoPwd，跟 OMMS 一样）──────────────────────────────
 
     private static class SoapResult {
-        String status;   // "success" / "FALLBACK" / null
+        String status;   // "success" / null
         String url;      // SSO URL（当 status=success 时）
         String message;  // 错误消息
     }
 
     /**
-     * OkHttp 调 4A soaprequest 接口（r=360650）。
-     *
-     * @param cookieStr 4A Cookie（SESSION=...; JSESSIONID=... 等）
-     * @param ssoPwd    SSO 密码（从浏览器抓包获取的 Base64 值，如 fFArt1XAJzWGxUcvyZearg==）
-     * @return SoapResult
+     * OkHttp 调 4A soaprequest 接口（r=360650），ssoPwd 为空。
      */
-    private static SoapResult callSoaprequest(String cookieStr, String ssoPwd) throws IOException {
+    private static SoapResult callSoaprequest(String cookieStr) throws IOException {
         SoapResult result = new SoapResult();
 
         OkHttpClient client = new OkHttpClient.Builder()
@@ -133,7 +123,7 @@ public class TymjWebViewHelper {
         FormBody body = new FormBody.Builder()
                 .add("r", R_TYMJ)
                 .add("s", S_TYMJ)
-                .add("ssoPwd", ssoPwd != null ? ssoPwd : "")
+                .add("ssoPwd", "")          // 空字符串，跟 OMMS 一样
                 .add("superUserCode", "")
                 .add("superRandom", "")
                 .build();
@@ -172,7 +162,7 @@ public class TymjWebViewHelper {
                 return result;
             }
 
-            // 返回了 HTML 登录页
+            // 返回了 HTML 登录页 → Session 过期
             if (respBody.contains("<html") || respBody.contains("doPrevLogin")) {
                 android.util.Log.e(TAG, "soaprequest returned HTML (session expired)");
                 result.status = null;
@@ -191,15 +181,14 @@ public class TymjWebViewHelper {
 
                 if (!"success".equals(result.status) || result.url.isEmpty()) {
                     android.util.Log.e(TAG, "soaprequest not success: " + respBody.substring(0, Math.min(300, respBody.length())));
-                    // 降级尝试直接访问
-                    result.status = "FALLBACK";
+                    result.status = null; // 触发 FALLBACK
                 }
                 return result;
 
             } catch (org.json.JSONException e) {
                 android.util.Log.e(TAG, "soaprequest JSON parse error: " + e.getMessage()
                         + " body=" + respBody.substring(0, Math.min(200, respBody.length())));
-                result.status = "FALLBACK";
+                result.status = null;
                 return result;
             }
         }
@@ -208,8 +197,8 @@ public class TymjWebViewHelper {
     // ─── WebView SSO 加载 ─────────────────────────────────────────────────────
 
     private static void loadSsoInWebView(Context context, String tower4aCookie,
-                                          String ssoUrl, Handler mainHandler,
-                                          Callback callback) {
+                                         String ssoUrl, Handler mainHandler,
+                                         Callback callback) {
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
 
@@ -226,7 +215,7 @@ public class TymjWebViewHelper {
                     cm.setCookie(BASE_4A, pair);
                 }
             }
-            // 4A Cookie 也注入到 tymj 域（某些 SSO 会跨域传递）
+            // 4A Cookie 也注入到 tymj 域（SSO 跨域传递）
             for (String pair : tower4aCookie.split(";")) {
                 pair = pair.trim();
                 if (!pair.isEmpty()) {
@@ -260,7 +249,7 @@ public class TymjWebViewHelper {
                 done[0] = true;
                 android.util.Log.w(TAG, "WebView SSO 超时30s");
                 destroyWebView(wv);
-                callback.onFail("WebView 等待超时（30秒），请检查4A Cookie和ssoPwd是否有效");
+                callback.onFail("等待超时（30秒），请确保4A登录有效");
             }
         };
         mainHandler.postDelayed(timeoutRunnable, 30_000);
@@ -290,8 +279,7 @@ public class TymjWebViewHelper {
                 if (url.contains("tymj.chinatowercom.cn")) {
                     mainHandler.postDelayed(() -> {
                         if (done[0]) return;
-                        checkAndExtractToken(view, cm, mainHandler, timeoutRunnable, done, callback,
-                                view.getContext().getApplicationContext());
+                        checkAndExtractToken(view, cm, mainHandler, timeoutRunnable, done, callback);
                     }, 2000);
                 }
             }
@@ -310,156 +298,115 @@ public class TymjWebViewHelper {
      *   5. JS 变量 window.token / window.authorizationToken
      */
     private static void checkAndExtractToken(WebView view, CookieManager cm,
-                                              Handler mainHandler,
-                                              Runnable timeoutRunnable,
-                                              boolean[] done, Callback callback,
-                                              Context appCtx) {
+                                             Handler mainHandler,
+                                             Runnable timeoutRunnable,
+                                             boolean[] done, Callback callback) {
         // 方式1：检查 Cookie 中的 Authorization
         String rawCookie = cm.getCookie(TYMS_HOST);
-        android.util.Log.d(TAG, "checkAndExtractToken rawCookie="
-                + (rawCookie == null ? "null" : rawCookie.substring(0, Math.min(200, rawCookie.length()))));
+        android.util.Log.d(TAG, "checkAndExtractToken rawCookie=" + (rawCookie != null ? rawCookie.substring(0, Math.min(100, rawCookie.length())) : "null"));
 
-        String tokenFromCookie = extractAuthorizationFromCookie(rawCookie);
-        if (tokenFromCookie != null && !tokenFromCookie.isEmpty()) {
-            success(view, tokenFromCookie, cm, mainHandler, timeoutRunnable, done, callback, appCtx);
+        String bearerToken = null;
+
+        if (rawCookie != null) {
+            for (String part : rawCookie.split(";")) {
+                part = part.trim();
+                if (part.startsWith("Authorization=") || part.startsWith("authorization=")) {
+                    bearerToken = part.substring(part.indexOf('=') + 1).trim();
+                    if (bearerToken.startsWith("Bearer ")) {
+                        bearerToken = bearerToken.substring("Bearer ".length());
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 方式2-5：JS 注入读取 localStorage / sessionStorage / JS 变量
+        if (bearerToken == null || bearerToken.isEmpty()) {
+            String[] keys = {
+                    "token", "access_token", "bearerToken", "authorization",
+                    "Authorization", "tokenData", "authToken", "userToken"
+            };
+            for (String key : keys) {
+                String js = "(function(){"
+                        + "try{"
+                        + "var v=localStorage.getItem('" + key + "');"
+                        + "if(v)return v;"
+                        + "v=sessionStorage.getItem('" + key + "');"
+                        + "if(v)return v;"
+                        + "}catch(e){}"
+                        + "try{"
+                        + "if(window." + key + ")return window." + key + ";"
+                        + "}catch(e){}"
+                        + "return null;"
+                        + "})()";
+                final String fKey = key;
+                view.evaluateJavascript(js, new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String value) {
+                        if (done[0]) return;
+                        if (value != null && !value.equals("null") && !value.equals("\"null\"")) {
+                            String v = value.replaceAll("^\"|\"$", "").trim();
+                            if (!v.isEmpty()) {
+                                android.util.Log.d(TAG, "Found token via key=" + fKey + " len=" + v.length());
+                                if (!done[0]) {
+                                    done[0] = true;
+                                    mainHandler.removeCallbacks(timeoutRunnable);
+                                    destroyWebView(view);
+                                    callback.onSuccess(v);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Cookie 方式直接成功
+        if (bearerToken != null && !bearerToken.isEmpty()) {
+            android.util.Log.d(TAG, "Found Bearer Token in Cookie len=" + bearerToken.length());
+            if (!done[0]) {
+                done[0] = true;
+                mainHandler.removeCallbacks(timeoutRunnable);
+                destroyWebView(view);
+                callback.onSuccess(bearerToken);
+            }
             return;
         }
 
-        // 方式2-5：JS 读取 localStorage / sessionStorage
-        tryExtractViaJS(view, cm, mainHandler, timeoutRunnable, done, callback, appCtx);
-    }
-
-    private static void tryExtractViaJS(WebView view, CookieManager cm,
-                                         Handler mainHandler,
-                                         Runnable timeoutRunnable,
-                                         boolean[] done, Callback callback,
-                                         Context appCtx) {
-        // 尝试多种 localStorage key
-        String[] keys = {"token", "access_token", "bearerToken", "authorization",
-                         "Authorization", "api_token", "user_token"};
-
-        StringBuilder js = new StringBuilder("(function(){");
-        for (int i = 0; i < keys.length; i++) {
-            String k = keys[i];
-            js.append("try{var v=localStorage.getItem('").append(k).append("');if(v&&v.length>10)return v;}catch(e){}");
-            js.append("try{var v=sessionStorage.getItem('").append(k).append("');if(v&&v.length>10)return v;}catch(e){}");
-        }
-        // 尝试从页面 JS 变量获取
-        js.append("try{if(window.token&&window.token.length>10)return window.token;}catch(e){}");
-        js.append("try{if(window.authorizationToken&&window.authorizationToken.length>10)return window.authorizationToken;}catch(e){}");
-        js.append("try{if(window.apiToken&&window.apiToken.length>10)return window.apiToken;}catch(e){}");
-        // 尝试从 cookie 字符串获取（通过 document.cookie）
-        js.append("try{var c=document.cookie;var m=c.match(/Authorization=([^;]+)/);if(m&&m[1]&&m[1].length>10)return decodeURIComponent(m[1]);}catch(e){}");
-        js.append("return null;})()");
-
-        view.evaluateJavascript(js.toString(), new ValueCallback<String>() {
-            @Override
-            public void onReceiveValue(String value) {
-                if (done[0]) return;
-                android.util.Log.d(TAG, "JS token value=" + value);
-
-                if (value != null && !value.equals("null") && value.length() > 10) {
-                    // 去掉首尾引号（JSON string）
-                    String token = value;
-                    if (token.startsWith("\"") && token.endsWith("\"")) {
-                        token = token.substring(1, token.length() - 1);
-                    }
-                    if (token.startsWith("Bearer ")) {
-                        token = token.substring(7);
-                    }
-                    token = token.trim();
-                    if (token.length() > 10) {
-                        success(view, token, cm, mainHandler, timeoutRunnable, done, callback, appCtx);
-                        return;
+        // 还没找到，再等一下下
+        mainHandler.postDelayed(() -> {
+            if (done[0]) return;
+            // 再试一次 Cookie
+            String retryCookie = cm.getCookie(TYMS_HOST);
+            if (retryCookie != null) {
+                for (String part : retryCookie.split(";")) {
+                    part = part.trim();
+                    if (part.startsWith("Authorization=") || part.startsWith("authorization=")) {
+                        String t = part.substring(part.indexOf('=') + 1).trim();
+                        if (t.startsWith("Bearer ")) t = t.substring("Bearer ".length());
+                        if (!t.isEmpty() && !done[0]) {
+                            done[0] = true;
+                            mainHandler.removeCallbacks(timeoutRunnable);
+                            destroyWebView(view);
+                            callback.onSuccess(t);
+                            return;
+                        }
                     }
                 }
-
-                // 还没拿到，再等2秒
-                mainHandler.postDelayed(() -> {
-                    if (done[0]) return;
-                    // 二次检查 Cookie（可能 JS 写入需要时间）
-                    String raw2 = cm.getCookie(TYMS_HOST);
-                    String token2 = extractAuthorizationFromCookie(raw2);
-                    if (token2 != null && !token2.isEmpty()) {
-                        success(view, token2, cm, mainHandler, timeoutRunnable, done, callback, appCtx);
-                    } else {
-                        // 再执行一次 JS
-                        view.evaluateJavascript(js.toString(), new ValueCallback<String>() {
-                            @Override
-                            public void onReceiveValue(String v2) {
-                                if (done[0]) return;
-                                if (v2 != null && !v2.equals("null") && v2.length() > 10) {
-                                    String t = v2;
-                                    if (t.startsWith("\"") && t.endsWith("\"")) t = t.substring(1, t.length() - 1);
-                                    if (t.startsWith("Bearer ")) t = t.substring(7);
-                                    t = t.trim();
-                                    if (t.length() > 10) {
-                                        success(view, t, cm, mainHandler, timeoutRunnable, done, callback, appCtx);
-                                        return;
-                                    }
-                                }
-                                done[0] = true;
-                                mainHandler.removeCallbacks(timeoutRunnable);
-                                destroyWebView(view);
-                                callback.onFail("未在 tymj 页面找到 Bearer Token。"
-                                        + " Cookie=" + (raw2 != null && raw2.contains("Authorization") ? "有" : "无")
-                                        + " 请确认4A Cookie和ssoPwd正确，或手动从浏览器复制Token");
-                            }
-                        });
-                    }
-                }, 2000);
             }
-        });
-    }
-
-    private static void success(WebView view, String token,
-                                 CookieManager cm, Handler mainHandler,
-                                 Runnable timeoutRunnable, boolean[] done,
-                                 Callback callback, Context appCtx) {
-        done[0] = true;
-        mainHandler.removeCallbacks(timeoutRunnable);
-        android.util.Log.d(TAG, "SUCCESS bearerToken len=" + token.length()
-                + " prefix=" + token.substring(0, Math.min(20, token.length())));
-
-        // 保存到 Session
-        Session s = Session.get();
-        s.tower4aToken = token;
-        s.saveTower4aToken(appCtx);
-
-        destroyWebView(view);
-        callback.onSuccess(token);
-    }
-
-    /**
-     * 从 Cookie 字符串中提取 Authorization 字段值。
-     * 格式: Authorization=Bearer%20xxx 或 Authorization=xxx
-     */
-    private static String extractAuthorizationFromCookie(String rawCookie) {
-        if (rawCookie == null || rawCookie.isEmpty()) return null;
-        // 匹配 Authorization=xxx（可能包含 URL 编码的 Bearer token）
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
-                "(?:^|;\\s*)Authorization=([^;]+)");
-        java.util.regex.Matcher m = p.matcher(rawCookie);
-        if (m.find()) {
-            try {
-                String val = java.net.URLDecoder.decode(m.group(1), "UTF-8");
-                if (val.startsWith("Bearer ")) {
-                    return val.substring(7);
-                }
-                return val;
-            } catch (Exception e) {
-                return m.group(1);
-            }
-        }
-        return null;
+        }, 3000);
     }
 
     private static void destroyWebView(WebView wv) {
         try {
             wv.stopLoading();
-            wv.loadUrl("about:blank");
             wv.clearHistory();
+            wv.clearCache(true);
+            wv.loadUrl("about:blank");
+            wv.removeAllViews();
             wv.destroy();
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "destroyWebView error: " + e.getMessage());
+        }
     }
 }

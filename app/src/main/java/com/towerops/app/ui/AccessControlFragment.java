@@ -95,7 +95,6 @@ public class AccessControlFragment extends Fragment {
     // ── 4A Token 输入控件 ─────────────────────────────────────────────────
     private EditText    et4AToken;
     private EditText    et4ACountyCode;
-    private EditText    et4ASsoPwd;
     private Button      btn4ASave;
     private Button      btn4AGet;
 
@@ -156,7 +155,6 @@ public class AccessControlFragment extends Fragment {
         // 4A Token 输入控件（用于门禁数据Tab查询4A开门记录）
         et4AToken      = view.findViewById(R.id.et4AToken);
         et4ACountyCode = view.findViewById(R.id.et4ACountyCode);
-        et4ASsoPwd     = view.findViewById(R.id.et4ASsoPwd);
         btn4ASave      = view.findViewById(R.id.btn4ASave);
         btn4AGet       = view.findViewById(R.id.btn4AGet);
 
@@ -189,7 +187,7 @@ public class AccessControlFragment extends Fragment {
             });
         }
 
-        // 从4A获取Token按钮 - 通过soaprequest SSO自动获取Bearer Token
+        // 从4A获取Token按钮 - 全自动获取Bearer Token（跟pwdaToken一样自动）
         if (btn4AGet != null) {
             btn4AGet.setOnClickListener(v -> {
                 Session s = Session.get();
@@ -198,20 +196,10 @@ public class AccessControlFragment extends Fragment {
                     Toast.makeText(requireContext(), "请先完成4A账号登录", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String ssoPwd = et4ASsoPwd != null ? et4ASsoPwd.getText().toString().trim() : "";
-                if (ssoPwd.isEmpty()) {
-                    Toast.makeText(requireContext(), "请先输入 ssoPwd（从浏览器F12抓包获取）", Toast.LENGTH_LONG).show();
-                    appendLog("❌ 从4A获取失败：ssoPwd 为空");
-                    return;
-                }
-                // URL decode ssoPwd（因为抓包是URL编码的）
-                try {
-                    ssoPwd = java.net.URLDecoder.decode(ssoPwd, "UTF-8");
-                } catch (Exception ignored) {}
                 btn4AGet.setEnabled(false);
                 btn4AGet.setText("获取中...");
-                appendLog("🔄 从4A获取Bearer Token，ssoPwd len=" + ssoPwd.length() + "...");
-                TymjWebViewHelper.fetchBearerToken(requireContext(), tower4aCookie, ssoPwd,
+                appendLog("🔄 从4A自动获取Bearer Token...");
+                TymjWebViewHelper.fetchBearerToken(requireContext(), tower4aCookie,
                         new TymjWebViewHelper.Callback() {
                             @Override
                             public void onSuccess(String token) {

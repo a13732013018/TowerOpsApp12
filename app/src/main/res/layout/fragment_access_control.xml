@@ -402,41 +402,6 @@
                     android:letterSpacing="0"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"/>
-            </LinearLayout>
-
-            <!-- 4A SSO密码 + 从4A获取Token -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="6dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SSO-P"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="10sp"
-                    android:layout_marginEnd="8dp"
-                    android:includeFontPadding="false"/>
-
-                <EditText
-                    android:id="@+id/et4ASsoPwd"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="ssoPwd（从浏览器抓包获取）"
-                    android:textSize="9.5sp"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_placeholder"
-                    android:background="@drawable/bg_input_white"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="6dp"
-                    android:inputType="text"
-                    android:singleLine="true"/>
 
                 <Button
                     android:id="@+id/btn4AGet"
@@ -458,7 +423,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Token：Bearer认证令牌，用于查询4A门禁开门记录。ssoPwd从浏览器F12抓包获取。"
+                android:text="Bearer Token：查询4A门禁开门记录的认证令牌。点「从4A获取」自动完成（需先登录4A账号）。"
                 android:textColor="@color/text_tertiary"
                 android:textSize="9.5sp"
                 android:layout_marginTop="6dp"/>

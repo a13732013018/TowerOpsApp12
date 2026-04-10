@@ -1240,10 +1240,28 @@ public class AccessControlApi {
                         if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
                             rec.stationName = row.optString("stationName", "").trim();
                         }
+                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
+                            rec.stationName = row.optString("name", "").trim();
+                        }
+                        if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
+                            rec.stationName = row.optString("doorName", "").trim();
+                        }
                         if ("null".equals(rec.stationName)) rec.stationName = "";
-                        // 开门时间（accessTime）
+                        // 开门时间（accessTime）- 尝试多个可能字段名
                         rec.openTime = row.optString("accessTime", "").trim();
+                        if (rec.openTime.isEmpty()) rec.openTime = row.optString("openTime", "").trim();
+                        if (rec.openTime.isEmpty()) rec.openTime = row.optString("access_time", "").trim();
+                        if (rec.openTime.isEmpty()) rec.openTime = row.optString("createTime", "").trim();
+                        if (rec.openTime.isEmpty()) rec.openTime = row.optString("create_time", "").trim();
                         if ("null".equals(rec.openTime)) rec.openTime = "";
+                        // 调试：打印第一条的原始字段
+                        if (i == 0) {
+                            android.util.Log.d(TAG, "[4A解析] 首行JSON keys=" + row.keys().toString()
+                                    + " accessTime=" + row.optString("accessTime", "【空】")
+                                    + " openTime=" + row.optString("openTime", "【空】")
+                                    + " access_time=" + row.optString("access_time", "【空】")
+                                    + " createTime=" + row.optString("createTime", "【空】"));
+                        }
                         // 开门结果
                         rec.openResult = row.optString("openResult", "").trim();
                         if ("null".equals(rec.openResult)) rec.openResult = "";

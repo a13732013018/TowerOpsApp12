@@ -77,7 +77,7 @@ public class DoorDataFragment extends Fragment {
 
     // ── 控件 ──────────────────────────────────────────────────────────────
     private Spinner      spnRegion;
-    private Button       btnQuery, btnExport;
+    private Button       btnQuery, btnExport, btn4AGet;
     private TextView     tvStatus, tvStartDate, tvEndDate;
     private LinearLayout layoutSummary, layoutHeader;
     private TextView     tvTotal, tvOk, tvFail;
@@ -142,6 +142,7 @@ public class DoorDataFragment extends Fragment {
         tvEndDate.setOnClickListener(v2 -> pickDate(false));
         btnQuery.setOnClickListener(v2 -> doQuery());
         btnExport.setOnClickListener(v2 -> doExport());
+        btn4AGet.setOnClickListener(v2 -> doGet4AToken());
         refreshStatus();
         return v;
     }
@@ -156,6 +157,7 @@ public class DoorDataFragment extends Fragment {
         spnRegion     = v.findViewById(R.id.spnDoorRegion);
         btnQuery      = v.findViewById(R.id.btnDoorDataQuery);
         btnExport     = v.findViewById(R.id.btnDoorDataExport);
+        btn4AGet     = v.findViewById(R.id.btnDoorData4AGet);
         tvStatus      = v.findViewById(R.id.tvDoorDataStatus);
         tvStartDate   = v.findViewById(R.id.tvDoorStartDate);
         tvEndDate     = v.findViewById(R.id.tvDoorEndDate);
@@ -460,6 +462,51 @@ public class DoorDataFragment extends Fragment {
                 }
             });
         });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 获取4A Bearer Token（自动）
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * 自动获取4A Bearer Token
+     * 需要先在门禁Tab完成4A账号登录（有tower4aSessionCookie）
+     */
+    private void doGet4AToken() {
+        Session s = Session.get();
+        String tower4aCookie = s.tower4aSessionCookie;
+        if (tower4aCookie == null || tower4aCookie.isEmpty()) {
+            Toast.makeText(requireContext(), "请先在门禁Tab完成4A账号登录", Toast.LENGTH_LONG).show();
+            return;
+        }
+        btn4AGet.setEnabled(false);
+        btn4AGet.setText("获取中...");
+        setStatus("🔄 正在从4A系统获取Bearer Token...");
+        com.towerops.app.api.TymjWebViewHelper.fetchBearerToken(requireContext(), tower4aCookie,
+                new com.towerops.app.api.TymjWebViewHelper.Callback() {
+                    @Override
+                    public void onSuccess(String token) {
+                        Session.get().tower4aToken = token;
+                        Session.get().tower4aCountyCode = "330326"; // 默认平阳县
+                        Session.get().saveTower4aToken(requireContext());
+                        ThreadManager.runOnUiThread(() -> {
+                            btn4AGet.setEnabled(true);
+                            btn4AGet.setText("获取4A");
+                            Toast.makeText(requireContext(),
+                                    "✅ Bearer Token 获取成功（len=" + token.length() + "）", Toast.LENGTH_SHORT).show();
+                            setStatus("✅ 4A Token 已获取，点击查询可获取4A开门记录");
+                        });
+                    }
+                    @Override
+                    public void onFail(String reason) {
+                        ThreadManager.runOnUiThread(() -> {
+                            btn4AGet.setEnabled(true);
+                            btn4AGet.setText("获取4A");
+                            Toast.makeText(requireContext(), "❌ 获取失败: " + reason, Toast.LENGTH_LONG).show();
+                            setStatus("❌ 4A Token 获取失败: " + reason);
+                        });
+                    }
+                });
     }
 
     // ─────────────────────────────────────────────────────────────────────

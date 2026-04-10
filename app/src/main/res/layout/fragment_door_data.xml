@@ -76,7 +76,7 @@
                 android:focusable="true" />
         </LinearLayout>
 
-        <!-- 查询/导出/状态行 -->
+        <!-- 查询/导出/4A Token行 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -86,10 +86,10 @@
 
             <Button
                 android:id="@+id/btnDoorDataQuery"
-                android:layout_width="72dp"
+                android:layout_width="60dp"
                 android:layout_height="36dp"
                 android:text="查询"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#4F46E5"
                 android:stateListAnimator="@null"
@@ -97,12 +97,25 @@
                 android:layout_gravity="center_vertical" />
 
             <Button
-                android:id="@+id/btnDoorDataExport"
+                android:id="@+id/btnDoorData4AGet"
                 android:layout_width="72dp"
                 android:layout_height="36dp"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="4dp"
+                android:text="获取4A"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#7C3AED"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0"
+                android:layout_gravity="center_vertical" />
+
+            <Button
+                android:id="@+id/btnDoorDataExport"
+                android:layout_width="60dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
                 android:text="导出"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#0891B2"
                 android:stateListAnimator="@null"

@@ -721,10 +721,21 @@ public class DoorDataFragment extends Fragment {
             }
         }
         Logger.d("DoorData", "[4A匹配] 4A记录有站名: " + fourAWithName + "条，无站名: " + fourANoName + "条，去重后站数: " + fourAByName.size());
-        // ★★★ 诊断：打印完整4A站名列表 ★★★
+        // ★★★ 诊断：打印完整4A站名列表（逐条，打印char codes） ★★★
         StringBuilder fourANamesBuilder = new StringBuilder("[4A完整站名列表] ");
+        int faCount = 0;
         for (String name : fourAByName.keySet()) {
-            fourANamesBuilder.append(name).append("; ");
+            fourANamesBuilder.append("[").append(faCount).append("]'").append(name).append("'");
+            // 打印char codes检查隐藏字符
+            if (name != null) {
+                fourANamesBuilder.append("(len=").append(name.length());
+                for (int i = 0; i < Math.min(5, name.length()); i++) {
+                    fourANamesBuilder.append(",").append((int)name.charAt(i));
+                }
+                fourANamesBuilder.append("...)");
+            }
+            fourANamesBuilder.append("; ");
+            faCount++;
         }
         Logger.d("DoorData", fourANamesBuilder.toString());
         // 打印前5条4A站名示例
@@ -752,10 +763,20 @@ public class DoorDataFragment extends Fragment {
             alarmsByStation.computeIfAbsent(key, k -> new ArrayList<>()).add(alarm);
         }
         Logger.d("DoorData", "[分组] 共 " + alarmsByStation.size() + " 站，总告警 " + rawAlarms.size() + " 条");
-        // ★★★ 诊断：打印完整OMMS站名列表 ★★★
+        // ★★★ 诊断：打印完整OMMS站名列表（检查字符编码） ★★★
         StringBuilder ommsNamesBuilder = new StringBuilder("[OMMS完整站名列表] ");
+        int ommsCount = 0;
         for (String name : alarmsByStation.keySet()) {
-            ommsNamesBuilder.append(name).append("; ");
+            ommsNamesBuilder.append("[").append(ommsCount).append("]'").append(name).append("'");
+            if (name != null) {
+                ommsNamesBuilder.append("(len=").append(name.length());
+                for (int i = 0; i < Math.min(5, name.length()); i++) {
+                    ommsNamesBuilder.append(",").append((int)name.charAt(i));
+                }
+                ommsNamesBuilder.append("...)");
+            }
+            ommsNamesBuilder.append("; ");
+            ommsCount++;
         }
         Logger.d("DoorData", ommsNamesBuilder.toString());
         // 打印前5条OMMS站名示例
@@ -941,6 +962,13 @@ public class DoorDataFragment extends Fragment {
                         Logger.d("DoorData", "[4A赋值" + processedStations + "] " + stationName
                                 + " fourAOpenTime=" + row.fourAOpenTime + " diff=" + row.fourADiffMinutes + " fourAOk=" + fourAOk);
                     }
+                } else {
+                    // 调试：打印未进入4A匹配的站
+                    if (processedStations <= 5) {
+                        Logger.d("DoorData", "[4A跳过" + processedStations + "] " + stationName
+                                + " alarmDate=" + (alarmDate != null ? "有" : "空")
+                                + " fourATimes=" + (fourATimes != null ? fourATimes.size() : "null"));
+                    }
                 }
 
                 // ── 判定合格 ──
@@ -982,6 +1010,12 @@ public class DoorDataFragment extends Fragment {
         Logger.d("DoorData", "[最终匹配] " + totalStations + "站，蓝牙合格=" + btMatchCount
                 + "，远程合格=" + remoteMatchCount + "，4A合格=" + fourAMatchCount
                 + "，展示 " + allRows.size() + " 条");
+        
+        // ★ 诊断：打印前5条结果的4A时间
+        for (int i = 0; i < Math.min(5, allRows.size()); i++) {
+            DoorAlarmRow r = allRows.get(i);
+            Logger.d("DoorData", "[结果4A诊断" + (i+1) + "] " + r.stName + " fourAOpenTime='" + r.fourAOpenTime + "' fourADiff=" + r.fourADiffMinutes);
+        }
 
         // ════ Step 6：初始排序（合格在前，同类按告警时间降序） ════════════
         allRows.sort((a, b) -> {

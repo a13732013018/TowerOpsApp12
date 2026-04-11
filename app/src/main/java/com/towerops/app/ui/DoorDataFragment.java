@@ -699,6 +699,7 @@ public class DoorDataFragment extends Fragment {
         int lanyaWithName = 0, lanyaNoName = 0;
         for (AccessControlApi.LanyaRecord rec : lanyaList) {
             if (rec.openTime == null || rec.openTime.isEmpty()) continue;
+            rec.stationName = AccessControlApi.cleanStationName(rec.stationName);
             if (!rec.stationName.isEmpty()) {
                 btByName.computeIfAbsent(rec.stationName, k -> new ArrayList<>()).add(rec.openTime);
                 lanyaWithName++;
@@ -759,6 +760,8 @@ public class DoorDataFragment extends Fragment {
         // ── 5a：按站名分组告警 ──
         Map<String, List<RawAlarm>> alarmsByStation = new LinkedHashMap<>();
         for (RawAlarm alarm : rawAlarms) {
+            // ★ 清洗站名，去除不可见字符
+            alarm.stName = AccessControlApi.cleanStationName(alarm.stName);
             String key = alarm.stName.isEmpty() ? "【未知站】" : alarm.stName;
             alarmsByStation.computeIfAbsent(key, k -> new ArrayList<>()).add(alarm);
         }

@@ -21,6 +21,17 @@ public class AccessControlApi {
 
     private static final String TAG = "AccessControlApi";
 
+    /**
+     * 清洗站名：去除不可见字符、全角空格、\u00A0、前后空白，保留纯站名
+     */
+    public static String cleanStationName(String name) {
+        if (name == null) return "";
+        // 去除 Unicode 不可见字符：\u00A0(NBSP), \u200B(零宽), \u3000(全角空格) 等
+        name = name.replaceAll("[\\u00A0\\u200B\\u200C\\u200D\\uFEFF\\u3000]", " ");
+        name = name.trim();
+        return name;
+    }
+
     // =====================================================================
     // 1. 铁塔APP - 门禁告警列表
     // =====================================================================
@@ -1244,12 +1255,15 @@ public class AccessControlApi {
                         org.json.JSONObject row = rows.getJSONObject(i);
                         FourARecord rec = new FourARecord();
                         // 站点名：直接用 areaName（不带/门禁XX后缀），兜底 deviceName
-                        rec.stationName = row.optString("areaName", "").trim();
+                        rec.stationName = cleanStationName(row.optString("areaName", "").trim());
                         if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
-                            rec.stationName = row.optString("deviceName", "").trim();
+                            // deviceName 可能带 "/机房01/门禁01" 后缀，取第一个"/"前的部分
+                            String devName = row.optString("deviceName", "").trim();
+                            int slashIdx = devName.indexOf('/');
+                            rec.stationName = cleanStationName(slashIdx > 0 ? devName.substring(0, slashIdx) : devName);
                         }
                         if (rec.stationName.isEmpty() || "null".equals(rec.stationName)) {
-                            rec.stationName = row.optString("roomName", "").trim();
+                            rec.stationName = cleanStationName(row.optString("roomName", "").trim());
                         }
                         if ("null".equals(rec.stationName)) rec.stationName = "";
                         // 开门时间（accessTime）- 尝试多个可能字段名

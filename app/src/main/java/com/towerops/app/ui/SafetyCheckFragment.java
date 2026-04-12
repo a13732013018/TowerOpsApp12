@@ -101,6 +101,7 @@ public class SafetyCheckFragment extends Fragment {
         rvSafetyCheck.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvSafetyCheck.setAdapter(adapter);
 
+
         // 默认日期：本月第1天 ~ 今天
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         Calendar cal = Calendar.getInstance();
@@ -121,6 +122,7 @@ public class SafetyCheckFragment extends Fragment {
         // 状态栏初始提示（从 Session 自动读取 OMMS 认证状态）
         refreshStatus();
     }
+
 
     /** 刷新状态栏提示 */
     private void refreshStatus() {
@@ -207,15 +209,25 @@ public class SafetyCheckFragment extends Fragment {
                             || resp.contains("session has timed out"))) {
                         ommsRetryDone = true;
                         Session sess = Session.get();
+                        android.util.Log.e(TAG, "═══════════════════════════════════════");
+                        android.util.Log.e(TAG, "【安全打卡调试】检测到401，尝试自动刷新Cookie");
+                        android.util.Log.e(TAG, "tower4aSessionCookie长度=" + (sess.tower4aSessionCookie != null ? sess.tower4aSessionCookie.length() : "null"));
+                        android.util.Log.e(TAG, "tower4aSessionCookie内容=" + (sess.tower4aSessionCookie != null ? sess.tower4aSessionCookie : "null"));
+                        android.util.Log.e(TAG, "username=" + sess.username);
+                        android.util.Log.e(TAG, "═══════════════════════════════════════");
                         if (sess.tower4aSessionCookie != null && !sess.tower4aSessionCookie.isEmpty()) {
-                            android.util.Log.d(TAG, "OMMS 401 detected, auto refresh Cookie");
+                            android.util.Log.e(TAG, "【安全打卡调试】开始刷新OMMS Cookie...");
                             TowerLoginApi.Result lr = TowerLoginApi.autoGetOmmsCookie(
                                     sess.tower4aSessionCookie, sess.username, getContext());
+                            android.util.Log.e(TAG, "【安全打卡调试】刷新结果: success=" + lr.success + " message=" + lr.message);
                             if (lr.success) {
                                 // Cookie已刷新，重试当前页
                                 resp = SafetyCheckApi.fetchOmmsArchived(queryStart, queryEnd, page, 100);
-                                android.util.Log.d(TAG, "OMMS Cookie refreshed, retry archived page " + page);
+                                android.util.Log.e(TAG, "【安全打卡调试】Cookie已刷新，重试查询");
                             }
+                        } else {
+                            android.util.Log.e(TAG, "【安全打卡调试】⚠️ tower4aSessionCookie为空，无法刷新Cookie！");
+                            android.util.Log.e(TAG, "⚠️ 请先去【门禁系统】Tab完成OMMS登录，或在【工单监控】Tab重新登录4A账号");
                         }
                     }
                     List<SafetyCheckApi.CheckRecord> batch = SafetyCheckApi.parseRecords(resp);
@@ -308,34 +320,48 @@ public class SafetyCheckFragment extends Fragment {
                     layoutSummaryCards.setVisibility(View.VISIBLE);
                     layoutTableHeader.setVisibility(View.VISIBLE);
                 } else {
-                    StringBuilder diagSb = new StringBuilder("暂无数据\n");
+                    StringBuilder diagSb = new StringBuilder("⚠️ 未查询到数据，请检查以下原因：\n");
                     if (doOmms) {
                         String od = SafetyCheckApi.ommsDiag;
                         if (od.isEmpty()) {
-                            diagSb.append("OMMS：未请求");
-                        } else if (od.contains("HTTP 401") || od.contains("session has timed out")
-                                || od.contains("S-SYS-00027")) {
-                            diagSb.append("⚠️ OMMS Cookie 已过期！请去【门禁系统】Tab 重新点「OMMS登录」");
+                            diagSb.append("❌ OMMS：未发送请求（Cookie可能为空）\n");
+                            diagSb.append("   → 请先去【门禁系统】Tab完成OMMS登录");
+                        } else if (od.contains("HTTP 401") || od.contains("HTTP 403")
+                                || od.contains("session") || od.contains("timeout")
+                                || od.contains("S-SYS-00027") || od.contains("登录")
+                                || od.contains("unauthorized") || od.contains("Unauthorized")) {
+                            diagSb.append("❌ OMMS认证失败（Cookie可能已过期）\n");
+                            diagSb.append("   → 请先去【门禁系统】Tab重新点「OMMS登录」");
+                        } else if (od.contains("HTTP 0")) {
+                            diagSb.append("❌ OMMS连接失败（HTTP 0）\n");
+                            diagSb.append("   → 请检查网络是否正常");
                         } else {
-                            diagSb.append(od);
+                            // 有响应但可能没数据
+                            diagSb.append("ℹ️ OMMS已查询，但无数据：\n");
+                            diagSb.append("   → 响应：").append(od).append("\n");
+                            diagSb.append("   → 可能原因：日期范围内无维修打卡记录");
                         }
                     }
                     if (doToms) {
                         if (doOmms) diagSb.append("\n");
                         String td = SafetyCheckApi.tomsDiag;
                         if (td.isEmpty()) {
-                            diagSb.append("TOMS：未请求");
+                            diagSb.append("❌ TOMS：未请求\n");
+                            diagSb.append("   → 请在设置中配置TOMS Token");
                         } else if (td.contains("HTTP 0")) {
-                            diagSb.append("⚠️ TOMS 连接失败（HTTP 0）：请检查网络是否在公司内网");
+                            diagSb.append("❌ TOMS连接失败（HTTP 0）\n");
+                            diagSb.append("   → 请检查网络是否在公司内网");
                         } else if (td.contains("HTTP 401") || td.contains("unauthorized")
                                 || td.contains("Unauthorized")) {
-                            diagSb.append("⚠️ TOMS Token 已过期！请去【门禁系统】Tab 重新点「OMMS登录」刷新 Cookie");
+                            diagSb.append("❌ TOMS Token已过期\n");
+                            diagSb.append("   → 请先去【门禁系统】Tab重新登录刷新Cookie");
                         } else {
-                            diagSb.append(td);
+                            diagSb.append("ℹ️ TOMS已查询，但无数据\n");
+                            diagSb.append("   → 响应：").append(td);
                         }
                     }
                     if (!doOmms && !doToms) {
-                        diagSb.append("请先完成 OMMS 登录（维修打卡）；巡检打卡需设置 TOMS Token");
+                        diagSb.append("请先完成 OMMS 登录（维修打卡）");
                     }
                     tvStatus.setText(diagSb.toString());
                 }

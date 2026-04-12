@@ -577,9 +577,13 @@ public class TowerLoginApi {
                         "4A Session已过期，请重新在「工单监控」Tab登录4A账号", null);
             }
 
-            android.util.Log.d("TowerLoginApi", "autoGetOmmsCookie start, cookieLen="
-                    + tower4aSessionCookie.length() + " loginName=" + loginName
-                    + " has4aSession=" + has4aSession);
+            android.util.Log.e("TowerLoginApi", "═══════════════════════════════════════");
+            android.util.Log.e("TowerLoginApi", "【OMMS认证调试】autoGetOmmsCookie 开始");
+            android.util.Log.e("TowerLoginApi", "cookieLen=" + tower4aSessionCookie.length());
+            android.util.Log.e("TowerLoginApi", "loginName=" + loginName);
+            android.util.Log.e("TowerLoginApi", "has4aSession=" + has4aSession);
+            android.util.Log.e("TowerLoginApi", "cookie预览=" + tower4aSessionCookie.substring(0, Math.min(150, tower4aSessionCookie.length())));
+            android.util.Log.e("TowerLoginApi", "═══════════════════════════════════════");
 
             // ─── 构建专用 OkHttpClient（跨域共享 CookieJar，模拟浏览器行为）────
             final java.util.Map<String, String> globalCookies = new java.util.LinkedHashMap<>();
@@ -659,6 +663,7 @@ public class TowerLoginApi {
             String ommsBodyStr  = "";
             int redirectCount = 0;
             while (redirectCount < 15) {
+                android.util.Log.e("TowerLoginApi", "【OMMS认证调试】跳转[" + redirectCount + "] 请求: " + currentUrl);
                 Request req = new Request.Builder()
                         .url(currentUrl)
                         .addHeader("User-Agent", USER_AGENT)
@@ -668,6 +673,7 @@ public class TowerLoginApi {
                         .build();
                 try (Response resp = httpClientNoRedir.newCall(req).execute()) {
                     int code = resp.code();
+                    android.util.Log.e("TowerLoginApi", "【OMMS认证调试】跳转[" + redirectCount + "] 响应码: " + code);
                     // 手动提取每一跳的 Set-Cookie
                     for (String sc : resp.headers("Set-Cookie")) {
                         // Set-Cookie: name=value; Path=/; ...
@@ -677,9 +683,9 @@ public class TowerLoginApi {
                             String cName  = nameVal.substring(0, eq).trim();
                             String cValue = nameVal.substring(eq + 1).trim();
                             globalCookies.put(cName, cValue);
-                            android.util.Log.d("TowerLoginApi",
-                                    "autoGetOmmsCookie redirect[" + redirectCount + "] Set-Cookie: "
-                                    + cName + "=" + cValue.substring(0, Math.min(30, cValue.length())));
+                            android.util.Log.e("TowerLoginApi",
+                                    "【OMMS认证调试】跳转[" + redirectCount + "] Set-Cookie: "
+                                    + cName + "=" + cValue.substring(0, Math.min(50, cValue.length())));
                         }
                     }
                     android.util.Log.d("TowerLoginApi",
@@ -716,23 +722,115 @@ public class TowerLoginApi {
                     }
                 }
             }
-            android.util.Log.d("TowerLoginApi",
-                    "autoGetOmmsCookie SSO done: finalUrl=" + finalOmmsUrl
-                    + " redirects=" + redirectCount
-                    + " cookies=" + globalCookies.size()
-                    + " pwdaToken=" + globalCookies.containsKey("pwdaToken")
-                    + " JSESSIONID=" + globalCookies.containsKey("JSESSIONID"));
+            android.util.Log.e("TowerLoginApi",
+                    "═══════════════════════════════════════");
+            android.util.Log.e("TowerLoginApi", "【OMMS认证调试】autoGetOmmsCookie SSO完成");
+            android.util.Log.e("TowerLoginApi", "finalUrl=" + finalOmmsUrl);
+            android.util.Log.e("TowerLoginApi", "redirectCount=" + redirectCount);
+            android.util.Log.e("TowerLoginApi", "cookies=" + globalCookies.size());
+            android.util.Log.e("TowerLoginApi", "pwdaToken=" + globalCookies.containsKey("pwdaToken"));
+            android.util.Log.e("TowerLoginApi", "JSESSIONID=" + globalCookies.containsKey("JSESSIONID"));
+            android.util.Log.e("TowerLoginApi", "ommsBodyStr长度=" + ommsBodyStr.length());
+            if (!ommsBodyStr.isEmpty()) {
+                android.util.Log.e("TowerLoginApi", "ommsBodyStr预览=" + ommsBodyStr.substring(0, Math.min(300, ommsBodyStr.length())));
+            }
+            android.util.Log.e("TowerLoginApi",
+                    "═══════════════════════════════════════");
 
             // 判断是否成功进入 OMMS（未被踢回登录页或登出页）
             boolean redirectedToLogin = finalOmmsUrl.contains("uac/login")
                     || finalOmmsUrl.contains("doPrevLogin")
-                    || finalOmmsUrl.contains("login.xhtml")
-                    || finalOmmsUrl.endsWith("logout.xhtml");
-            if (redirectedToLogin) {
-                android.util.Log.w("TowerLoginApi",
-                        "autoGetOmmsCookie: 被踢回登录页，4A Session已过期 finalUrl=" + finalOmmsUrl);
-                return new Result(false,
-                        "4A Session已过期，请重新在「工单监控」Tab登录4A账号", null);
+                    || finalOmmsUrl.contains("login.xhtml");
+            boolean redirectedToLogout = finalOmmsUrl.endsWith("logout.xhtml");
+            
+            if (redirectedToLogin || redirectedToLogout) {
+                android.util.Log.e("TowerLoginApi",
+                        "【OMMS认证调试】⚠️ 被踢回登录页/登出页，尝试清空Cookie后重新SSO...");
+                
+                // ★★★ 关键修复：当检测到logout时，清空所有Cookie，重新发起完整的SSO流程 ★★★
+                globalCookies.clear();
+                android.util.Log.e("TowerLoginApi", "已清空Cookie，重新开始SSO流程");
+                
+                // 重新从OMMS入口发起请求，看看能否触发新的SSO
+                String ssoStartUrl = "http://omms.chinatowercom.cn:9000/layout/index.xhtml";
+                String ssoReferer  = "http://4a.chinatowercom.cn:20000/uac/home/index";
+                String ssoFinalUrl = ssoStartUrl;
+                int ssoRetryCount = 0;
+                
+                while (ssoRetryCount < 15) {
+                    android.util.Log.e("TowerLoginApi", "【SSO重试】跳转[" + ssoRetryCount + "] 请求: " + ssoStartUrl);
+                    Request ssoReq = new Request.Builder()
+                            .url(ssoStartUrl)
+                            .addHeader("User-Agent", USER_AGENT)
+                            .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .addHeader("Accept-Language", "zh-CN,zh;q=0.9")
+                            .addHeader("Referer", ssoReferer)
+                            .build();
+                    try (Response ssoResp = httpClientNoRedir.newCall(ssoReq).execute()) {
+                        int ssoCode = ssoResp.code();
+                        android.util.Log.e("TowerLoginApi", "【SSO重试】跳转[" + ssoRetryCount + "] 响应码: " + ssoCode);
+                        
+                        // 收集Cookie
+                        for (String sc : ssoResp.headers("Set-Cookie")) {
+                            String nameVal = sc.split(";")[0].trim();
+                            int eq = nameVal.indexOf('=');
+                            if (eq > 0) {
+                                globalCookies.put(nameVal.substring(0, eq).trim(),
+                                        nameVal.substring(eq + 1).trim());
+                                android.util.Log.e("TowerLoginApi", "【SSO重试】Set-Cookie: " + nameVal);
+                            }
+                        }
+                        
+                        if (ssoCode == 301 || ssoCode == 302 || ssoCode == 303 || ssoCode == 307 || ssoCode == 308) {
+                            String location = ssoResp.header("Location");
+                            if (location == null || location.isEmpty()) break;
+                            if (location.startsWith("/")) {
+                                java.net.URL base = new java.net.URL(ssoStartUrl);
+                                location = base.getProtocol() + "://" + base.getHost()
+                                        + (base.getPort() > 0 && base.getPort() != 80 ? ":" + base.getPort() : "")
+                                        + location;
+                            }
+                            ssoReferer  = ssoStartUrl;
+                            ssoStartUrl = location;
+                            ssoResp.close(); // 关闭旧响应才能发新请求
+                            ssoRetryCount++;
+                        } else {
+                            ssoFinalUrl = ssoStartUrl;
+                            android.util.Log.e("TowerLoginApi", "【SSO重试】最终URL: " + ssoFinalUrl);
+                            android.util.Log.e("TowerLoginApi", "【SSO重试】pwdaToken: " + globalCookies.containsKey("pwdaToken"));
+                            android.util.Log.e("TowerLoginApi", "【SSO重试】JSESSIONID: " + globalCookies.containsKey("JSESSIONID"));
+                            break;
+                        }
+                    }
+                }
+                
+                // 检查重试后的结果
+                boolean retrySuccess = ssoFinalUrl.contains("layout/index") 
+                        && (globalCookies.containsKey("JSESSIONID") || globalCookies.containsKey("pwdaToken"));
+                
+                if (!retrySuccess) {
+                    android.util.Log.e("TowerLoginApi", "【OMMS认证调试】⚠️ 4A Session已过期，自动刷新失败");
+                    android.util.Log.e("TowerLoginApi", "   原因：4A Cookie已失效，OMMS无法建立会话");
+                    android.util.Log.e("TowerLoginApi", "   ");
+                    android.util.Log.e("TowerLoginApi", "   ★ 重要提示 ★");
+                    android.util.Log.e("TowerLoginApi", "   安全打卡功能需要同时完成两个登录：");
+                    android.util.Log.e("TowerLoginApi", "   1. 【工单监控】Tab → 4A账号登录");
+                    android.util.Log.e("TowerLoginApi", "   2. 【门禁系统】Tab → 点击「OMMS登录」→ 点击「运维监控」");
+                    android.util.Log.e("TowerLoginApi", "   ");
+                    android.util.Log.e("TowerLoginApi", "   请按以下步骤操作：");
+                    android.util.Log.e("TowerLoginApi", "   步骤1：进入【门禁系统】Tab");
+                    android.util.Log.e("TowerLoginApi", "   步骤2：点击「OMMS登录」按钮");
+                    android.util.Log.e("TowerLoginApi", "   步骤3：WebView打开后，输入4A账号密码登录");
+                    android.util.Log.e("TowerLoginApi", "   步骤4：点击「运维监控」菜单");
+                    android.util.Log.e("TowerLoginApi", "   步骤5：提示成功后，回到【运维日常】→【安全打卡】查询");
+                    
+                    return new Result(false,
+                            "安全打卡需要完成OMMS授权，请先进入【门禁系统】Tab，点击「OMMS登录」完成授权", null);
+                }
+                
+                // 重试成功，更新最终URL
+                finalOmmsUrl = ssoFinalUrl;
+                android.util.Log.e("TowerLoginApi", "【OMMS认证调试】✅ SSO重试成功!");
             }
 
             // ─── Step 2：若 pwdaToken 还没拿到，再单独访问 From4A.jsp ──────────

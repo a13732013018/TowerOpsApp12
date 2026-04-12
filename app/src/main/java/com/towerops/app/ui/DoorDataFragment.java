@@ -498,13 +498,23 @@ public class DoorDataFragment extends Fragment {
     private void doGet4AToken() {
         btn4AGet.setEnabled(false);
         btn4AGet.setText("获取中...");
-        setStatus("🔄 正在启动登录页面...");
-        
+        setStatus("🔄 正在启动4A登录页面...");
+
+        // ★ 注册回调：登录完成后自动触发查询
+        Session.addOn4aTokenReady(() -> {
+            android.util.Log.d("DoorData", "★★ 4A Token就绪，回调触发，自动查询");
+            android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+            h.postDelayed(() -> {
+                Session.get().loadConfig(requireContext());
+                doQuery();
+            }, 500);
+        });
+
         try {
-            // 直接启动TymjLoginActivity，通过ActivityResult获取结果
             Intent intent = new Intent(requireContext(), TymjLoginActivity.class);
             startActivityForResult(intent, REQ_4A_TOKEN);
         } catch (Exception e) {
+            Session.clearOn4aTokenReadyCallbacks(); // 清理回调
             btn4AGet.setEnabled(true);
             btn4AGet.setText("获取4A");
             Toast.makeText(requireContext(), "❌ 启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -513,8 +523,9 @@ public class DoorDataFragment extends Fragment {
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        android.util.Log.d("DoorData", "★★ onActivityResult req=" + requestCode + " result=" + resultCode);
         
         if (requestCode == REQ_4A_TOKEN) {
             btn4AGet.setEnabled(true);
@@ -527,7 +538,9 @@ public class DoorDataFragment extends Fragment {
                     Session.get().tower4aToken = token;
                     Session.get().tower4aCountyCode = "330326"; // 默认平阳县
                     Session.get().saveTower4aToken(requireContext());
-                    
+                    // ★ 自动填入输入框
+                    if (et4AToken != null) et4AToken.setText(token);
+
                     Toast.makeText(requireContext(),
                             "✅ Bearer Token 获取成功（len=" + token.length() + "）", Toast.LENGTH_SHORT).show();
                     setStatus("✅ 4A Token 已获取，点击查询可获取4A开门记录");
@@ -537,6 +550,7 @@ public class DoorDataFragment extends Fragment {
                 }
             } else {
                 // 用户取消或失败
+                Session.clearOn4aTokenReadyCallbacks();
                 setStatus("已取消");
             }
         }
@@ -1493,6 +1507,8 @@ public class DoorDataFragment extends Fragment {
      */
     private void init4ATokenConfig() {
         Session s = Session.get();
+        // ★ 每次初始化时重新加载Session，确保从SharedPreferences读取最新保存的token
+        s.loadConfig(requireContext());
 
         // 恢复Token
         if (et4AToken != null && s.tower4aToken != null && !s.tower4aToken.isEmpty()) {

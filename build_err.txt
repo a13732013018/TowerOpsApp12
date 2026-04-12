@@ -1,0 +1,21 @@
+C:\Users\13732\WorkBuddy\TowerOpsApp12\app\src\main\java\com\towerops\app\ui\TymjLoginActivity.java:916: 错误: notifyOn4aTokenReady()在Session中不是公共的; 无法从外部程序包中对其进行访问
+        Session.notifyOn4aTokenReady(); // ★ 通知所有等待者（自动登录场景）
+               ^
+C:\Users\13732\WorkBuddy\TowerOpsApp12\app\src\main\java\com\towerops\app\ui\TymjLoginActivity.java:1166: 错误: notifyOn4aTokenReady()在Session中不是公共的; 无法从外部程序包中对其进行访问
+        Session.notifyOn4aTokenReady(); // ★ 通知所有等待者（自动登录场景）
+               ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+2 个错误
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 21s

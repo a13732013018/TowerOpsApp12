@@ -421,8 +421,8 @@ public class MainActivity extends AppCompatActivity {
                 case 0: tab.setText("工单监控"); break;
                 case 1: tab.setText("停电监控"); break;
                 case 2: tab.setText("门禁系统"); break;
-                case 3: tab.setText("智联工单"); break;
-                case 4: tab.setText("巡检工单"); break;
+                case 3: tab.setText("巡检工单"); break;
+                case 4: tab.setText("智联工单"); break;
                 case 5: tab.setText("数运工单"); break;     // 含设备离线子Tab
                 case 6: tab.setText("指标查询"); break;     // 含省内工单处理及时率子Tab
                 case 7: tab.setText("运维日常"); break;

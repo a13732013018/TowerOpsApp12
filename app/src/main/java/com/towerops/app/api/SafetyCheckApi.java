@@ -284,16 +284,21 @@ public class SafetyCheckApi {
             String bodyStr = body.toString();
             android.util.Log.d(TAG, "fetchOmmsUnarchived orgId=" + orgId + " body=" + bodyStr);
 
+            String cookie = buildCookie();
+            android.util.Log.d(TAG, "fetchOmmsUnarchived cookie len=" + cookie.length()
+                    + " hasJSESSIONID=" + cookie.contains("JSESSIONID")
+                    + " hasPwdaToken=" + cookie.contains("pwdaToken"));
+
             HttpUtil.HttpResponse hr = HttpUtil.postWithHeaders(
-                    OMMS_URL, bodyStr, buildOmmsHeaders(), buildCookie());
+                    OMMS_URL, bodyStr, buildOmmsHeaders(), cookie);
             String resp = hr != null ? hr.body : "";
             int code = hr != null ? hr.code : 0;
             android.util.Log.d(TAG, "fetchOmmsUnarchived code=" + code + " len=" + resp.length()
-                    + " preview=" + resp.substring(0, Math.min(400, resp.length())));
+                    + " preview=" + resp.substring(0, Math.min(500, resp.length())));
 
             lastDiag = "OMMS未归档 HTTP " + code
-                    + " | orgId=" + (orgId.isEmpty() ? "空！" : orgId)
-                    + " | " + resp.substring(0, Math.min(150, resp.length()));
+                    + " | orgId=" + (orgId.isEmpty() ? "空（服务端兜底）" : orgId)
+                    + " | " + resp.substring(0, Math.min(200, resp.length()));
             ommsDiag = lastDiag;
             return resp;
         } catch (Exception e) {
@@ -323,19 +328,44 @@ public class SafetyCheckApi {
             body.put("page",          page);
             body.put("rows",          rows);
             String bodyStr = body.toString();
-            android.util.Log.d(TAG, "fetchOmmsArchived orgId=" + orgId
-                    + " start=" + start + " end=" + end + " body=" + bodyStr);
+            android.util.Log.e(TAG, "═══════════════════════════════════════");
+            android.util.Log.e(TAG, "【安全打卡调试】fetchOmmsArchived");
+            android.util.Log.e(TAG, "orgId=" + orgId + " start=" + start + " end=" + end);
+            android.util.Log.e(TAG, "body=" + bodyStr);
+
+            String cookie = buildCookie();
+            android.util.Log.e(TAG, "Cookie总长度=" + cookie.length());
+            android.util.Log.e(TAG, "Cookie预览=" + cookie.substring(0, Math.min(200, cookie.length())));
+            android.util.Log.e(TAG, "hasJSESSIONID=" + cookie.contains("JSESSIONID"));
+            android.util.Log.e(TAG, "haspwdaToken=" + cookie.contains("pwdaToken"));
+            // 单独提取并打印关键Cookie
+            android.util.Log.e(TAG, "JSESSIONID=" + extractCookieValue(cookie, "JSESSIONID"));
+            android.util.Log.e(TAG, "pwdaToken前50=" + extractCookieValue(cookie, "pwdaToken").substring(0, Math.min(50, extractCookieValue(cookie, "pwdaToken").length())));
+            android.util.Log.e(TAG, "unitId=" + extractCookieValue(cookie, "unitId"));
 
             HttpUtil.HttpResponse hr = HttpUtil.postWithHeaders(
-                    OMMS_URL, bodyStr, buildOmmsHeaders(), buildCookie());
+                    OMMS_URL, bodyStr, buildOmmsHeaders(), cookie);
             String resp = hr != null ? hr.body : "";
             int code = hr != null ? hr.code : 0;
-            android.util.Log.d(TAG, "fetchOmmsArchived code=" + code + " len=" + resp.length()
-                    + " preview=" + resp.substring(0, Math.min(400, resp.length())));
+            android.util.Log.e(TAG, "HTTP响应码=" + code + " 响应长度=" + resp.length());
+            android.util.Log.e(TAG, "响应内容=" + resp);
+            android.util.Log.e(TAG, "═══════════════════════════════════════");
+
+            // ★ 增强401错误检测
+            boolean is401 = code == 401 || code == 403;
+            boolean isSessionError = resp.contains("S-SYS-00027")
+                    || resp.contains("session") || resp.contains("timeout")
+                    || resp.contains("登录") || resp.contains("unauthorized")
+                    || resp.contains("Unauthorized") || resp.contains("401")
+                    || resp.contains("403");
+
+            if (is401 || isSessionError) {
+                android.util.Log.e(TAG, "⚠️ OMMS认证可能失败! code=" + code);
+            }
 
             lastDiag = "OMMS已归档 HTTP " + code
-                    + " | orgId=" + (orgId.isEmpty() ? "空！" : orgId)
-                    + " | " + resp.substring(0, Math.min(150, resp.length()));
+                    + " | orgId=" + (orgId.isEmpty() ? "空（服务端兜底）" : orgId)
+                    + " | " + resp.substring(0, Math.min(500, resp.length()));
             ommsDiag = lastDiag;
             return resp;
         } catch (Exception e) {

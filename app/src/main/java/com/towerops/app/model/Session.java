@@ -18,6 +18,34 @@ public class Session {
 
     private static volatile Session instance;
 
+    /** 4A Token 就绪回调列表（登录完成后通知所有等待者） */
+    private static java.util.ArrayList<Runnable> on4aTokenReadyCallbacks = new java.util.ArrayList<>();
+
+    /** 注册4A Token就绪回调（可注册多个） */
+    public static void addOn4aTokenReady(Runnable cb) {
+        synchronized (on4aTokenReadyCallbacks) {
+            on4aTokenReadyCallbacks.add(cb);
+        }
+    }
+
+    /** 通知所有4A Token就绪回调（在登录Activity保存token后调用） */
+    public static void clearOn4aTokenReadyCallbacks() {
+        synchronized (on4aTokenReadyCallbacks) {
+            on4aTokenReadyCallbacks.clear();
+        }
+    }
+
+    public static void notifyOn4aTokenReady() {
+        java.util.ArrayList<Runnable> callbacks;
+        synchronized (on4aTokenReadyCallbacks) {
+            if (on4aTokenReadyCallbacks.isEmpty()) return;
+            callbacks = new java.util.ArrayList<>(on4aTokenReadyCallbacks);
+            on4aTokenReadyCallbacks.clear();
+        }
+        android.util.Log.d("Session", "★★ 通知 " + callbacks.size() + " 个4A Token回调");
+        for (Runnable cb : callbacks) cb.run();
+    }
+
     private Session() {}
 
     public static Session get() {

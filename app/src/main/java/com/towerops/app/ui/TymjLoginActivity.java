@@ -17,6 +17,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.towerops.app.R;
@@ -56,6 +58,10 @@ public class TymjLoginActivity extends Activity {
     private ProgressBar progressBar;
     private TextView    tvHint;
     private View        btnReload;
+    private View        btnManual;
+    private LinearLayout layoutManualInput;
+    private EditText    etManualToken;
+    private View        btnManualSubmit;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean captured = false;
@@ -66,28 +72,106 @@ public class TymjLoginActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tymj_login);
+        Log.e(TAG, "★★ onCreate BEGIN");
 
-        // 关键：先从 SharedPreferences 恢复 Session（包含保存的 Cookie）
-        Session.get().loadConfig(this);
-        
-        webView     = findViewById(R.id.webViewTymj);
-        progressBar = findViewById(R.id.progressTymj);
-        tvHint      = findViewById(R.id.tvTymjHint);
-        btnReload   = findViewById(R.id.btnTymjReload);
+        // 全局异常捕获，防止任何未处理异常导致静默finish()
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            Log.e(TAG, "★★ UNCAUGHT EXCEPTION in thread " + t.getName() + ": " + e.getMessage(), e);
+        });
 
-        if (btnReload != null) {
-            btnReload.setOnClickListener(v -> {
-                captured = false;
-                // 重新加载前先恢复Session
-                Session.get().loadConfig(this);
-                hint("正在重新加载...");
-                loadPage();
-            });
+        try {
+            setContentView(R.layout.activity_tymj_login);
+            Log.d(TAG, "★★ setContentView 完成");
+
+            // 关键：先从 SharedPreferences 恢复 Session（包含保存的 Cookie）
+            Session.get().loadConfig(this);
+
+            webView          = findViewById(R.id.webViewTymj);
+            progressBar      = findViewById(R.id.progressTymj);
+            tvHint           = findViewById(R.id.tvTymjHint);
+            btnReload        = findViewById(R.id.btnTymjReload);
+            btnManual        = findViewById(R.id.btnTymjManual);
+            layoutManualInput= findViewById(R.id.layoutManualInput);
+            etManualToken    = findViewById(R.id.etManualToken);
+            btnManualSubmit  = findViewById(R.id.btnManualSubmit);
+            Log.d(TAG, "★★ findViewById 全部完成");
+
+            if (btnReload != null) {
+                btnReload.setOnClickListener(v -> {
+                    captured = false;
+                    Session.get().loadConfig(this);
+                    hint("正在重新加载...");
+                    loadPage();
+                });
+            }
+
+            // 手动输入按钮：直接显示输入区
+            if (btnManual != null) {
+                btnManual.setOnClickListener(v -> {
+                    showManualInput();
+                });
+            }
+
+            // 手动输入提交
+            if (btnManualSubmit != null) {
+                btnManualSubmit.setOnClickListener(v -> {
+                    String input = etManualToken.getText().toString().trim();
+                    if (input.isEmpty()) {
+                        Toast.makeText(this, "请先粘贴Token", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    // 自动去掉 "Bearer " 前缀
+                    if (input.toLowerCase().startsWith("bearer ")) {
+                        input = input.substring(7).trim();
+                    }
+                    doSaveAndFinish(input);
+                });
+            }
+
+            setupWebView();
+            Log.d(TAG, "★★ setupWebView 完成");
+            loadPage();
+            Log.d(TAG, "★★ loadPage 完成");
+
+            // ★ 10秒后如果还没抓到token，自动显示手动输入区
+            mainHandler.postDelayed(() -> {
+                if (!captured) {
+                    Log.d(TAG, "★★ JS Hook超时，显示手动输入区");
+                    showManualInput();
+                }
+            }, 10000);
+            Log.d(TAG, "★★ onCreate 全部完成");
+        } catch (Exception e) {
+            Log.e(TAG, "★★ onCreate 发生异常: " + e.getMessage(), e);
+            hint("❌ 页面初始化失败: " + e.getMessage() + "\n请点击右上角「手动输入Token」");
+            // 显示手动输入区作为后备
+            if (layoutManualInput != null) layoutManualInput.setVisibility(View.VISIBLE);
         }
+    }
 
-        setupWebView();
-        loadPage();
+    /** 显示手动输入区 */
+    private void showManualInput() {
+        if (layoutManualInput == null) return;
+        layoutManualInput.setVisibility(View.VISIBLE);
+        if (etManualToken != null) etManualToken.requestFocus();
+        hint("👆 请在上方粘贴Bearer Token\n或点击「手动输入Token」按钮");
+    }
+
+    /** 保存token并返回给调用者 */
+    private void doSaveAndFinish(String token) {
+        Session session = Session.get();
+        session.tower4aToken = token;
+        session.saveTower4aToken(this);
+        Session.notifyOn4aTokenReady();
+
+        captured = true;
+        mainHandler.postDelayed(() -> {
+            Toast.makeText(this, "✅ Token已保存（len=" + token.length() + "）", Toast.LENGTH_SHORT).show();
+            Intent result = new Intent();
+            result.putExtra(EXTRA_TOKEN, token);
+            setResult(RESULT_OK, result);
+            finish();
+        }, 300);
     }
 
     @Override
@@ -107,7 +191,8 @@ public class TymjLoginActivity extends Activity {
     }
 
     private void hint(String msg) {
-        tvHint.setText(msg);
+        if (tvHint != null) tvHint.setText(msg);
+        Log.d(TAG, "[hint] " + msg.replace("\n", " | "));
     }
 
     private void loadPage() {
@@ -913,18 +998,21 @@ public class TymjLoginActivity extends Activity {
         Session session = Session.get();
         session.tower4aToken = token;
         session.saveTower4aToken(this);
+        Session.notifyOn4aTokenReady(); // ★ 通知所有等待者（自动登录场景）
 
         captured = true;
         currentTokenIsBearer = true;
 
         mainHandler.postDelayed(() -> {
+            Log.d(TAG, "★★ saveBearerToken setResult + finish() 执行中");
             Intent result = new Intent();
             result.putExtra(EXTRA_TOKEN, token);
             setResult(RESULT_OK, result);
             finish();
+            Log.d(TAG, "★★ TymjLoginActivity 已finish");
         }, 800);
     }
-    
+
     /**
      * 备用保存JWT Token（如果没找到Bearer Token才使用）
      */
@@ -1162,6 +1250,7 @@ public class TymjLoginActivity extends Activity {
         Session session = Session.get();
         session.tower4aToken = token;
         session.saveTower4aToken(this);
+        Session.notifyOn4aTokenReady(); // ★ 通知所有等待者（自动登录场景）
 
         mainHandler.postDelayed(() -> {
             Intent result = new Intent();

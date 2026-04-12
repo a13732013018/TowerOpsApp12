@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class MainPagerAdapter extends FragmentStateAdapter {
 
-    private static final int TAB_COUNT = 9;  // 工单/停电/门禁/智联/巡检/数运(含设备离线子Tab)/指标查询(含省内工单子Tab)/运维日常/我的待办
+    private static final int TAB_COUNT = 9;  // 工单/停电/门禁/巡检/智联/数运(含设备离线子Tab)/指标查询(含省内工单子Tab)/运维日常/我的待办
     private final List<Fragment> fragments = new ArrayList<>();
 
     public MainPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
@@ -35,10 +35,10 @@ public class MainPagerAdapter extends FragmentStateAdapter {
                 fragment = new AccessControlFragment(); // 门禁系统
                 break;
             case 3:
-                fragment = new ZhilianFragment();  // 智联工单
+                fragment = new XunjianFragment();  // 巡检工单
                 break;
             case 4:
-                fragment = new XunjianFragment();  // 巡检工单
+                fragment = new ZhilianFragment();  // 智联工单
                 break;
             case 5:
                 fragment = new ShuyunFragment();   // 数运工单（含设备离线子Tab）
@@ -47,7 +47,7 @@ public class MainPagerAdapter extends FragmentStateAdapter {
                 fragment = new MetricsFragment();  // 指标查询（含省内工单处理及时率子Tab）
                 break;
             case 7:
-                fragment = new OpsDailyFragment(); // 运维日常
+                fragment = new OpsDailyFragment(); // 运维日常（含安全打卡）
                 break;
             case 8:
                 fragment = new TodoFragment();     // 我的待办

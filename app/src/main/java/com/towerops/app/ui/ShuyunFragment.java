@@ -26,7 +26,7 @@ public class ShuyunFragment extends Fragment {
     private ViewPager2 viewPagerShuyunSub;
     private ShuyunSubPagerAdapter pagerAdapter;
 
-    private static final String[] TAB_TITLES = {"数运监控", "数运审核", "省内待办", "任务工单", "设备离线"};
+    private static final String[] TAB_TITLES = {"数运监控", "数运审核", "省内待办", "任务工单", "设备离线", "综合报表"};
 
     @Nullable
     @Override

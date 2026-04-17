@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:gravity="center_vertical"
+    android:background="#FFFFFF">
+
+    <!-- 序号 -->
+    <TextView
+        android:id="@+id/tvIndex"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:textSize="9sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 区县 -->
+    <TextView
+        android:id="@+id/tvCityName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 周期 -->
+    <TextView
+        android:id="@+id/tvDateType"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:textSize="8sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 故障 -->
+    <TextView
+        android:id="@+id/tvFaultNum"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="#DC2626"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 退服时长 -->
+    <TextView
+        android:id="@+id/tvAvgDowntime"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 及时率 -->
+    <TextView
+        android:id="@+id/tvTimelyRate"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="#16A34A"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 纵横 -->
+    <TextView
+        android:id="@+id/tvZhNum"
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 竞维 -->
+    <TextView
+        android:id="@+id/tvJyNum"
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 合计 -->
+    <TextView
+        android:id="@+id/tvTotalNum"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@color/colorPrimary"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 代维 -->
+    <TextView
+        android:id="@+id/tvDwShort"
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
+        android:textSize="9sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+</LinearLayout>

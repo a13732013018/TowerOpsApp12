@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 数运工单子Tab适配器 - 数运监控 | 数运审核 | 省内待办 | 任务工单 | 设备离线
+ * 数运工单子Tab适配器 - 数运监控 | 数运审核 | 省内待办 | 任务工单 | 设备离线 | 综合报表
  */
 public class ShuyunSubPagerAdapter extends FragmentStateAdapter {
 
-    private static final int TAB_COUNT = 5;  // 数运监控|数运审核|省内待办|任务工单|设备离线
+    private static final int TAB_COUNT = 6;  // 数运监控|数运审核|省内待办|任务工单|设备离线|综合报表
     private final List<Fragment> fragments = new ArrayList<>();
 
     public ShuyunSubPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
@@ -39,6 +39,9 @@ public class ShuyunSubPagerAdapter extends FragmentStateAdapter {
                 break;
             case 4:
                 fragment = DeviceOfflineFragment.newInstance();  // 设备离线
+                break;
+            case 5:
+                fragment = new ShuyunReportFragment();         // 综合报表
                 break;
             default:
                 fragment = new ShuyunMonitorFragment();

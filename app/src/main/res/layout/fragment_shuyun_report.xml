@@ -13,7 +13,7 @@
         android:padding="10dp"
         android:background="@color/background_secondary">
 
-        <!-- 第一行：区域选择 + 查询按钮 + 时间 -->
+        <!-- 第一行：区域选择 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,18 +34,6 @@
                 android:layout_marginStart="4dp"
                 android:background="@drawable/bg_spinner" />
 
-            <Button
-                android:id="@+id/btnQuery"
-                android:layout_width="64dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="8dp"
-                android:text="查询"
-                android:textSize="12sp"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="@color/colorPrimary"
-                android:stateListAnimator="@null"
-                android:letterSpacing="0" />
-
             <TextView
                 android:id="@+id/tvCurrentTime"
                 android:layout_width="0dp"
@@ -56,19 +44,94 @@
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
 
-        <!-- 第二行：状态 + 统计 -->
+        <!-- 第二行：日期选择 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="开始:"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+
+            <Button
+                android:id="@+id/btnStartDate"
+                android:layout_width="100dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:text="选择日期"
+                android:textSize="10sp"
+                android:backgroundTint="#64748B"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0" />
+
+            <TextView
+                android:id="@+id/tvStartDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:textSize="11sp"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="结束:"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+
+            <Button
+                android:id="@+id/btnEndDate"
+                android:layout_width="100dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:text="选择日期"
+                android:textSize="10sp"
+                android:backgroundTint="#64748B"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0" />
+
+            <TextView
+                android:id="@+id/tvEndDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:textSize="11sp"
+                android:textColor="@color/text_primary" />
+        </LinearLayout>
+
+        <!-- 第三行：查询按钮 + 状态 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnQuery"
+                android:layout_width="64dp"
+                android:layout_height="32dp"
+                android:text="查询"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/colorPrimary"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0" />
 
             <TextView
                 android:id="@+id/tvReportStatus"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:textSize="11sp"
                 android:textColor="@color/text_secondary"
                 android:text="点击查询获取报表数据" />

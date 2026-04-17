@@ -89,11 +89,14 @@ public class ShuyunReportApi {
         }
 
         // 构建请求头
-        String pageStr = page + "-" + pageSize;
         String cookies = "towerNumber-Token=" + pcToken + "; sysName=%E4%BC%8A%E4%B8%96%E8%B1%AA";
 
-        // 构建自定义协议头（Accept和Content-Type行会被自动添加）
-        String extraHeaders = "";
+        // 构建自定义协议头
+        String extraHeaders = "Authorization: " + pcToken + "\n" +
+                "Accept: application/json, text/plain, */*\n" +
+                "Content-Type: application/json;charset=UTF-8\n" +
+                "Accept-Language: zh-CN,zh;q=0.9\n" +
+                "Accept-Encoding: gzip, deflate";
 
         try {
             // 使用 HttpUtil.post 方法发送 JSON 请求
@@ -106,9 +109,15 @@ public class ShuyunReportApi {
             }
 
             JSONObject root = new JSONObject(response);
+            // 检查 status 字段（可能是 code 或 status）
+            int statusCode = root.optInt("status", 0);
             int code = root.optInt("code", 0);
-            if (code != 1) {
-                Log.e(TAG, "报表接口返回错误: code=" + code + ", message=" + root.optString("message"));
+            if (statusCode == 40301 || code == 40301) {
+                Log.e(TAG, "Token过期，请在数运监控中重新登录PC版");
+                return result;
+            }
+            if (statusCode != 1 && code != 1) {
+                Log.e(TAG, "报表接口返回错误: status=" + statusCode + ", code=" + code + ", message=" + root.optString("message"));
                 return result;
             }
 

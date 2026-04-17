@@ -198,7 +198,7 @@
         android:text="" />
 
     <!-- 表头（可点击排序）- 水平滚动 -->
-    <HorizontalScroll
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none">
@@ -335,10 +335,10 @@
                 android:gravity="center"
                 android:background="?attr/selectableItemBackground" />
         </LinearLayout>
-    </HorizontalScroll>
+    </HorizontalScrollView>
 
     <!-- 列表（水平滚动） -->
-    <HorizontalScroll
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -351,7 +351,7 @@
             android:layout_height="match_parent"
             android:overScrollMode="never"
             android:clipToPadding="false" />
-    </HorizontalScroll>
+    </HorizontalScrollView>
 
     <!-- 空状态 -->
     <TextView

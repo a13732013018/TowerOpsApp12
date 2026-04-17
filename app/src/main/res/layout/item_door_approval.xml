@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="center_vertical"
+    android:background="#FFFFFF">
+
+    <!-- 序号 -->
+    <TextView
+        android:id="@+id/tvApprovalIdx"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="#94A3B8"
+        android:gravity="center"
+        android:includeFontPadding="false" />
+
+    <!-- 中间信息 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="6dp">
+
+        <!-- 站名 + 类型 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvApprovalSiteName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/tvApprovalType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:textColor="#7C3AED"
+                android:background="#EDE9FE"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+        <!-- 申请人 + 时间 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <TextView
+                android:id="@+id/tvApprovalApplicant"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textColor="#64748B"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  |  "
+                android:textSize="10sp"
+                android:textColor="#CBD5E1"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/tvApprovalTime"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="10sp"
+                android:textColor="#94A3B8"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+        <!-- 状态 -->
+        <TextView
+            android:id="@+id/tvApprovalStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:textColor="#D97706"
+            android:layout_marginTop="2dp"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- 审批按钮 -->
+    <Button
+        android:id="@+id/btnApprove"
+        android:layout_width="56dp"
+        android:layout_height="32dp"
+        android:text="审批"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#16A34A"
+        android:stateListAnimator="@null"
+        android:letterSpacing="0"
+        android:layout_gravity="center_vertical" />
+
+</LinearLayout>

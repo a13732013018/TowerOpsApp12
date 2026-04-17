@@ -199,6 +199,23 @@ public class Session {
      */
     public volatile int doorAlarmRegion = 0;
 
+    // ---------- 门禁审批认证信息（来自铁塔App登录）----------
+    /**
+     * 门禁审批系统 X-Auth-Token（JWT格式，从铁塔App抓包获取）
+     * 用于 http://36.111.4.4:8090 的查询接口
+     */
+    public volatile String doorApprovalXAuthToken = "";
+
+    /**
+     * 门禁审批系统登录账号（从铁塔App抓包获取，如 wx-linjy22）
+     */
+    public volatile String doorApprovalLoginAcct = "";
+
+    /**
+     * 门禁审批系统账号ID（从铁塔App抓包获取，如 203349045）
+     */
+    public volatile String doorApprovalAcctId = "";
+
     // ---------- OMMS 门禁系统 Cookie ----------
     /**
      * OMMS门禁系统Cookie
@@ -247,6 +264,11 @@ public class Session {
 
     // ---------- 门禁告警区域选择持久化Key ----------
     private static final String KEY_DOOR_ALARM_REGION = "door_alarm_region";
+
+    // ---------- 门禁审批认证持久化Key ----------
+    private static final String KEY_DOOR_APPROVAL_X_AUTH_TOKEN = "door_approval_x_auth_token";
+    private static final String KEY_DOOR_APPROVAL_LOGIN_ACCT  = "door_approval_login_acct";
+    private static final String KEY_DOOR_APPROVAL_ACCT_ID     = "door_approval_acct_id";
 
     /**
      * 将 appConfig 持久化到 SharedPreferences。
@@ -339,6 +361,14 @@ public class Session {
         // 恢复门禁告警区域选择
         doorAlarmRegion = PrefHelper.getInt(ctx, PREF_SESSION, KEY_DOOR_ALARM_REGION, 0);
 
+        // 恢复门禁审批认证信息
+        doorApprovalXAuthToken = PrefHelper.getString(ctx, PREF_SESSION, KEY_DOOR_APPROVAL_X_AUTH_TOKEN, "");
+        doorApprovalLoginAcct  = PrefHelper.getString(ctx, PREF_SESSION, KEY_DOOR_APPROVAL_LOGIN_ACCT,  "");
+        doorApprovalAcctId    = PrefHelper.getString(ctx, PREF_SESSION, KEY_DOOR_APPROVAL_ACCT_ID,    "");
+        android.util.Log.d("Session", "loadConfig - doorApprovalXAuthToken: [" + doorApprovalXAuthToken + "]");
+        android.util.Log.d("Session", "loadConfig - doorApprovalLoginAcct:  [" + doorApprovalLoginAcct + "]");
+        android.util.Log.d("Session", "loadConfig - doorApprovalAcctId:    [" + doorApprovalAcctId + "]");
+
         // 恢复铁塔4A Cookie
         String saved4aCookie = PrefHelper.getString(ctx, PREF_SESSION, KEY_TOWER4A_COOKIE, "");
         if (!saved4aCookie.isEmpty()) {
@@ -379,6 +409,22 @@ public class Session {
             editor.putString(KEY_TOWER4A_TOKEN,  tower4aToken);
             editor.putString(KEY_TOWER4A_COUNTY, tower4aCountyCode);
         }, true);
+    }
+
+    /**
+     * 保存门禁审批认证信息
+     * 用户在门禁数据配置行粘贴后调用
+     */
+    public void saveDoorApprovalAuth(android.content.Context ctx) {
+        android.util.Log.d("Session", "saveDoorApprovalAuth - X-Auth-Token: [" + doorApprovalXAuthToken + "]");
+        android.util.Log.d("Session", "saveDoorApprovalAuth - loginAcct:  [" + doorApprovalLoginAcct + "]");
+        android.util.Log.d("Session", "saveDoorApprovalAuth - acctId:     [" + doorApprovalAcctId + "]");
+        PrefHelper.edit(ctx, PREF_SESSION, editor -> {
+            editor.putString(KEY_DOOR_APPROVAL_X_AUTH_TOKEN, doorApprovalXAuthToken);
+            editor.putString(KEY_DOOR_APPROVAL_LOGIN_ACCT,  doorApprovalLoginAcct);
+            editor.putString(KEY_DOOR_APPROVAL_ACCT_ID,    doorApprovalAcctId);
+        }, true);
+        android.util.Log.d("Session", "saveDoorApprovalAuth - 已调用 commit()");
     }
 
     /**

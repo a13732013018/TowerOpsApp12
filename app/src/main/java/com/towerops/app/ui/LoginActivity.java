@@ -242,13 +242,59 @@ public class LoginActivity extends AppCompatActivity {
             s.mobilephone = result.mobilephone;
             s.username   = result.username;
             s.realname   = AccountConfig.getRealname(accountPos);
-            s.saveLogin(LoginActivity.this);
 
-            tvStatus.setText("登录成功");
+            // ★ 自动写入 X-Auth-Token 和 loginAcct（登录响应中已有）
+            s.doorApprovalXAuthToken = result.token;
+            s.doorApprovalLoginAcct  = result.loginname;
+
+            tvStatus.setText("登录成功，正在获取审批权限...");
             try { tvStatus.setTextColor(getResources().getColor(R.color.success_neu)); } catch (Exception ignored) {}
 
-            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-            finish();
+            // ★ 在 UI 线程执行，等 OBTAIN_TOKEN_NEW 返回 appacctid 后再跳转
+            //    确保 DoorApprovalFragment 检查时 acctId 已有值
+            executor.execute(() -> {
+                android.util.Log.d("LoginActivity", "========== 登录成功，开始保存认证信息 ==========");
+                android.util.Log.d("LoginActivity", "result.token:       [" + result.token + "]");
+                android.util.Log.d("LoginActivity", "result.userid:      [" + result.userid + "]");
+                android.util.Log.d("LoginActivity", "result.loginname:   [" + result.loginname + "]");
+
+                // 1. 写入 Session 字段
+                s.doorApprovalXAuthToken = result.token;
+                s.doorApprovalLoginAcct  = result.loginname;
+
+                android.util.Log.d("LoginActivity", "Session 写入后 doorApprovalXAuthToken: [" + s.doorApprovalXAuthToken + "]");
+                android.util.Log.d("LoginActivity", "Session 写入后 doorApprovalLoginAcct:  [" + s.doorApprovalLoginAcct + "]");
+
+                // 2. 保存登录信息
+                s.saveLogin(LoginActivity.this);
+                android.util.Log.d("LoginActivity", "saveLogin() 完成");
+
+                // 3. 获取 appacctid（来自 OBTAIN_TOKEN_NEW 接口）
+                // 易语言中 username = 运维账号 loginname（如 wx-linjy22）
+                android.util.Log.d("LoginActivity", "准备调用 OBTAIN_TOKEN_NEW，cookie: [" + cookie.substring(0, Math.min(50, cookie.length())) + "]");
+                String appAcctId = LoginApi.obtainAppAcctId(result.userid, result.loginname, result.token, cookie);
+                android.util.Log.d("LoginActivity", "obtainAppAcctId 返回: [" + appAcctId + "]");
+                if (!appAcctId.isEmpty()) {
+                    s.doorApprovalAcctId = appAcctId;
+                    android.util.Log.d("LoginActivity", "已设置 s.doorApprovalAcctId = " + s.doorApprovalAcctId);
+                } else {
+                    android.util.Log.w("LoginActivity", "appacctid 获取失败（返回空），使用硬编码值");
+                    s.doorApprovalAcctId = "203349045";  // 易语言抓包成功值
+                    android.util.Log.d("LoginActivity", "已设置 s.doorApprovalAcctId = " + s.doorApprovalAcctId);
+                }
+
+                // 4. 保存门禁审批认证
+                android.util.Log.d("LoginActivity", "调用 saveDoorApprovalAuth()，acctId = " + s.doorApprovalAcctId);
+                s.saveDoorApprovalAuth(LoginActivity.this);
+                android.util.Log.d("LoginActivity", "saveDoorApprovalAuth() 完成");
+                android.util.Log.d("LoginActivity", "saveDoorApprovalAuth() 完成");
+
+                // 5. 跳转到主页（必须在主线程）
+                runOnUiThread(() -> {
+                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                    finish();
+                });
+            });
         } else {
             tvStatus.setText(result.message);
             try { tvStatus.setTextColor(getResources().getColor(R.color.error_neu)); } catch (Exception ignored) {}

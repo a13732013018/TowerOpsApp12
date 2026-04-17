@@ -94,6 +94,13 @@ public class AccessControlFragment extends Fragment {
     // OMMS登录Activity请求码
     private static final int REQ_OMMS_LOGIN = 0x1001;
 
+    // ── 子Tab控件 ────────────────────────────────────────────────────────
+    private android.widget.TextView tabAcMonitor, tabAcApproval;
+    private android.widget.LinearLayout layoutAcMonitorContent;
+    private android.widget.FrameLayout  layoutAcApprovalContent;
+    private DoorApprovalFragment doorApprovalFragment;
+    private boolean approvalFragmentAdded = false;
+
     // ── 运行状态 ──────────────────────────────────────────────────────────
     private volatile boolean isRunning = false;
 
@@ -231,6 +238,44 @@ public class AccessControlFragment extends Fragment {
         init4ALogin();
 
         syncButtonState();
+
+        // ── 子Tab：进站监控 / 门禁审批 ────────────────────────────────────
+        tabAcMonitor        = view.findViewById(R.id.tabAcMonitor);
+        tabAcApproval       = view.findViewById(R.id.tabAcApproval);
+        layoutAcMonitorContent  = view.findViewById(R.id.layoutAcMonitorContent);
+        layoutAcApprovalContent = view.findViewById(R.id.layoutAcApprovalContent);
+
+        tabAcMonitor.setOnClickListener(v -> switchAcTab(0));
+        tabAcApproval.setOnClickListener(v -> switchAcTab(1));
+    }
+
+    /** 切换门禁子Tab：0=进站监控，1=门禁审批 */
+    private void switchAcTab(int idx) {
+        if (idx == 0) {
+            // 进站监控
+            layoutAcMonitorContent.setVisibility(View.VISIBLE);
+            layoutAcApprovalContent.setVisibility(View.GONE);
+            tabAcMonitor.setBackgroundColor(android.graphics.Color.parseColor("#4F46E5"));
+            tabAcMonitor.setTextColor(android.graphics.Color.WHITE);
+            tabAcApproval.setBackgroundColor(android.graphics.Color.parseColor("#1A1A35"));
+            tabAcApproval.setTextColor(android.graphics.Color.parseColor("#A5B4FC"));
+        } else {
+            // 门禁审批
+            layoutAcMonitorContent.setVisibility(View.GONE);
+            layoutAcApprovalContent.setVisibility(View.VISIBLE);
+            tabAcMonitor.setBackgroundColor(android.graphics.Color.parseColor("#1A1A35"));
+            tabAcMonitor.setTextColor(android.graphics.Color.parseColor("#A5B4FC"));
+            tabAcApproval.setBackgroundColor(android.graphics.Color.parseColor("#4F46E5"));
+            tabAcApproval.setTextColor(android.graphics.Color.WHITE);
+            // 懒加载 DoorApprovalFragment
+            if (!approvalFragmentAdded) {
+                doorApprovalFragment = new DoorApprovalFragment();
+                getChildFragmentManager().beginTransaction()
+                        .replace(R.id.layoutAcApprovalContent, doorApprovalFragment)
+                        .commitAllowingStateLoss();
+                approvalFragmentAdded = true;
+            }
+        }
     }
 
     /** 启动 OmmsLoginActivity，无论是否已有 Cookie，强制走一遍登录流程 */

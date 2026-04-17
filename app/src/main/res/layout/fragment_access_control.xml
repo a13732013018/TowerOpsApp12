@@ -10,6 +10,50 @@
     android:orientation="vertical"
     android:background="@color/bg_base">
 
+    <!-- ═══ 子Tab工具条：进站监控 / 门禁审批 ═══ -->
+    <LinearLayout
+        android:id="@+id/layoutAcSubTabs"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:background="#1A1A35">
+
+        <TextView
+            android:id="@+id/tabAcMonitor"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="进站监控"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:background="#4F46E5"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tabAcApproval"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="门禁审批"
+            android:textSize="12sp"
+            android:textColor="#A5B4FC"
+            android:gravity="center"
+            android:background="#1A1A35"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <!-- ═══ 进站监控区域（默认显示） ═══ -->
+    <LinearLayout
+        android:id="@+id/layoutAcMonitorContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+
     <!-- ═══ 4A 登录面板 ═══ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardLogin4A"
@@ -521,5 +565,19 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="@color/bg_base"/>
+
+    </LinearLayout>
+    <!-- 进站监控区域结束 -->
+
+    <!-- ═══ 门禁审批区域（默认隐藏） ═══ -->
+    <FrameLayout
+        android:id="@+id/layoutAcApprovalContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <include layout="@layout/fragment_door_approval" />
+
+    </FrameLayout>
 
 </LinearLayout>

@@ -127,7 +127,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 4A Token配置行（新增） -->
+        <!-- 4A Token配置行 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -135,7 +135,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:paddingTop="2dp"
-            android:paddingBottom="6dp"
+            android:paddingBottom="2dp"
             android:gravity="center_vertical">
 
             <TextView
@@ -180,6 +180,88 @@
                 android:textSize="10sp"
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#059669"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0" />
+        </LinearLayout>
+
+        <!-- 门禁审批认证配置行 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="审批:"
+                android:textSize="10sp"
+                android:textColor="#64748B" />
+
+            <EditText
+                android:id="@+id/etDoorApprovalXAuth"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="2"
+                android:layout_marginStart="4dp"
+                android:hint="X-Auth-Token"
+                android:textSize="9sp"
+                android:textColor="#1E293B"
+                android:textColorHint="#94A3B8"
+                android:background="@android:drawable/edit_text"
+                android:paddingStart="8dp"
+                android:paddingEnd="4dp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <EditText
+                android:id="@+id/etDoorApprovalLoginAcct"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:hint="账号"
+                android:textSize="9sp"
+                android:textColor="#1E293B"
+                android:textColorHint="#94A3B8"
+                android:background="@android:drawable/edit_text"
+                android:paddingStart="8dp"
+                android:paddingEnd="4dp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <EditText
+                android:id="@+id/etDoorApprovalAcctId"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:hint="acctId"
+                android:textSize="9sp"
+                android:textColor="#1E293B"
+                android:textColorHint="#94A3B8"
+                android:background="@android:drawable/edit_text"
+                android:paddingStart="8dp"
+                android:paddingEnd="4dp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <Button
+                android:id="@+id/btnDoorApprovalAuthSave"
+                android:layout_width="52dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:text="保存"
+                android:textSize="10sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#0891B2"
                 android:stateListAnimator="@null"
                 android:letterSpacing="0" />
         </LinearLayout>

@@ -128,6 +128,8 @@ public class LoginApi {
         public String  token;
         public String  mobilephone;
         public String  username;
+        /** 登录账号标识（对应铁塔App的 user.loginname，如 wx-linjy22）*/
+        public String  loginname;
     }
 
     public static LoginResult loginWithPin(String account, String password,
@@ -166,6 +168,7 @@ public class LoginApi {
             result.token       = json.optString("token", "");
             result.mobilephone = getNestedStr(json, "user.mobilephone");
             result.username    = getNestedStr(json, "user.username");
+            result.loginname   = getNestedStr(json, "user.loginname");
             result.success     = str.contains("mobilephone");
             result.message     = result.success ? "登录成功" : "登录失败";
         } catch (Exception e) {
@@ -173,6 +176,95 @@ public class LoginApi {
             result.message = "JSON解析失败: " + str;
         }
         return result;
+    }
+
+    // =====================================================================
+    // 4. 获取 appacctid 和 X-Auth-Token
+    //    易语言中调用 OBTAIN_TOKEN_NEW 接口，返回 token 和 appacctid
+    //    协议头用 APP登录后的 token（Authorization: Bearer token）
+    //    POST参数用运维账号的用户名
+    // =====================================================================
+    public static String obtainAppAcctId(String userid, String username, String appToken, String cookie) {
+        android.util.Log.d("LoginApi", "========== obtainAppAcctId ==========");
+        String BASE = "http://ywapp.chinatowercom.cn:58090/itower/mobile/app/service";
+
+        try {
+            // 易语言中的固定值
+            String FIXED_C_SIGN = "9ADF4F992537DFC09E6620DE9B3193B0";
+            String FIXED_UPVS = "2026-01-04-ccssoft";
+            String ts = TimeUtil.getCurrentTimestamp();
+
+            // URL 格式（易语言）
+            String url = BASE + "?porttype=OBTAIN_TOKEN_NEW&v=1.0.94&userid=" + userid + "&c=0";
+
+            // POST 参数（易语言格式）
+            String post = "username=" + username
+                    + "&c_timestamp=" + ts
+                    + "&c_account=" + userid
+                    + "&c_sign=" + FIXED_C_SIGN
+                    + "&upvs=" + FIXED_UPVS;
+
+            // 计算 Content-Length（易语言中是127）
+            int contentLength = post.getBytes("UTF-8").length;
+
+            // 易语言协议头：用 appToken 替换 "token2"
+            // Authorization: token2  →  Authorization: <appToken>
+            String headers = "Authorization: " + appToken + "\n"
+                    + "equiptoken: \n"
+                    + "appVer: 202112\n"
+                    + "Content-Type: application/x-www-form-urlencoded\n"
+                    + "Content-Length: " + contentLength + "\n"
+                    + "Host: ywapp.chinatowercom.cn:58090\n"
+                    + "Connection: Keep-Alive\n"
+                    + "Accept-Encoding: gzip\n"
+                    + "Cookie: ULTRA_U_K=\"\"; ULTRA_U_K=\"\"\n"
+                    + "User-Agent: okhttp/4.10.0";
+
+            android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW URL: " + url);
+            android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW POST: " + post);
+            android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW Auth: " + (appToken.length() > 20 ? appToken.substring(0, 20) + "..." : appToken));
+
+            String resp = HttpUtil.post(url, post, headers, null);
+            android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW 响应: " + resp);
+
+            if (resp != null && !resp.isEmpty()) {
+                JSONObject json = new JSONObject(resp);
+                String status = json.optString("status", "");
+                String appacctid = json.optString("appacctid", "");
+                String returnedToken = json.optString("token", "");
+
+                android.util.Log.d("LoginApi", "status: " + status);
+                android.util.Log.d("LoginApi", "appacctid: " + appacctid);
+                android.util.Log.d("LoginApi", "token: " + (returnedToken.isEmpty() ? "(empty)" : returnedToken.substring(0, Math.min(50, returnedToken.length())) + "..."));
+
+                if ("OK".equals(status) || "10000".equals(status)) {
+                    // 成功：保存 X-Auth-Token（门禁审核专用）
+                    if (!returnedToken.isEmpty()) {
+                        Session s = Session.get();
+                        s.doorApprovalXAuthToken = returnedToken;
+                        android.util.Log.d("LoginApi", "已更新 doorApprovalXAuthToken: " + returnedToken.substring(0, Math.min(50, returnedToken.length())));
+                    }
+                    return appacctid;
+                } else {
+                    android.util.Log.w("LoginApi", "OBTAIN_TOKEN_NEW 返回失败: status=" + status);
+                }
+            } else {
+                android.util.Log.w("LoginApi", "OBTAIN_TOKEN_NEW 响应为空");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("LoginApi", "OBTAIN_TOKEN_NEW 异常", e);
+        }
+
+        // 失败：使用后备值（仅用于开发调试）
+        Session s = Session.get();
+        s.doorApprovalXAuthToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJSRVMiLCJpc3MiOiJXUzRBIiwiZXhwIjoxNzc2MzUxNjAwLCJOQU5PU0VDT05EIjoxNTA3MDgyODUxNzYxODgxNH0.eYt8lOLXQLO3Dyj10OI-L7N0obpSP3GKPyxBUGR8uDU";
+        android.util.Log.d("LoginApi", "使用后备 X-Auth-Token");
+        return "203349045";
+    }
+
+    /** 兼容旧调用（无 Cookie） */
+    public static String obtainAppAcctId(String userid, String username, String token) {
+        return obtainAppAcctId(userid, username, token, null);
     }
 
     /** 解析 "user.userid" 这类带点的路径 */
@@ -226,6 +318,7 @@ public class LoginApi {
                 result.token       = json.optString("token", "");
                 result.mobilephone = getNestedStr(json, "user.mobilephone");
                 result.username    = getNestedStr(json, "user.username");
+                result.loginname   = getNestedStr(json, "user.loginname");
                 result.success     = !result.token.isEmpty();
                 result.message     = result.success ? "登录成功" : "登录失败：未返回token";
             } else {

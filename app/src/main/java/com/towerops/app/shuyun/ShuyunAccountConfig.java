@@ -46,7 +46,7 @@ public class ShuyunAccountConfig {
         new Account(
             "15858734252",
             "0/YBW5U6t/yAZggx3MfHCQ==",
-            "a873a215e542edab",
+            "5ee73a22ea83b18a",
             "账号2 (15858734252)"
         )
     };

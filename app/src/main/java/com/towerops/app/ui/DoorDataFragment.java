@@ -86,9 +86,6 @@ public class DoorDataFragment extends Fragment {
     private TextView     tvStatus, tvStartDate, tvEndDate;
     private EditText     et4AToken;
     private Spinner      spinnerCounty;
-    // 门禁审批认证配置
-    private EditText     etDoorApprovalXAuth, etDoorApprovalLoginAcct, etDoorApprovalAcctId;
-    private Button       btnDoorApprovalAuthSave;
     private LinearLayout layoutSummary, layoutHeader;
     private TextView     tvTotal, tvOk, tvFail;
     private TextView     thStName, thAlarmTime, thBtTime, thDiff, thRemoteTime, thFourATime, thQualified;
@@ -161,9 +158,6 @@ public class DoorDataFragment extends Fragment {
         // 初始化4A Token和区县选择器
         init4ATokenConfig();
         btn4ASave.setOnClickListener(v2 -> doSave4AToken());
-        // 初始化门禁审批认证配置
-        initDoorApprovalAuth();
-        btnDoorApprovalAuthSave.setOnClickListener(v2 -> doSaveDoorApprovalAuth());
         refreshStatus();
         return v;
     }
@@ -192,11 +186,6 @@ public class DoorDataFragment extends Fragment {
         // 4A Token配置
         et4AToken     = v.findViewById(R.id.etDoorData4AToken);
         spinnerCounty = v.findViewById(R.id.spinnerDoorDataCounty);
-        // 门禁审批认证配置
-        etDoorApprovalXAuth    = v.findViewById(R.id.etDoorApprovalXAuth);
-        etDoorApprovalLoginAcct = v.findViewById(R.id.etDoorApprovalLoginAcct);
-        etDoorApprovalAcctId  = v.findViewById(R.id.etDoorApprovalAcctId);
-        btnDoorApprovalAuthSave = v.findViewById(R.id.btnDoorApprovalAuthSave);
         // 表头
         thStName    = v.findViewById(R.id.thDoorStName);
         thAlarmTime = v.findViewById(R.id.thDoorAlarmTime);
@@ -1597,43 +1586,4 @@ public class DoorDataFragment extends Fragment {
 
     // ── 门禁审批认证配置 ───────────────────────────────────────────────
 
-    /**
-     * 初始化门禁审批认证配置：恢复已保存的值
-     */
-    private void initDoorApprovalAuth() {
-        Session s = Session.get();
-        s.loadConfig(requireContext());
-
-        if (etDoorApprovalXAuth != null && s.doorApprovalXAuthToken != null && !s.doorApprovalXAuthToken.isEmpty()) {
-            etDoorApprovalXAuth.setText(s.doorApprovalXAuthToken);
-        }
-        if (etDoorApprovalLoginAcct != null && s.doorApprovalLoginAcct != null && !s.doorApprovalLoginAcct.isEmpty()) {
-            etDoorApprovalLoginAcct.setText(s.doorApprovalLoginAcct);
-        }
-        if (etDoorApprovalAcctId != null && s.doorApprovalAcctId != null && !s.doorApprovalAcctId.isEmpty()) {
-            etDoorApprovalAcctId.setText(s.doorApprovalAcctId);
-        }
-    }
-
-    /**
-     * 保存门禁审批认证信息
-     */
-    private void doSaveDoorApprovalAuth() {
-        String xAuth = etDoorApprovalXAuth != null ? etDoorApprovalXAuth.getText().toString().trim() : "";
-        String loginAcct = etDoorApprovalLoginAcct != null ? etDoorApprovalLoginAcct.getText().toString().trim() : "";
-        String acctId = etDoorApprovalAcctId != null ? etDoorApprovalAcctId.getText().toString().trim() : "";
-
-        Session sv = Session.get();
-        sv.doorApprovalXAuthToken = xAuth;
-        sv.doorApprovalLoginAcct = loginAcct;
-        sv.doorApprovalAcctId = acctId;
-        sv.saveDoorApprovalAuth(requireContext());
-
-        String hint = (xAuth.isEmpty() ? "" : "Token:" + xAuth.length() + "字符")
-                + (loginAcct.isEmpty() ? "" : " 账号:" + loginAcct)
-                + (acctId.isEmpty() ? "" : " acctId:" + acctId);
-        Toast.makeText(requireContext(),
-                xAuth.isEmpty() ? "审批认证已清空" : "✅ 已保存审批认证",
-                Toast.LENGTH_SHORT).show();
-    }
 }

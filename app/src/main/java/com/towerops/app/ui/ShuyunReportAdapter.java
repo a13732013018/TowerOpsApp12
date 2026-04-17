@@ -151,6 +151,13 @@ public class ShuyunReportAdapter extends RecyclerView.Adapter<ShuyunReportAdapte
             tvDailyReply.setText(item.dailyReply);
             tvEfficiency.setText(item.efficiency);
             tvDw.setText(item.dwShort);
+
+            // 平阳区域高亮显示
+            if (item.cityName != null && item.cityName.contains("平阳")) {
+                itemView.setBackgroundColor(0xFFFFF3CD); // 浅黄色背景
+            } else {
+                itemView.setBackgroundColor(0xFFFFFFFF); // 白色背景
+            }
         }
     }
 }

@@ -157,14 +157,14 @@ public class ShuyunReportApi {
                 reportItem.dateType = item.optString("dateType", "");
                 reportItem.dwShort = item.optString("dw_short", "");
                 
-                // 字段映射（根据实际API返回调整）
-                // 这些字段需要根据实际的API返回字段来映射
-                reportItem.easyOrder = item.optInt("n1_num3", 0);           // 故障上站数作为中台派单
-                reportItem.sysOrder = item.optInt("num3", 0) - item.optInt("n1_num3", 0);  // 上站总数-故障
-                reportItem.appOrder = item.optInt("week_zh_num", 0) + item.optInt("week_jy_num", 0);  // 纵横+竞维
-                reportItem.otherOrder = 0;  // 待确定
-                reportItem.dailyReply = "-";  // 待确定
-                reportItem.efficiency = item.optString("n4_num3", "0");  // 及时率
+                // 字段映射（根据实际API和数据图对照）
+                // week_jy_num=中台派单(简易派单), week_zh_num=系统派单, num3=APP, n1_num3=非综合上站, n3_num3=单日单站回单, n4_num3=效能
+                reportItem.easyOrder = item.optInt("week_jy_num", 0);      // 中台派单
+                reportItem.sysOrder = item.optInt("week_zh_num", 0);        // 系统派单
+                reportItem.appOrder = item.optInt("num3", 0);                // 综合上站APP
+                reportItem.otherOrder = item.optInt("n1_num3", 0);          // 非综合上站
+                reportItem.dailyReply = item.optString("n3_num3", "0");     // 单日单站回单数
+                reportItem.efficiency = item.optString("n4_num3", "0");      // 综合上站效能
 
                 result.add(reportItem);
             }

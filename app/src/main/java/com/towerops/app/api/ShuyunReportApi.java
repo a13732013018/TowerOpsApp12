@@ -22,34 +22,32 @@ public class ShuyunReportApi {
     private static final String REPORT_ID = "20251230003";
 
     /**
-     * 综合上站报表数据项
+     * 综合上站报表数据项（按10列表头）
      */
     public static class ReportItem {
-        public String areaName;      // 区域名（温州市）
-        public String cityName;      // 区县名
-        public String cityCode;      // 区县代码
-        public String areaCode;      // 区域代码
-        public String dateType;      // 日期类型（2026-04-01~2026-04-17 或 2026-04）
-        public int n1Num3;           // 故障上站数
-        public String n3Num3;        // 平均断电退服时长(小时)
-        public String n4Num3;        // 上站及时率
-        public int weekZhNum;        // 纵横周巡检上站数
-        public int weekJyNum;        // 竞维周巡检上站数
-        public String dwShort;       // 代维简称
-        public int num3;             // 上站总数
+        public String areaName;       // 地市
+        public String cityName;       // 区县
+        public String dateType;       // 起止日期
+        public int easyOrder;         // 中台派单(简易派单)
+        public int sysOrder;          // 系统派单(不算简易派单)
+        public int appOrder;          // 综合上站APP
+        public int otherOrder;        // 非综合上站
+        public String dailyReply;     // 单日单站回单
+        public String efficiency;     // 综合上站效能
+        public String dwShort;        // 代维公司
 
         @Override
         public String toString() {
             return "ReportItem{" +
-                    "cityName='" + cityName + '\'' +
+                    "areaName='" + areaName + '\'' +
+                    ", cityName='" + cityName + '\'' +
                     ", dateType='" + dateType + '\'' +
-                    ", n1Num3=" + n1Num3 +
-                    ", n3Num3='" + n3Num3 + '\'' +
-                    ", n4Num3='" + n4Num3 + '\'' +
-                    ", weekZhNum=" + weekZhNum +
-                    ", weekJyNum=" + weekJyNum +
+                    ", easyOrder=" + easyOrder +
+                    ", sysOrder=" + sysOrder +
+                    ", appOrder=" + appOrder +
+                    ", otherOrder=" + otherOrder +
+                    ", efficiency='" + efficiency + '\'' +
                     ", dwShort='" + dwShort + '\'' +
-                    ", num3=" + num3 +
                     '}';
         }
     }
@@ -94,7 +92,7 @@ public class ShuyunReportApi {
             return result;
         }
 
-        // 【修复】使用与ShuyunApi相同的完整请求头格式
+        // 使用与ShuyunApi相同的完整请求头格式
         String cookie = "towerNumber-Token=" + cookieToken;
         String extraHeaders = 
                 "Accept: application/json, text/plain, */*\n" +
@@ -114,7 +112,6 @@ public class ShuyunReportApi {
         Log.d(TAG, "请求体: " + body.toString());
 
         try {
-            // 使用 HttpUtil.post 方法发送 JSON 请求
             String response = HttpUtil.post(url, body.toString(), extraHeaders, null);
             Log.d(TAG, "报表响应: " + (response != null && response.length() > 500 ? response.substring(0, 500) + "..." : response));
 
@@ -124,7 +121,6 @@ public class ShuyunReportApi {
             }
 
             JSONObject root = new JSONObject(response);
-            // 检查 status 字段（可能是 code 或 status）
             int statusCode = root.optInt("status", 0);
             int code = root.optInt("code", 0);
             if (statusCode == 40301 || code == 40301) {
@@ -136,13 +132,10 @@ public class ShuyunReportApi {
                 return result;
             }
 
-            // 【修复】data可能是JSONArray或包含records的JSONObject
+            // 支持data为JSONArray或包含records的JSONObject
             JSONArray records = null;
-            
-            // 先尝试作为JSONArray解析
             records = root.optJSONArray("data");
             if (records == null || records.length() == 0) {
-                // 再尝试作为JSONObject解析（包含records字段）
                 JSONObject dataObj = root.optJSONObject("data");
                 if (dataObj != null) {
                     records = dataObj.optJSONArray("records");
@@ -161,16 +154,17 @@ public class ShuyunReportApi {
                 ReportItem reportItem = new ReportItem();
                 reportItem.areaName = item.optString("area_name", "");
                 reportItem.cityName = item.optString("city_name", "");
-                reportItem.cityCode = item.optString("city_code", "");
-                reportItem.areaCode = item.optString("area_code", "");
                 reportItem.dateType = item.optString("dateType", "");
-                reportItem.n1Num3 = item.optInt("n1_num3", 0);
-                reportItem.n3Num3 = item.optString("n3_num3", "0");
-                reportItem.n4Num3 = item.optString("n4_num3", "0");
-                reportItem.weekZhNum = item.optInt("week_zh_num", 0);
-                reportItem.weekJyNum = item.optInt("week_jy_num", 0);
                 reportItem.dwShort = item.optString("dw_short", "");
-                reportItem.num3 = item.optInt("num3", 0);
+                
+                // 字段映射（根据实际API返回调整）
+                // 这些字段需要根据实际的API返回字段来映射
+                reportItem.easyOrder = item.optInt("n1_num3", 0);           // 故障上站数作为中台派单
+                reportItem.sysOrder = item.optInt("num3", 0) - item.optInt("n1_num3", 0);  // 上站总数-故障
+                reportItem.appOrder = item.optInt("week_zh_num", 0) + item.optInt("week_jy_num", 0);  // 纵横+竞维
+                reportItem.otherOrder = 0;  // 待确定
+                reportItem.dailyReply = "-";  // 待确定
+                reportItem.efficiency = item.optString("n4_num3", "0");  // 及时率
 
                 result.add(reportItem);
             }

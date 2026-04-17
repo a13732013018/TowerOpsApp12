@@ -194,111 +194,164 @@
         android:textSize="10sp"
         android:textColor="#333333"
         android:fontFamily="monospace"
-        android:maxLines="8"
+        android:maxLines="4"
         android:text="" />
 
-    <!-- 表头 -->
-    <LinearLayout
+    <!-- 表头（可点击排序）- 水平滚动 -->
+    <HorizontalScroll
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp"
-        android:background="@color/background_secondary"
-        android:gravity="center_vertical">
+        android:scrollbars="none">
 
-        <TextView
-            android:layout_width="20dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="#"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:background="@color/background_secondary"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="区县"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 序号 -->
+            <TextView
+                android:id="@+id/tvHeadIndex"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:text="#"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="52dp"
-            android:layout_height="wrap_content"
-            android:text="周期"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 地市 -->
+            <TextView
+                android:id="@+id/tvHeadArea"
+                android:layout_width="50dp"
+                android:layout_height="24dp"
+                android:text="地市"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="36dp"
-            android:layout_height="wrap_content"
-            android:text="故障"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 区县 -->
+            <TextView
+                android:id="@+id/tvHeadCity"
+                android:layout_width="50dp"
+                android:layout_height="24dp"
+                android:text="区县"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="退服h"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 起止日期 -->
+            <TextView
+                android:id="@+id/tvHeadPeriod"
+                android:layout_width="90dp"
+                android:layout_height="24dp"
+                android:text="起止日期"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="及时率"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 中台派单 -->
+            <TextView
+                android:id="@+id/tvHeadEasyOrder"
+                android:layout_width="60dp"
+                android:layout_height="24dp"
+                android:text="中台派单"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:text="纵横"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 系统派单 -->
+            <TextView
+                android:id="@+id/tvHeadSysOrder"
+                android:layout_width="60dp"
+                android:layout_height="24dp"
+                android:text="系统派单"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:text="竞维"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 综合上站APP -->
+            <TextView
+                android:id="@+id/tvHeadAppOrder"
+                android:layout_width="70dp"
+                android:layout_height="24dp"
+                android:text="综合上站APP"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="36dp"
-            android:layout_height="wrap_content"
-            android:text="合计"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            <!-- 非综合上站 -->
+            <TextView
+                android:id="@+id/tvHeadOtherOrder"
+                android:layout_width="70dp"
+                android:layout_height="24dp"
+                android:text="非综合上站"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-        <TextView
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:text="代维"
-            android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
-    </LinearLayout>
+            <!-- 单日单站回单 -->
+            <TextView
+                android:id="@+id/tvHeadDailyReply"
+                android:layout_width="70dp"
+                android:layout_height="24dp"
+                android:text="单日单站回单"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
 
-    <!-- 列表 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvReport"
+            <!-- 综合上站效能 -->
+            <TextView
+                android:id="@+id/tvHeadEfficiency"
+                android:layout_width="70dp"
+                android:layout_height="24dp"
+                android:text="综合上站效能"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
+
+            <!-- 代维公司 -->
+            <TextView
+                android:id="@+id/tvHeadDw"
+                android:layout_width="50dp"
+                android:layout_height="24dp"
+                android:text="代维"
+                android:textSize="9sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground" />
+        </LinearLayout>
+    </HorizontalScroll>
+
+    <!-- 列表（水平滚动） -->
+    <HorizontalScroll
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="8dp" />
+        android:fillViewport="true"
+        android:scrollbars="horizontal">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvReport"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp" />
+    </HorizontalScroll>
 
     <!-- 空状态 -->
     <TextView

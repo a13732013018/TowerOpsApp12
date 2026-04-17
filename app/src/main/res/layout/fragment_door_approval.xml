@@ -83,15 +83,16 @@
 
             <Button
                 android:id="@+id/btnApprovalAll"
-                android:layout_width="72dp"
+                android:layout_width="88dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="4dp"
                 android:text="一键审批"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#DC2626"
                 android:stateListAnimator="@null"
                 android:letterSpacing="0"
+                android:gravity="center"
                 android:layout_gravity="center_vertical" />
 
             <TextView

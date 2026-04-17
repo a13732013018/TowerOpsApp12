@@ -108,14 +108,15 @@
     <!-- 审批按钮 -->
     <Button
         android:id="@+id/btnApprove"
-        android:layout_width="56dp"
+        android:layout_width="64dp"
         android:layout_height="32dp"
         android:text="审批"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textColor="#FFFFFF"
         android:backgroundTint="#16A34A"
         android:stateListAnimator="@null"
         android:letterSpacing="0"
+        android:gravity="center"
         android:layout_gravity="center_vertical" />
 
 </LinearLayout>

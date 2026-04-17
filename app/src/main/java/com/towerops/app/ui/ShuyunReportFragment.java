@@ -8,9 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -40,8 +38,7 @@ public class ShuyunReportFragment extends Fragment {
 
     private static final String TAG = "ShuyunReportFragment";
 
-    private TextView tvStatus, tvCurrentTime, tvTotalCount, tvEmpty, tvDebug;
-    private Spinner spinnerArea;
+    private TextView tvStatus, tvCurrentTime, tvTotalCount, tvEmpty;
     private Button btnQuery;
     private Button btnStartMinus, btnStartPlus, btnEndMinus, btnEndPlus;
     private TextView tvStartDate, tvEndDate;
@@ -59,10 +56,6 @@ public class ShuyunReportFragment extends Fragment {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private String startDate = "";
     private String endDate = "";
-
-    // 区域列表
-    private String[] areaNames = {"温州市"};
-    private String[] areaCodes = {"330300"};
 
     // 排序相关
     private int currentSortColumn = 0;  // 0=默认(序号), 1=地市, 2=区县, 3=起止日期, 4=中台派单, 5=系统派单, 6=APP, 7=非综合上站, 8=单日单站回单, 9=效能, 10=代维
@@ -100,8 +93,6 @@ public class ShuyunReportFragment extends Fragment {
         tvCurrentTime = view.findViewById(R.id.tvCurrentTime);
         tvTotalCount = view.findViewById(R.id.tvTotalCount);
         tvEmpty = view.findViewById(R.id.tvEmpty);
-        tvDebug = view.findViewById(R.id.tvDebug);
-        spinnerArea = view.findViewById(R.id.spinnerArea);
         btnQuery = view.findViewById(R.id.btnQuery);
         btnStartMinus = view.findViewById(R.id.btnStartMinus);
         btnStartPlus = view.findViewById(R.id.btnStartPlus);
@@ -123,16 +114,6 @@ public class ShuyunReportFragment extends Fragment {
         tvHeadDailyReply = view.findViewById(R.id.tvHeadDailyReply);
         tvHeadEfficiency = view.findViewById(R.id.tvHeadEfficiency);
         tvHeadDw = view.findViewById(R.id.tvHeadDw);
-
-        // 初始化区域选择器
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_spinner_item,
-                areaNames
-        );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerArea.setAdapter(spinnerAdapter);
-        spinnerArea.setSelection(0);
 
         // 初始化日期（默认当月1号到当天）
         Calendar cal = Calendar.getInstance();
@@ -311,21 +292,14 @@ public class ShuyunReportFragment extends Fragment {
         Session session = Session.get();
         if (session.shuyunPcToken == null || session.shuyunPcToken.isEmpty()) {
             tvStatus.setText("请先在数运监控中登录PC版");
-            appendDebug("❌ PC Token为空");
             return;
         }
 
-        int position = spinnerArea.getSelectedItemPosition();
-        String areaName = areaNames[position];
+        // 固定为温州市
+        String areaName = "温州市";
 
         final String finalStartTime = startDate;
         final String finalEndTime = endDate;
-
-        String tokenPreview = session.shuyunPcToken.length() > 20 
-            ? session.shuyunPcToken.substring(0, 20) + "..." 
-            : session.shuyunPcToken;
-        appendDebug("📤 请求: " + areaName + " | " + finalStartTime + " ~ " + finalEndTime);
-        appendDebug("🔑 Token: " + tokenPreview);
 
         btnQuery.setEnabled(false);
         tvStatus.setText("查询中...");
@@ -340,33 +314,15 @@ public class ShuyunReportFragment extends Fragment {
                     tvStatus.setText("查询完成，暂无数据");
                     tvEmpty.setVisibility(View.VISIBLE);
                     adapter.setData(new ArrayList<>());
-                    appendDebug("❌ 返回0条数据");
                 } else {
                     tvStatus.setText("查询完成");
                     tvEmpty.setVisibility(View.GONE);
                     adapter.setData(result);
-                    appendDebug("✅ 成功 " + result.size() + " 条");
                 }
 
                 tvTotalCount.setText("共 " + result.size() + " 条");
             });
         });
-    }
-
-    private void appendDebug(String msg) {
-        Log.d(TAG, msg);
-        if (tvDebug != null) {
-            String current = tvDebug.getText().toString();
-            String[] lines = current.split("\n");
-            if (lines.length > 10) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = lines.length - 10; i < lines.length; i++) {
-                    sb.append(lines[i]).append("\n");
-                }
-                current = sb.toString();
-            }
-            tvDebug.setText(current + msg + "\n");
-        }
     }
 
     private final Runnable timeRunnable = new Runnable() {

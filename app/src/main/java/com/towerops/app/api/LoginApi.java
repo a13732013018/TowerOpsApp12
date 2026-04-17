@@ -23,7 +23,7 @@ public class LoginApi {
 
     private static final String BASE = "http://ywapp.chinatowercom.cn:58090/itower/mobile/app/service";
     /** ★ 平台版本号，铁塔APP升级后在此处修改 */
-    static final String V = "1.0.94";
+    static final String V = "1.0.95";
     /** ★ upvs 版本串，铁塔升级后在此处修改（格式 yyyy-MM-dd-ccssoft） */
     private static final String UPVS = "2026-03-31-ccssoft";
 

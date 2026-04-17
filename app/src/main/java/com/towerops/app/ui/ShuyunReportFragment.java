@@ -1,9 +1,9 @@
 package com.towerops.app.ui;
 
-import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -40,9 +40,10 @@ public class ShuyunReportFragment extends Fragment {
 
     private static final String TAG = "ShuyunReportFragment";
 
-    private TextView tvStatus, tvCurrentTime, tvTotalCount, tvEmpty;
+    private TextView tvStatus, tvCurrentTime, tvTotalCount, tvEmpty, tvDebug;
     private Spinner spinnerArea;
-    private Button btnQuery, btnStartDate, btnEndDate;
+    private Button btnQuery;
+    private Button btnStartMinus, btnStartPlus, btnEndMinus, btnEndPlus;
     private TextView tvStartDate, tvEndDate;
     private RecyclerView rvReport;
 
@@ -85,10 +86,13 @@ public class ShuyunReportFragment extends Fragment {
         tvCurrentTime = view.findViewById(R.id.tvCurrentTime);
         tvTotalCount = view.findViewById(R.id.tvTotalCount);
         tvEmpty = view.findViewById(R.id.tvEmpty);
+        tvDebug = view.findViewById(R.id.tvDebug);
         spinnerArea = view.findViewById(R.id.spinnerArea);
         btnQuery = view.findViewById(R.id.btnQuery);
-        btnStartDate = view.findViewById(R.id.btnStartDate);
-        btnEndDate = view.findViewById(R.id.btnEndDate);
+        btnStartMinus = view.findViewById(R.id.btnStartMinus);
+        btnStartPlus = view.findViewById(R.id.btnStartPlus);
+        btnEndMinus = view.findViewById(R.id.btnEndMinus);
+        btnEndPlus = view.findViewById(R.id.btnEndPlus);
         tvStartDate = view.findViewById(R.id.tvStartDate);
         tvEndDate = view.findViewById(R.id.tvEndDate);
         rvReport = view.findViewById(R.id.rvReport);
@@ -103,10 +107,10 @@ public class ShuyunReportFragment extends Fragment {
         spinnerArea.setAdapter(spinnerAdapter);
         spinnerArea.setSelection(0);
 
-        // 初始化日期（默认当天）
+        // 初始化日期（默认当月1号到当天）
         Calendar cal = Calendar.getInstance();
         endDate = dateFormat.format(cal.getTime());
-        cal.add(Calendar.DAY_OF_MONTH, -30); // 默认查30天
+        cal.set(Calendar.DAY_OF_MONTH, 1); // 当月1号
         startDate = dateFormat.format(cal.getTime());
         tvStartDate.setText(startDate);
         tvEndDate.setText(endDate);
@@ -126,52 +130,59 @@ public class ShuyunReportFragment extends Fragment {
             }
         });
 
-        // 开始日期选择
-        btnStartDate.setOnClickListener(new OnClickListener() {
+        // 开始日期减
+        btnStartMinus.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                showDatePicker(true);
+                adjustDate(true, -1);
             }
         });
 
-        // 结束日期选择
-        btnEndDate.setOnClickListener(new OnClickListener() {
+        // 开始日期加
+        btnStartPlus.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                showDatePicker(false);
+                adjustDate(true, 1);
+            }
+        });
+
+        // 结束日期减
+        btnEndMinus.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                adjustDate(false, -1);
+            }
+        });
+
+        // 结束日期加
+        btnEndPlus.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                adjustDate(false, 1);
             }
         });
     }
 
-    private void showDatePicker(final boolean isStartDate) {
-        Calendar cal = Calendar.getInstance();
+    private void adjustDate(boolean isStart, int delta) {
         try {
-            if (isStartDate) {
+            Calendar cal = Calendar.getInstance();
+            if (isStart) {
                 cal.setTime(dateFormat.parse(startDate));
             } else {
                 cal.setTime(dateFormat.parse(endDate));
             }
-        } catch (Exception e) {}
-
-        DatePickerDialog dialog = new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) -> {
-                    Calendar selected = Calendar.getInstance();
-                    selected.set(year, month, dayOfMonth);
-                    String date = dateFormat.format(selected.getTime());
-                    if (isStartDate) {
-                        startDate = date;
-                        tvStartDate.setText(date);
-                    } else {
-                        endDate = date;
-                        tvEndDate.setText(date);
-                    }
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-        );
-        dialog.show();
+            cal.add(Calendar.DAY_OF_MONTH, delta);
+            String newDate = dateFormat.format(cal.getTime());
+            if (isStart) {
+                startDate = newDate;
+                tvStartDate.setText(newDate);
+            } else {
+                endDate = newDate;
+                tvEndDate.setText(newDate);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "日期调整异常: " + e.getMessage());
+        }
     }
 
     private void queryData() {
@@ -179,17 +190,25 @@ public class ShuyunReportFragment extends Fragment {
         Session session = Session.get();
         if (session.shuyunPcToken == null || session.shuyunPcToken.isEmpty()) {
             tvStatus.setText("请先在数运监控中登录PC版");
+            appendDebug("❌ PC Token为空");
             return;
         }
 
         int position = spinnerArea.getSelectedItemPosition();
         String areaName = areaNames[position];
 
-        btnQuery.setEnabled(false);
-        tvStatus.setText("查询中...");
-
         final String finalStartTime = startDate;
         final String finalEndTime = endDate;
+
+        // 调试日志
+        String tokenPreview = session.shuyunPcToken.length() > 20 
+            ? session.shuyunPcToken.substring(0, 20) + "..." 
+            : session.shuyunPcToken;
+        appendDebug("📤 请求: " + areaName + " | " + finalStartTime + " ~ " + finalEndTime);
+        appendDebug("🔑 Token: " + tokenPreview);
+
+        btnQuery.setEnabled(false);
+        tvStatus.setText("查询中...");
 
         executor.execute(() -> {
             List<ShuyunReportApi.ReportItem> result = ShuyunReportApi.getReportList(areaName, finalStartTime, finalEndTime, 1, 100);
@@ -201,15 +220,34 @@ public class ShuyunReportFragment extends Fragment {
                     tvStatus.setText("查询完成，暂无数据");
                     tvEmpty.setVisibility(View.VISIBLE);
                     adapter.setData(new ArrayList<>());
+                    appendDebug("❌ 返回0条数据");
                 } else {
                     tvStatus.setText("查询完成");
                     tvEmpty.setVisibility(View.GONE);
                     adapter.setData(result);
+                    appendDebug("✅ 成功 " + result.size() + " 条");
                 }
 
                 tvTotalCount.setText("共 " + result.size() + " 条");
             });
         });
+    }
+
+    private void appendDebug(String msg) {
+        Log.d(TAG, msg);
+        if (tvDebug != null) {
+            String current = tvDebug.getText().toString();
+            String[] lines = current.split("\n");
+            if (lines.length > 10) {
+                // 保留最后10行
+                StringBuilder sb = new StringBuilder();
+                for (int i = lines.length - 10; i < lines.length; i++) {
+                    sb.append(lines[i]).append("\n");
+                }
+                current = sb.toString();
+            }
+            tvDebug.setText(current + msg + "\n");
+        }
     }
 
     private final Runnable timeRunnable = new Runnable() {

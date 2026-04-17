@@ -79,29 +79,44 @@ public class ShuyunReportApi {
             return result;
         }
 
-        // 获取 PC Token
+        // 获取 PC Token（双token机制）
         Session session = Session.get();
-        String pcToken = session.shuyunPcToken;
+        String authToken = session.shuyunPcToken;
+        String cookieToken = session.shuyunPcTokenCookie;
+        
+        // 兼容：如果没有cookieToken，使用authToken
+        if (cookieToken == null || cookieToken.isEmpty()) {
+            cookieToken = authToken;
+        }
 
-        if (pcToken == null || pcToken.isEmpty()) {
+        if (authToken == null || authToken.isEmpty()) {
             Log.e(TAG, "PC Token 为空，请先登录PC版");
             return result;
         }
 
-        // 构建请求头
-        String cookies = "towerNumber-Token=" + pcToken + "; sysName=%E4%BC%8A%E4%B8%96%E8%B1%AA";
-
-        // 构建自定义协议头
-        String extraHeaders = "Authorization: " + pcToken + "\n" +
+        // 【修复】使用与ShuyunApi相同的完整请求头格式
+        String cookie = "towerNumber-Token=" + cookieToken;
+        String extraHeaders = 
                 "Accept: application/json, text/plain, */*\n" +
-                "Content-Type: application/json;charset=UTF-8\n" +
                 "Accept-Language: zh-CN,zh;q=0.9\n" +
-                "Accept-Encoding: gzip, deflate";
+                "Authorization: " + authToken + "\n" +
+                "Cache-Control: no-cache\n" +
+                "Connection: keep-alive\n" +
+                "Content-Type: application/json;charset=UTF-8\n" +
+                "Cookie: " + cookie + "\n" +
+                "Host: zjtowercom.cn:8998\n" +
+                "Origin: http://zjtowercom.cn:8998\n" +
+                "Pragma: no-cache\n" +
+                "Referer: http://zjtowercom.cn:8998/dashboard\n" +
+                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
+
+        Log.d(TAG, "请求头 Cookie: towerNumber-Token=" + (cookieToken.length() > 20 ? cookieToken.substring(0, 20) + "..." : cookieToken));
+        Log.d(TAG, "请求体: " + body.toString());
 
         try {
             // 使用 HttpUtil.post 方法发送 JSON 请求
-            String response = HttpUtil.post(url, body.toString(), extraHeaders, cookies);
-            Log.d(TAG, "报表响应: " + response);
+            String response = HttpUtil.post(url, body.toString(), extraHeaders, null);
+            Log.d(TAG, "报表响应: " + (response != null && response.length() > 500 ? response.substring(0, 500) + "..." : response));
 
             if (response == null || response.isEmpty()) {
                 Log.e(TAG, "报表响应为空");

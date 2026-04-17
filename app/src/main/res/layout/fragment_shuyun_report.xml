@@ -44,7 +44,7 @@
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
 
-        <!-- 第二行：日期选择 -->
+        <!-- 第二行：开始日期 -1 +1 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -60,15 +60,16 @@
                 android:textColor="@color/text_secondary" />
 
             <Button
-                android:id="@+id/btnStartDate"
-                android:layout_width="100dp"
+                android:id="@+id/btnStartMinus"
+                android:layout_width="32dp"
                 android:layout_height="28dp"
                 android:layout_marginStart="4dp"
-                android:text="选择日期"
-                android:textSize="10sp"
+                android:text="-1"
+                android:textSize="11sp"
                 android:backgroundTint="#64748B"
                 android:stateListAnimator="@null"
-                android:letterSpacing="0" />
+                android:letterSpacing="0"
+                android:padding="0dp" />
 
             <TextView
                 android:id="@+id/tvStartDate"
@@ -76,8 +77,30 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
+                android:gravity="center"
+                android:textSize="12sp"
+                android:textColor="@color/colorPrimary"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnStartPlus"
+                android:layout_width="32dp"
+                android:layout_height="28dp"
+                android:text="+1"
                 android:textSize="11sp"
-                android:textColor="@color/text_primary" />
+                android:backgroundTint="#64748B"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0"
+                android:padding="0dp" />
+        </LinearLayout>
+
+        <!-- 第三行：结束日期 -1 +1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -87,15 +110,16 @@
                 android:textColor="@color/text_secondary" />
 
             <Button
-                android:id="@+id/btnEndDate"
-                android:layout_width="100dp"
+                android:id="@+id/btnEndMinus"
+                android:layout_width="32dp"
                 android:layout_height="28dp"
                 android:layout_marginStart="4dp"
-                android:text="选择日期"
-                android:textSize="10sp"
+                android:text="-1"
+                android:textSize="11sp"
                 android:backgroundTint="#64748B"
                 android:stateListAnimator="@null"
-                android:letterSpacing="0" />
+                android:letterSpacing="0"
+                android:padding="0dp" />
 
             <TextView
                 android:id="@+id/tvEndDate"
@@ -103,11 +127,24 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
+                android:gravity="center"
+                android:textSize="12sp"
+                android:textColor="@color/colorPrimary"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnEndPlus"
+                android:layout_width="32dp"
+                android:layout_height="28dp"
+                android:text="+1"
                 android:textSize="11sp"
-                android:textColor="@color/text_primary" />
+                android:backgroundTint="#64748B"
+                android:stateListAnimator="@null"
+                android:letterSpacing="0"
+                android:padding="0dp" />
         </LinearLayout>
 
-        <!-- 第三行：查询按钮 + 状态 -->
+        <!-- 第四行：查询按钮 + 统计 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -134,7 +171,7 @@
                 android:layout_marginStart="8dp"
                 android:textSize="11sp"
                 android:textColor="@color/text_secondary"
-                android:text="点击查询获取报表数据" />
+                android:text="点击查询" />
 
             <TextView
                 android:id="@+id/tvTotalCount"
@@ -146,6 +183,19 @@
                 android:text="共 0 条" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- 调试日志区域 -->
+    <TextView
+        android:id="@+id/tvDebug"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:background="#1A000000"
+        android:textSize="10sp"
+        android:textColor="#333333"
+        android:fontFamily="monospace"
+        android:maxLines="8"
+        android:text="" />
 
     <!-- 表头 -->
     <LinearLayout
@@ -228,6 +278,14 @@
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="合计"
+            android:textSize="9sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="wrap_content"
+            android:text="代维"
             android:textSize="9sp"
             android:textColor="@color/text_secondary"
             android:gravity="center" />

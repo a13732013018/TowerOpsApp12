@@ -349,8 +349,8 @@
             android:id="@+id/rvReport"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="8dp" />
+            android:overScrollMode="never"
+            android:clipToPadding="false" />
     </HorizontalScroll>
 
     <!-- 空状态 -->

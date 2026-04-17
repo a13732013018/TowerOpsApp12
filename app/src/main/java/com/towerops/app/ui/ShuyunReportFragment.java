@@ -40,7 +40,7 @@ public class ShuyunReportFragment extends Fragment {
 
     private TextView tvStatus, tvCurrentTime, tvTotalCount, tvEmpty;
     private Button btnQuery;
-    private Button btnStartMinus, btnStartPlus, btnEndMinus, btnEndPlus;
+    private TextView btnStartMinus, btnStartPlus, btnEndMinus, btnEndPlus;
     private TextView tvStartDate, tvEndDate;
     private RecyclerView rvReport;
 

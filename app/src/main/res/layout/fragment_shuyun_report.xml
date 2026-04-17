@@ -38,7 +38,7 @@
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
 
-        <!-- 第二行：开始日期 -1 +1 -->
+        <!-- 第二行：开始日期 -1 +1 | 结束日期 -1 +1 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,6 +46,7 @@
             android:layout_marginTop="6dp"
             android:gravity="center_vertical">
 
+            <!-- 开始日期 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -53,17 +54,18 @@
                 android:textSize="11sp"
                 android:textColor="@color/text_secondary" />
 
-            <Button
+            <TextView
                 android:id="@+id/btnStartMinus"
                 android:layout_width="32dp"
-                android:layout_height="28dp"
+                android:layout_height="26dp"
                 android:layout_marginStart="4dp"
-                android:text="-1"
-                android:textSize="11sp"
-                android:backgroundTint="#64748B"
-                android:stateListAnimator="@null"
-                android:letterSpacing="0"
-                android:padding="0dp" />
+                android:text="&lt;"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_button_primary"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true" />
 
             <TextView
                 android:id="@+id/tvStartDate"
@@ -72,30 +74,28 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:gravity="center"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textColor="@color/colorPrimary"
                 android:textStyle="bold" />
 
-            <Button
+            <TextView
                 android:id="@+id/btnStartPlus"
                 android:layout_width="32dp"
-                android:layout_height="28dp"
-                android:text="+1"
-                android:textSize="11sp"
-                android:backgroundTint="#64748B"
-                android:stateListAnimator="@null"
-                android:letterSpacing="0"
-                android:padding="0dp" />
-        </LinearLayout>
+                android:layout_height="26dp"
+                android:text="&gt;"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_button_primary"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <!-- 第三行：结束日期 -1 +1 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical">
+            <!-- 分隔 -->
+            <View
+                android:layout_width="16dp"
+                android:layout_height="1dp" />
 
+            <!-- 结束日期 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -103,17 +103,18 @@
                 android:textSize="11sp"
                 android:textColor="@color/text_secondary" />
 
-            <Button
+            <TextView
                 android:id="@+id/btnEndMinus"
                 android:layout_width="32dp"
-                android:layout_height="28dp"
+                android:layout_height="26dp"
                 android:layout_marginStart="4dp"
-                android:text="-1"
-                android:textSize="11sp"
-                android:backgroundTint="#64748B"
-                android:stateListAnimator="@null"
-                android:letterSpacing="0"
-                android:padding="0dp" />
+                android:text="&lt;"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_button_primary"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true" />
 
             <TextView
                 android:id="@+id/tvEndDate"
@@ -122,20 +123,21 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:gravity="center"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textColor="@color/colorPrimary"
                 android:textStyle="bold" />
 
-            <Button
+            <TextView
                 android:id="@+id/btnEndPlus"
                 android:layout_width="32dp"
-                android:layout_height="28dp"
-                android:text="+1"
-                android:textSize="11sp"
-                android:backgroundTint="#64748B"
-                android:stateListAnimator="@null"
-                android:letterSpacing="0"
-                android:padding="0dp" />
+                android:layout_height="26dp"
+                android:text="&gt;"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_button_primary"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
 
         <!-- 第四行：查询按钮 + 统计 -->

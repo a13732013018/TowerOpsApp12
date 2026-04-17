@@ -136,13 +136,19 @@ public class ShuyunReportApi {
                 return result;
             }
 
-            JSONObject data = root.optJSONObject("data");
-            if (data == null) {
-                Log.e(TAG, "报表数据为空");
-                return result;
+            // 【修复】data可能是JSONArray或包含records的JSONObject
+            JSONArray records = null;
+            
+            // 先尝试作为JSONArray解析
+            records = root.optJSONArray("data");
+            if (records == null || records.length() == 0) {
+                // 再尝试作为JSONObject解析（包含records字段）
+                JSONObject dataObj = root.optJSONObject("data");
+                if (dataObj != null) {
+                    records = dataObj.optJSONArray("records");
+                }
             }
-
-            JSONArray records = data.optJSONArray("records");
+            
             if (records == null || records.length() == 0) {
                 Log.d(TAG, "报表记录为空");
                 return result;

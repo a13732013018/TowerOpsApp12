@@ -269,19 +269,34 @@ public class LoginActivity extends AppCompatActivity {
                 s.saveLogin(LoginActivity.this);
                 android.util.Log.d("LoginActivity", "saveLogin() 完成");
 
-                // 3. 获取 appacctid（来自 OBTAIN_TOKEN_NEW 接口）
-                // 易语言中 username = 运维账号 loginname（如 wx-linjy22）
-                android.util.Log.d("LoginActivity", "准备调用 OBTAIN_TOKEN_NEW，cookie: [" + cookie.substring(0, Math.min(50, cookie.length())) + "]");
+                // 3. ★★★ 修复（2026-04-18）：先设置初始值，再调用 OBTAIN_TOKEN_NEW
+                //    登录返回的 token 作为 Authorization 头发送给 OBTAIN_TOKEN_NEW
+                //    OBTAIN_TOKEN_NEW 成功时返回的 token 会更新 doorApprovalXAuthToken
+                //    失败时不覆盖，保持原有值
+                android.util.Log.d("LoginActivity", "准备调用 OBTAIN_TOKEN_NEW");
+                android.util.Log.d("LoginActivity", "  登录返回的 token (用于认证): " + result.token.substring(0, Math.min(30, result.token.length())) + "...");
+                android.util.Log.d("LoginActivity", "  userid:   [" + result.userid + "]");
+                android.util.Log.d("LoginActivity", "  loginname: [" + result.loginname + "]");
+
                 String appAcctId = LoginApi.obtainAppAcctId(result.userid, result.loginname, result.token, cookie);
                 android.util.Log.d("LoginActivity", "obtainAppAcctId 返回: [" + appAcctId + "]");
-                if (!appAcctId.isEmpty()) {
+
+                // OBTAIN_TOKEN_NEW 失败时返回空字符串，不覆盖 acctId
+                if (appAcctId != null && !appAcctId.isEmpty()) {
                     s.doorApprovalAcctId = appAcctId;
-                    android.util.Log.d("LoginActivity", "已设置 s.doorApprovalAcctId = " + s.doorApprovalAcctId);
+                    android.util.Log.d("LoginActivity", "已设置 doorApprovalAcctId = " + appAcctId);
                 } else {
-                    android.util.Log.w("LoginActivity", "appacctid 获取失败（返回空），使用硬编码值");
-                    s.doorApprovalAcctId = "203349045";  // 易语言抓包成功值
-                    android.util.Log.d("LoginActivity", "已设置 s.doorApprovalAcctId = " + s.doorApprovalAcctId);
+                    android.util.Log.w("LoginActivity", "appacctid 获取失败，使用后备值 203349045");
+                    s.doorApprovalAcctId = "203349045";  // 后备值
+                    android.util.Log.d("LoginActivity", "doorApprovalAcctId (后备值): " + s.doorApprovalAcctId);
                 }
+
+                // 验证 doorApprovalXAuthToken 是否已设置
+                if (s.doorApprovalXAuthToken == null || s.doorApprovalXAuthToken.isEmpty()) {
+                    android.util.Log.w("LoginActivity", "doorApprovalXAuthToken 为空，使用登录返回的 token");
+                    s.doorApprovalXAuthToken = result.token;
+                }
+                android.util.Log.d("LoginActivity", "最终 doorApprovalXAuthToken: " + s.doorApprovalXAuthToken.substring(0, Math.min(30, s.doorApprovalXAuthToken.length())) + "...");
 
                 // 4. 保存门禁审批认证
                 android.util.Log.d("LoginActivity", "调用 saveDoorApprovalAuth()，acctId = " + s.doorApprovalAcctId);

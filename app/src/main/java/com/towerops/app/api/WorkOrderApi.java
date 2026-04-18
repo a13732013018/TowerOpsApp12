@@ -266,9 +266,9 @@ public class WorkOrderApi {
                 + "&queryForm%3AalarmNameMax=15"
                 + "&queryForm%3Aj_id60="
                 + "&queryForm%3AfirststarttimeInputDate="
-                + "&queryForm%3AfirststarttimeInputCurrentDate=03%2F2026"
+                + "&queryForm%3AfirststarttimeInputCurrentDate=" + getCurrentMonthYear()
                 + "&queryForm%3AfirstendtimeInputDate="
-                + "&queryForm%3AfirstendtimeInputCurrentDate=03%2F2026"
+                + "&queryForm%3AfirstendtimeInputCurrentDate=" + getCurrentMonthYear()
                 + "&queryForm%3Aj_id75="
                 + "&queryForm%3Aj_id79="
                 + "&queryForm%3Aj_id83="
@@ -644,9 +644,9 @@ public class WorkOrderApi {
                 + "&queryForm%3AalarmNameMax=15"
                 + "&queryForm%3Aj_id60="
                 + "&queryForm%3AfirststarttimeInputDate="
-                + "&queryForm%3AfirststarttimeInputCurrentDate=03%2F2026"
+                + "&queryForm%3AfirststarttimeInputCurrentDate=" + getCurrentMonthYear()
                 + "&queryForm%3AfirstendtimeInputDate="
-                + "&queryForm%3AfirstendtimeInputCurrentDate=03%2F2026"
+                + "&queryForm%3AfirstendtimeInputCurrentDate=" + getCurrentMonthYear()
                 + "&queryForm%3Aj_id75="
                 + "&queryForm%3Aj_id79="
                 + "&queryForm%3Aj_id83="
@@ -711,12 +711,11 @@ public class WorkOrderApi {
         if (cookie == null || cookie.isEmpty()) return "{\"error\":\"ommsCookie为空\"}";
 
         String url = "http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml";
-        // ★ 参数基于精易模块真实抓包 + 动态 j_id 解析
-        //   AJAXREQUEST=_viewRoot（RichFaces标准值）
-        //   form=alarmConfirmListForm
-        //   alarmId字段名=alarmConfirmListForm:alarmId
-        //   confirmInfo=1（必须，之前缺失）
-        //   触发器=alarmConfirmListForm:j_idXXX（动态，从页面提取）
+        // ★★★ 修复：使用动态解析的 confirmTriggerFull，不再硬编码 j_id1589 ★★★
+        //   confirmTriggerFull 已在 refreshAlarmViewState() 中从页面 HTML 提取
+        String confirmFieldName = "alarmConfirmListForm";  // confirm 固定表单名
+        String confirmTriggerVal = confirmTriggerFull;       // 动态解析的触发字段，如 "alarmConfirmListForm:j_id1589"
+
         String post =
                 "AJAXREQUEST=_viewRoot"
                 + "&alarmConfirmListForm%3AalarmId=" + urlEncUtf8(alarmId)
@@ -724,16 +723,42 @@ public class WorkOrderApi {
                 + "&alarmConfirmListForm=alarmConfirmListForm"
                 + "&autoScroll="
                 + "&javax.faces.ViewState=" + urlEncUtf8(viewState)
-                + "&" + confirmTriggerFull.replace(":", "%3A") + "=" + confirmTriggerFull.replace(":", "%3A")
+                + "&alarmConfirmListForm%3A" + urlEncUtf8(confirmTrigger) + "=alarmConfirmListForm%3A" + urlEncUtf8(confirmTrigger)
                 + "&AJAX%3AEVENTS_COUNT=1";
 
-        String headers = buildOmmsHeader("http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml");
-        return com.towerops.app.util.HttpUtil.post(url, post, headers, cookie);
+        android.util.Log.d("WorkOrderApi", "========== confirmOmmsAlarm 开始 ==========");
+        android.util.Log.d("WorkOrderApi", "alarmId=" + alarmId);
+        android.util.Log.d("WorkOrderApi", "viewState=" + viewState);
+        android.util.Log.d("WorkOrderApi", "confirmTrigger=" + confirmTrigger + " (动态解析)");
+        android.util.Log.d("WorkOrderApi", "POST参数=\n" + post);
+
+        String headers = buildOmmsHeader(url);
+        String response = com.towerops.app.util.HttpUtil.post(url, post, headers, cookie);
+        android.util.Log.d("WorkOrderApi", "响应长度=" + (response == null ? "null" : response.length()) + "字节");
+        
+        // ★★★ 调试：解析响应内容，判断确认是否成功 ★★★
+        if (response != null && response.length() > 0) {
+            boolean hasSuccMsg = response.contains("showSuccMsg") || response.contains("'Y'");
+            boolean hasError = response.contains("class=\"rf-msgs-err\"") || response.contains("rf-msg-err");
+            
+            android.util.Log.d("WorkOrderApi", "confirm响应分析: success_msg=" + hasSuccMsg + " error=" + hasError);
+            
+            // 打印响应片段
+            int previewLen = Math.min(response.length(), 1500);
+            android.util.Log.d("WorkOrderApi", "confirm响应预览: " + response.substring(0, previewLen));
+        } else {
+            android.util.Log.w("WorkOrderApi", "confirm响应为空！");
+        }
+        
+        android.util.Log.d("WorkOrderApi", "========== confirmOmmsAlarm 结束 ==========");
+
+        return response;
     }
 
     // =====================================================================
     // 11. OMMS 告警清除（对应易语言「告警清除」子程序）
     //     alarmStr:  告警ID（32位十六进制）
+    //     billSn:    工单编号（delectBillSn函数需要）
     //     viewState: 从查询响应里提取的 javax.faces.ViewState 值（如 j_id12）
     //
     //     ✅ 参数已由精易模块真实抓包验证（2026-03-28）：
@@ -741,24 +766,124 @@ public class WorkOrderApi {
     //       alarmStr 参数名正确，响应为 GZIP 压缩（OkHttp 自动解压，无需手动处理）
     //     注意：URL 末尾应为 .xhtml，精易助手抓包显示 .xhtm 是截断 bug，Referer 头里是 .xhtml
     // =====================================================================
-    public static String clearOmmsAlarm(String alarmStr, String viewState) {
+    public static String clearOmmsAlarm(String alarmStr, String billSn, String viewState) {
         Session s = Session.get();
         String cookie = s.ommsCookie;
-        if (cookie == null || cookie.isEmpty()) return "{\"error\":\"ommsCookie为空\"}";
+        if (cookie == null || cookie.isEmpty()) {
+            String err = "{\"error\":\"ommsCookie为空\"}";
+            android.util.Log.e("WorkOrderApi", "clearOmmsAlarm: " + err);
+            return err;
+        }
 
         String url = "http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml";
-        // ★ 参数完全基于精易模块真实抓包（2026-03-28），全部验证正确
-        // 清除请求不需要独立的表单名字段（与确认请求不同，抓包数据验证）
+        // ★★★ 修复：使用动态解析的 clearFormName 和 clearTrigger，不再硬编码 j_id1351 ★★★
+        //   clearFormName 和 clearTrigger 已在 refreshAlarmViewState() 中从页面 HTML 提取
+        String formName = clearFormName;      // 动态解析的表单名，如 "alarmConfirmListForm"
+        String triggerName = clearTrigger;    // 动态解析的触发字段，如 "j_id1369"
+
+        // ★★★ 根据真实抓包数据修正（2026-04-18）★★★
+        // 真实抓包：
+        //   POST body: j_id1353=j_id1353&javax.faces.ViewState=j_id12
+        //              &alarmStr=4F9BD82FD1E0365CE06352801DACEDB2
+        //              &j_id1353%3Aj_id1371=j_id1353%3Aj_id1371
+        // 关键修正：
+        //   1. 参数名是 alarmStr，不是 delIdStr
+        //   2. 参数值是 alarmId（32位十六进制），不是故障单编号
+        //   3. 触发器是 j_id1371，不是 j_id1426
+        
         String post =
                 "AJAXREQUEST=_viewRoot"
+                + "&" + urlEncUtf8(formName) + "=" + urlEncUtf8(formName)
                 + "&autoScroll="
                 + "&javax.faces.ViewState=" + urlEncUtf8(viewState)
+                // ★★★ 修正：参数名是 alarmStr，值是 alarmId ★★★
                 + "&alarmStr=" + urlEncUtf8(alarmStr)
-                + "&" + clearTriggerFull.replace(":", "%3A") + "=" + clearTriggerFull.replace(":", "%3A")
+                + "&" + urlEncUtf8(formName) + "%3A" + urlEncUtf8(triggerName) + "=" + urlEncUtf8(formName) + "%3A" + urlEncUtf8(triggerName)
                 + "&AJAX%3AEVENTS_COUNT=1";
 
-        String headers = buildOmmsHeader("http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml");
-        return com.towerops.app.util.HttpUtil.post(url, post, headers, cookie);
+        android.util.Log.d("WorkOrderApi", "========== clearOmmsAlarm 开始 ==========");
+        android.util.Log.d("WorkOrderApi", "★ alarmStr=" + alarmStr + " (alarmId)");
+        android.util.Log.d("WorkOrderApi", "viewState=" + viewState);
+        android.util.Log.d("WorkOrderApi", "clearFormName=" + formName + " clearTrigger=" + triggerName + " (动态解析)");
+        
+        // ★★★ 诊断：打印提取的 clearFormName 和 clearTrigger 的十六进制值 ★★★
+        android.util.Log.d("WorkOrderApi", "URL编码后: clearFormName=" + urlEncUtf8(formName) + " clearTrigger=" + urlEncUtf8(triggerName));
+        
+        android.util.Log.d("WorkOrderApi", "POST参数=\n" + post.replace("&", "\n&"));
+
+        String headers = buildOmmsHeader(url);
+        // ★★★ 调试：获取 HTTP 响应码 ★★★
+        com.towerops.app.util.HttpUtil.HttpResponse httpResp = 
+                com.towerops.app.util.HttpUtil.postWithHeaders(url, post, headers, cookie);
+        String response = httpResp.body;
+        android.util.Log.d("WorkOrderApi", "HTTP响应码=" + httpResp.code + " 响应长度=" + (response == null ? "null" : response.length()) + "字节");
+        
+        // ★★★ 调试：解析响应内容，判断清除是否成功 ★★★
+        if (response != null && response.length() > 0) {
+            // 检查是否包含成功标志
+            boolean hasUpdatePiece = response.contains("updatePiece");
+            boolean hasError = response.contains("class=\"rf-msgs-err\"") || response.contains("class=\"rf-msg-err\"");
+            boolean hasWarn = response.contains("class=\"rf-msgs-wrn\"") || response.contains("class=\"rf-msg-wrn\"");
+            boolean hasSucc = response.contains("class=\"rf-msgs-inf\"") || response.contains("class=\"rf-msg-inf\"") || response.contains("showSuccMsg");
+            
+            android.util.Log.d("WorkOrderApi", "响应分析: updatePiece=" + hasUpdatePiece + " error=" + hasError + " warn=" + hasWarn + " success=" + hasSucc);
+            
+            // 提取错误/成功消息 - RichFaces 消息标签
+            java.util.regex.Pattern pMsg = java.util.regex.Pattern.compile(
+                    "<span[^>]*class=\"rf-msg-[^\"]+\"[^>]*>([^<]+)</span>",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Matcher mMsg = pMsg.matcher(response);
+            while (mMsg.find()) {
+                android.util.Log.d("WorkOrderApi", "响应消息[rf-msg]: " + mMsg.group(1).trim());
+            }
+            
+            // ★★★ 新增：提取 modalPanel_DelteBillSn 弹窗内容中的所有文本 ★★★
+            java.util.regex.Pattern pPanel = java.util.regex.Pattern.compile(
+                    "<div[^>]*id=\"modalPanel_DelteBillSn\"[^>]*>(.*?)</div>",
+                    java.util.regex.Pattern.DOTALL | java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Matcher mPanel = pPanel.matcher(response);
+            if (mPanel.find()) {
+                String panelContent = mPanel.group(1);
+                // 提取所有文本节点
+                java.util.regex.Pattern pText = java.util.regex.Pattern.compile(">([^<]+)<");
+                java.util.regex.Matcher mText = pText.matcher(panelContent);
+                while (mText.find()) {
+                    String text = mText.group(1).trim();
+                    if (!text.isEmpty()) {
+                        android.util.Log.d("WorkOrderApi", "弹窗消息[modalPanel_DelteBillSn]: " + text);
+                    }
+                }
+            }
+            
+            // ★★★ 新增：提取 setDeleteResult_Form 中的消息 ★★★
+            java.util.regex.Pattern pResult = java.util.regex.Pattern.compile(
+                    "<form[^>]*id=\"setDeleteResult_Form\"[^>]*>(.*?)</form>",
+                    java.util.regex.Pattern.DOTALL | java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Matcher mResult = pResult.matcher(response);
+            if (mResult.find()) {
+                String resultContent = mResult.group(1);
+                // 提取所有文本节点
+                java.util.regex.Pattern pText = java.util.regex.Pattern.compile(">([^<]+)<");
+                java.util.regex.Matcher mText = pText.matcher(resultContent);
+                while (mText.find()) {
+                    String text = mText.group(1).trim();
+                    if (!text.isEmpty()) {
+                        android.util.Log.d("WorkOrderApi", "表单消息[setDeleteResult_Form]: " + text);
+                    }
+                }
+            }
+            
+            // ★★★ 打印完整响应内容来定位问题 ★★★
+            android.util.Log.d("WorkOrderApi", "========== clear响应完整内容 ==========");
+            android.util.Log.d("WorkOrderApi", response);
+            android.util.Log.d("WorkOrderApi", "========== clear响应完整内容结束 ==========");
+        } else {
+            android.util.Log.w("WorkOrderApi", "响应为空！");
+        }
+        
+        android.util.Log.d("WorkOrderApi", "========== clearOmmsAlarm 结束 ==========");
+
+        return response;
     }
 
     // =====================================================================
@@ -794,10 +919,13 @@ public class WorkOrderApi {
 
     // =====================================================================
     // OMMS 告警页 clear（清除）按钮触发字段缓存
-    // HTML形如: <input ... name="alarmConfirmListForm:j_id1369" ... value="清除" .../>
+    // HTML形如: <input ... name="j_id1353:j_id1371" ... value="清除" .../>
+    // 注意：清除请求使用独立的表单名（如 j_id1353），需要在POST中添加表单名字段！
+    // ★ 默认值改为实测有效的 j_id1371（2026-04-18）
     // =====================================================================
-    private static volatile String clearTrigger = "j_id1369";  // 默认值，冒号后部分
-    private static volatile String clearTriggerFull = "alarmConfirmListForm:j_id1369";  // 默认值，含前缀
+    private static volatile String clearTrigger = "j_id1371";  // 默认值，冒号后部分
+    private static volatile String clearTriggerFull = "j_id1353:j_id1371";  // 默认值，含前缀
+    private static volatile String clearFormName = "j_id1353";  // 清除表单名（冒号前部分）
 
     // =====================================================================
     // 门禁告警专用触发字段缓存（与 alarmQueryTrigger 不同，门禁表单触发器为 j_id56 等）
@@ -889,60 +1017,76 @@ public class WorkOrderApi {
 
                 // ★★★ 动态解析 confirm 和 clear 按钮触发字段 ★★★
                 // JSF j_id 是动态的，必须从页面 HTML 提取，不能写死！
-                // 增强正则：支持 self-closing tag (/>) 和任意属性顺序
-                // HTML形如: <input type="submit" name="alarmConfirmListForm:j_id1589" value="Confirm" />
-                // 或: <input value="Confirm" name="alarmConfirmListForm:j_id1589" .../>
+                // 
+                // 按钮识别策略：
+                // 1. confirm 按钮：name 包含 "alarmConfirmListForm:"，且 value 是 "Confirm" 或 "确认"
+                // 2. clear 按钮：name 包含冒号 ":"，且 value 是 "清除"
+                // 
+                // 注意：value 可能被 HTML 实体编码，如 &#28165;&#38500; 是 "清除" 的 Unicode 编码
                 String q = "[\"']";  // 单引号或双引号
                 String qval = "[^\"']*";  // 属性值（不含引号）
 
-                // ===== confirm 按钮解析 =====
-                // 方案A: name在前，value在后 (支持 self-closing)
-                // 方案B: value在前，name在后 (支持 self-closing)
-                java.util.regex.Pattern pConfirm = java.util.regex.Pattern.compile(
-                        "<input[^>]*/>"  // 先找所有 self-closing input
-                        + "|"  // 或
-                        + "<input[^>]*/?>"  // 兼容 non-self-closing
-                        + "(?=[^<]*(?:name=" + q + "alarmConfirmListForm:" + qval + q + "))",  // lookahead: 含confirm按钮
+                // ★★★ 调试：先找出页面中所有含 alarmConfirmListForm: 的 input ★★★
+                java.util.regex.Pattern pAllAlarmForm = java.util.regex.Pattern.compile(
+                        "<input[^>]+>",
                         java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
-                java.util.regex.Matcher mConfirm = pConfirm.matcher(html);
-                String foundConfirmName = null;
-                while (mConfirm.find()) {
-                    String inp = mConfirm.group(0);
-                    // 提取 name 属性值
-                    java.util.regex.Pattern pName = java.util.regex.Pattern.compile(
-                            "name=" + q + "(" + qval + ")" + q,
-                            java.util.regex.Pattern.CASE_INSENSITIVE);
-                    java.util.regex.Matcher mName = pName.matcher(inp);
-                    while (mName.find()) {
-                        String n = mName.group(1);
-                        if (n.contains("alarmConfirmListForm:")) {
-                            foundConfirmName = n;
-                            break;
-                        }
+                java.util.regex.Matcher mAll = pAllAlarmForm.matcher(html);
+                android.util.Log.d("WorkOrderApi", "====== 页面中所有含 alarmConfirmListForm: 的 input ======");
+                int alarmInputCount = 0;
+                while (mAll.find()) {
+                    String inp = mAll.group(0);
+                    if (inp.contains("alarmConfirmListForm:")) {
+                        alarmInputCount++;
+                        android.util.Log.d("WorkOrderApi", "  [" + alarmInputCount + "] " + inp.replace("\n", " ").replace("\r", ""));
                     }
-                    if (foundConfirmName != null) break;
                 }
-                if (foundConfirmName != null) {
-                    confirmTriggerFull = foundConfirmName;
-                    confirmTrigger = foundConfirmName.substring(foundConfirmName.indexOf(":") + 1);
-                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: confirmTriggerFull=" + foundConfirmName + " confirmTrigger=" + confirmTrigger);
+                android.util.Log.d("WorkOrderApi", "====== 共 " + alarmInputCount + " 个 alarmConfirmListForm input ======");
+
+                // ===== confirm 按钮解析 =====
+                // ★★★ 修复：保存按钮的 value 是 "保存" (&#20445;&#23384;)，不是 "Confirm"
+                // 正确策略：找 id="alarmConfirmListForm:alarmConfirmSaveId" 的按钮，然后从 onclick 中提取 similarityGroupingId
+                java.util.regex.Pattern pSaveBtn = java.util.regex.Pattern.compile(
+                        "<input[^>]*id=" + q + "alarmConfirmListForm:alarmConfirmSaveId" + q + "[^>]*>",
+                        java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher mSaveBtn = pSaveBtn.matcher(html);
+                String foundConfirmTrigger = null;
+                if (mSaveBtn.find()) {
+                    String btnHtml = mSaveBtn.group(0);
+                    // 从 onclick 中提取 similarityGroupingId 值
+                    java.util.regex.Pattern pSimId = java.util.regex.Pattern.compile(
+                            "similarityGroupingId" + q + ":" + q + "([^" + q + "]+)",
+                            java.util.regex.Pattern.CASE_INSENSITIVE);
+                    java.util.regex.Matcher mSimId = pSimId.matcher(btnHtml);
+                    if (mSimId.find()) {
+                        foundConfirmTrigger = mSimId.group(1);
+                        android.util.Log.d("WorkOrderApi", "confirm按钮找到: similarityGroupingId=" + foundConfirmTrigger);
+                    }
+                }
+                if (foundConfirmTrigger != null) {
+                    confirmTriggerFull = foundConfirmTrigger;
+                    confirmTrigger = foundConfirmTrigger.substring(foundConfirmTrigger.indexOf(":") + 1);
+                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: confirmTriggerFull=" + confirmTriggerFull + " confirmTrigger=" + confirmTrigger);
                 } else {
                     android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 未找到confirm按钮，保持confirmTriggerFull=" + confirmTriggerFull);
                 }
 
                 // ===== clear 按钮解析 =====
-                // 查找含 value="清除" 的 input，提取其 name 属性
+                // 查找含 value="清除" (或 Unicode 编码 &#28165;&#38500;) 的 input
+                // 注意：清除按钮可能在不同的表单下（j_id1353 而非 alarmConfirmListForm）
                 java.util.regex.Pattern pClear = java.util.regex.Pattern.compile(
                         "<input[^>]*/?>",
                         java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
                 java.util.regex.Matcher mClear = pClear.matcher(html);
                 String foundClearName = null;
-                while (mClear.find()) {
+                int clearCheckCount = 0;
+                while (mClear.find() && foundClearName == null) {
                     String inp = mClear.group(0);
-                    // 检查是否含 value="清除" (忽略大小写)
-                    if (java.util.regex.Pattern.compile(
-                            "value=" + q + "[^\"']*清除[^\"']*" + q,
-                            java.util.regex.Pattern.CASE_INSENSITIVE).matcher(inp).find()) {
+                    clearCheckCount++;
+                    // 检查是否含 "清除"（支持 Unicode 编码：&#28165;&#38500; 或 &#28165;&#38500;）
+                    boolean isClear = inp.contains("清除") 
+                            || inp.contains("&#28165;&#38500;") 
+                            || inp.contains("&#x6E05;&#x9664;");  // 十六进制编码
+                    if (isClear) {
                         // 提取 name 属性
                         java.util.regex.Pattern pName2 = java.util.regex.Pattern.compile(
                                 "name=" + q + "(" + qval + ")" + q,
@@ -952,18 +1096,185 @@ public class WorkOrderApi {
                             String n = mName2.group(1);
                             if (n.contains(":")) {
                                 foundClearName = n;
+                                android.util.Log.d("WorkOrderApi", "clear按钮找到: name=" + foundClearName + " input=" + inp.replace("\n", " ").replace("\r", ""));
                                 break;
                             }
                         }
                     }
-                    if (foundClearName != null) break;
                 }
-                if (foundClearName != null) {
+                android.util.Log.d("WorkOrderApi", "clear按钮解析：共检查 " + clearCheckCount + " 个 input，找到 " + (foundClearName != null ? 1 : 0) + " 个");
+
+                // ★★★ 调试：打印页面中包含 delectBillSn 的 HTML（用于分析函数实现）★★★  ★★★
+                java.util.regex.Pattern pDelect = java.util.regex.Pattern.compile(
+                        ".{0,100}delectBillSn.{0,300}",
+                        java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher mDelect = pDelect.matcher(html);
+                android.util.Log.d("WorkOrderApi", "====== 页面中 delectBillSn 相关内容 ======");
+                int delectCount = 0;
+                while (mDelect.find()) {
+                    delectCount++;
+                    android.util.Log.d("WorkOrderApi", "  [" + delectCount + "] " + mDelect.group(0).replace("\n", " ").replace("\r", ""));
+                }
+                android.util.Log.d("WorkOrderApi", "====== 共找到 " + delectCount + " 处 delectBillSn 相关内容 ======");
+
+                // ★★★ 解析 delectBillSnFuc 相关表单信息（2026-04-18 v6 使用 indexOf）★★★
+                // 关键：delectBillSnFuc 定义在 <script id="j_id1353:j_id1426"> 标签内
+                
+                int delectStart = html.indexOf("delectBillSnFuc");
+                android.util.Log.d("WorkOrderApi", "delectStart=" + delectStart + " html长度=" + html.length());
+                
+                boolean parsed = false;
+                if (delectStart >= 0) {
+                    // ★★★ 扩大搜索范围到 20000 字符 ★★★
+                    int searchEnd = Math.min(delectStart + 20000, html.length());
+                    
+                    // 在 delectStart 附近搜索 <script id="j_idxxx:j_idxxx"
+                    int scriptIdx = html.indexOf("<script id=\"j_id", delectStart);
+                    android.util.Log.d("WorkOrderApi", "在 delectStart 附近搜索 <script id=\"j_id: 位置=" + scriptIdx);
+                    
+                    if (scriptIdx > delectStart && scriptIdx < searchEnd) {
+                        // 检查后面是否是 j_idxxx:j_idxxx" 格式
+                        String afterScriptId = html.substring(scriptIdx + 12); // 跳过 <script id="
+                        android.util.Log.d("WorkOrderApi", "afterScriptId 前50字符: " + afterScriptId.substring(0, Math.min(50, afterScriptId.length())));
+                        
+                        // 提取 j_idxxx:j_idxxx 部分
+                        java.util.regex.Pattern trigPattern = java.util.regex.Pattern.compile("^(j_id\\d+:j_id\\d+)");
+                        java.util.regex.Matcher trigMatcher = trigPattern.matcher(afterScriptId);
+                        
+                        if (trigMatcher.find()) {
+                            String fullTrigger = trigMatcher.group(1); // 例如: j_id1353:j_id1426
+                            String formName = fullTrigger.substring(0, fullTrigger.indexOf(":"));
+                            String trigger = fullTrigger.substring(fullTrigger.indexOf(":") + 1);
+                            
+                            android.util.Log.d("WorkOrderApi", "★★ 从 <script id> 解析成功: formName=" + formName + " trigger=" + trigger);
+                            clearFormName = formName;
+                            clearTriggerFull = fullTrigger;
+                            clearTrigger = trigger;
+                            parsed = true;
+                        }
+                    }
+                    
+                    // 如果方案1失败，尝试方案2：直接搜索 similarityGroupingId
+                    if (!parsed) {
+                        int simIdx = html.indexOf("similarityGroupingId:'j_id", delectStart);
+                        if (simIdx > delectStart && simIdx < searchEnd) {
+                            String afterSim = html.substring(simIdx + 22); // 跳过 similarityGroupingId:'
+                            java.util.regex.Pattern trigPattern = java.util.regex.Pattern.compile("^(j_id\\d+:j_id\\d+)");
+                            java.util.regex.Matcher trigMatcher = trigPattern.matcher(afterSim);
+                            
+                            if (trigMatcher.find()) {
+                                String fullTrigger = trigMatcher.group(1);
+                                String formName = fullTrigger.substring(0, fullTrigger.indexOf(":"));
+                                String trigger = fullTrigger.substring(fullTrigger.indexOf(":") + 1);
+                                
+                                android.util.Log.d("WorkOrderApi", "★★ 从 similarityGroupingId 解析成功: formName=" + formName + " trigger=" + trigger);
+                                clearFormName = formName;
+                                clearTriggerFull = fullTrigger;
+                                clearTrigger = trigger;
+                                parsed = true;
+                            }
+                        }
+                    }
+                    
+                    // 方案3：精确搜索 j_id1353:j_id（因为 form name j_id1353 是固定的）
+                    // ★★★ 增强诊断：查找所有 j_id1353:j_idXXX 的出现位置 ★★★
+                    if (!parsed) {
+                        java.util.regex.Pattern allPattern = java.util.regex.Pattern.compile("<script id=\"(j_id1353:j_id\\d+)\"");
+                        java.util.regex.Matcher allMatcher = allPattern.matcher(html);
+                        int count = 0;
+                        while (allMatcher.find() && count < 10) {
+                            android.util.Log.d("WorkOrderApi", "★★ 发现 script id[" + count + "]: " + allMatcher.group(1));
+                            count++;
+                        }
+                        android.util.Log.d("WorkOrderApi", "★★ 总共发现 " + count + " 个 j_id1353:j_idXXX script");
+                        
+                        // 尝试搜索 j_id1371（来自真实抓包）
+                        int j1371Idx = html.indexOf("j_id1353:j_id1371");
+                        android.util.Log.d("WorkOrderApi", "★★ 搜索 j_id1353:j_id1371 位置=" + j1371Idx);
+                        
+                        int exactScriptIdx = html.indexOf("<script id=\"j_id1353:j_id");
+                        android.util.Log.d("WorkOrderApi", "精确搜索 <script id=\"j_id1353:j_id 位置=" + exactScriptIdx);
+                        
+                        if (j1371Idx >= 0) {
+                            // 优先使用 j_id1371（来自真实抓包）
+                            android.util.Log.d("WorkOrderApi", "★★ 优先使用 j_id1371");
+                            clearFormName = "j_id1353";
+                            clearTriggerFull = "j_id1353:j_id1371";
+                            clearTrigger = "j_id1371";
+                            parsed = true;
+                        } else if (exactScriptIdx >= 0) {
+                            String afterScriptId = html.substring(exactScriptIdx + 17); // 跳过 <script id="
+                            
+                            java.util.regex.Pattern trigPattern = java.util.regex.Pattern.compile("^(j_id\\d+:j_id\\d+)");
+                            java.util.regex.Matcher trigMatcher = trigPattern.matcher(afterScriptId);
+                            
+                            if (trigMatcher.find()) {
+                                String fullTrigger = trigMatcher.group(1);
+                                String formName = fullTrigger.substring(0, fullTrigger.indexOf(":"));
+                                String trigger = fullTrigger.substring(fullTrigger.indexOf(":") + 1);
+                                
+                                android.util.Log.d("WorkOrderApi", "★★ 从精确搜索 script 解析成功: formName=" + formName + " trigger=" + trigger);
+                                clearFormName = formName;
+                                clearTriggerFull = fullTrigger;
+                                clearTrigger = trigger;
+                                parsed = true;
+                            }
+                        }
+                    }
+                    
+                    // 方案4：搜索 similarityGroupingId:'j_id1353:j_id
+                    if (!parsed) {
+                        int exactSimIdx = html.indexOf("similarityGroupingId:'j_id1353:j_id");
+                        android.util.Log.d("WorkOrderApi", "精确搜索 similarityGroupingId:'j_id1353:j_id 位置=" + exactSimIdx);
+                        
+                        if (exactSimIdx >= 0) {
+                            String afterSim = html.substring(exactSimIdx + 27); // 跳过 similarityGroupingId:'
+                            
+                            java.util.regex.Pattern trigPattern = java.util.regex.Pattern.compile("^(j_id\\d+:j_id\\d+)");
+                            java.util.regex.Matcher trigMatcher = trigPattern.matcher(afterSim);
+                            
+                            if (trigMatcher.find()) {
+                                String fullTrigger = trigMatcher.group(1);
+                                String formName = fullTrigger.substring(0, fullTrigger.indexOf(":"));
+                                String trigger = fullTrigger.substring(fullTrigger.indexOf(":") + 1);
+                                
+                                android.util.Log.d("WorkOrderApi", "★★ 从精确搜索 similarityGroupingId 解析成功: formName=" + formName + " trigger=" + trigger);
+                                clearFormName = formName;
+                                clearTriggerFull = fullTrigger;
+                                clearTrigger = trigger;
+                                parsed = true;
+                            }
+                        }
+                    }
+                    
+                if (!parsed) {
+                    android.util.Log.w("WorkOrderApi", "未能在预期区域找到 script id 或 similarityGroupingId，使用实测备用值");
+                    // ★★★ 备用值改为实测有效的 j_id1371（2026-04-18）★★★
+                    clearFormName = "j_id1353";
+                    clearTriggerFull = "j_id1353:j_id1371";
+                    clearTrigger = "j_id1371";
+                }
+            } else {
+                android.util.Log.w("WorkOrderApi", "未找到 delectBillSnFuc，使用实测备用值");
+                clearFormName = "j_id1353";
+                clearTriggerFull = "j_id1353:j_id1371";
+                clearTrigger = "j_id1371";
+            }
+
+                // ★★★ 优先使用 delectBillSnFuc 的结果（2026-04-18）★★★
+                // 清除按钮在 queryForm 表单，但 delectBillSnFuc 使用 j_id1353 表单
+                // delectBillSnFuc 才是真正的清除函数，必须使用它的表单和触发器
+                boolean hasDelectFuncResult = (clearFormName != null && clearFormName.contains("j_id"));
+                if (hasDelectFuncResult) {
+                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: ★★★ 优先使用 delectBillSnFuc 结果 ★★★ formName=" + clearFormName + " trigger=" + clearTrigger);
+                } else if (foundClearName != null) {
+                    // 备用：如果没有 delectBillSnFuc 结果，使用清除按钮的结果
                     clearTriggerFull = foundClearName;
                     clearTrigger = foundClearName.substring(foundClearName.indexOf(":") + 1);
-                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: clearTriggerFull=" + foundClearName + " clearTrigger=" + clearTrigger);
+                    clearFormName = foundClearName.substring(0, foundClearName.indexOf(":"));
+                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: clearTriggerFull=" + foundClearName + " clearTrigger=" + clearTrigger + " clearFormName=" + clearFormName);
                 } else {
-                    android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 未找到clear按钮，保持clearTriggerFull=" + clearTriggerFull);
+                    android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 未找到clear按钮和delectBillSnFuc，保持 clearFormName=" + clearFormName + " clearTrigger=" + clearTrigger);
                 }
 
                 // ★ 注意：doorAlarmTrigger 不在这里更新！
@@ -1400,6 +1711,17 @@ public class WorkOrderApi {
         } catch (UnsupportedEncodingException e) {
             return s;
         }
+    }
+
+    // =====================================================================
+    // 工具：获取当前月份（格式：MM%2Fyyyy，如 04%2F2026）
+    // ★ 修复：不再硬编码 03%2F2026
+    // =====================================================================
+    public static String getCurrentMonthYear() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int month = cal.get(java.util.Calendar.MONTH) + 1;  // 月份从0开始
+        int year = cal.get(java.util.Calendar.YEAR);
+        return String.format("%02d%%2F%d", month, year);
     }
 
     // =====================================================================

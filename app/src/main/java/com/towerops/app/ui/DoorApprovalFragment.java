@@ -20,6 +20,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.towerops.app.R;
 import com.towerops.app.api.DoorApprovalApi;
+import com.towerops.app.api.LoginApi;
+import com.towerops.app.model.Session;
 import com.towerops.app.util.ThreadManager;
 
 import java.util.ArrayList;
@@ -155,6 +157,45 @@ public class DoorApprovalFragment extends Fragment {
 
     private void startAutoMonitor() {
         if (autoRunning) return;
+
+        // ★★★ 修复（2026-04-18）：检查token格式，如果是JWT格式则重新获取
+        Session s = Session.get();
+        if (s.doorApprovalXAuthToken != null && s.doorApprovalXAuthToken.startsWith("eyJ0eXBlIjoiand0")) {
+            // 是JWT格式，需要重新获取OBTAIN_TOKEN_NEW
+            appendLog("⚠ 检测到JWT格式token，正在刷新审批权限...");
+            switchAutoApproval.setChecked(false);
+            
+            executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                try {
+                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.username, s.token, "");
+                    android.util.Log.w("DoorApproval", "OBTAIN_TOKEN_NEW 返回: " + (newToken == null || newToken.isEmpty() ? "空/失败" : "成功"));
+                    
+                    // 如果获取成功，doorApprovalXAuthToken应该已被更新为非JWT格式
+                    if (s.doorApprovalXAuthToken != null && s.doorApprovalXAuthToken.startsWith("eyJ0eXBlIjoiand0")) {
+                        android.util.Log.e("DoorApproval", "警告：token仍为JWT格式");
+                        mainHandler.post(() -> {
+                            if (!isAdded()) return;
+                            appendLog("❌ 刷新失败，请重新登录APP");
+                            Toast.makeText(requireContext(), "审批权限刷新失败，请退出后重新登录", Toast.LENGTH_LONG).show();
+                        });
+                    } else {
+                        mainHandler.post(() -> {
+                            if (!isAdded()) return;
+                            appendLog("✅ 权限刷新成功");
+                            startAutoMonitor();  // 重新开始
+                        });
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("DoorApproval", "OBTAIN_TOKEN_NEW 异常: " + e.getMessage());
+                    mainHandler.post(() -> {
+                        if (!isAdded()) return;
+                        appendLog("❌ 刷新异常: " + e.getMessage());
+                    });
+                }
+            });
+            return;
+        }
 
         // 检查认证
         String missing = DoorApprovalApi.checkAuth();
@@ -335,6 +376,39 @@ public class DoorApprovalFragment extends Fragment {
     private void doRefresh() {
         if (loading || autoRunning) return;
 
+        // ★★★ 修复（2026-04-18）：检查token格式，如果是JWT格式则重新获取
+        Session s = Session.get();
+        if (s.doorApprovalXAuthToken != null && s.doorApprovalXAuthToken.startsWith("eyJ0eXBlIjoiand0")) {
+            // 是JWT格式，需要重新获取OBTAIN_TOKEN_NEW
+            android.util.Log.w("DoorApproval", "检测到JWT格式token，正在重新获取OBTAIN_TOKEN_NEW...");
+            setStatus("正在刷新审批权限...");
+            
+            executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                try {
+                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.username, s.token, "");
+                    android.util.Log.w("DoorApproval", "OBTAIN_TOKEN_NEW 返回: " + (newToken == null || newToken.isEmpty() ? "空/失败" : "成功"));
+                    
+                    // 如果获取成功，doorApprovalXAuthToken应该已被更新为非JWT格式
+                    if (s.doorApprovalXAuthToken != null && s.doorApprovalXAuthToken.startsWith("eyJ0eXBlIjoiand0")) {
+                        android.util.Log.e("DoorApproval", "警告：token仍为JWT格式，API可能继续失败");
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("DoorApproval", "OBTAIN_TOKEN_NEW 异常: " + e.getMessage());
+                }
+                
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
+                    proceedRefresh();
+                });
+            });
+            return;
+        }
+
+        proceedRefresh();
+    }
+    
+    private void proceedRefresh() {
         String missing = DoorApprovalApi.checkAuth();
         if (!missing.isEmpty()) {
             setStatus("❌ 缺少认证: " + missing);

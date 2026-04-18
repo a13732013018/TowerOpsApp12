@@ -223,6 +223,7 @@ public class LoginApi {
             android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW URL: " + url);
             android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW POST: " + post);
             android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW Auth: " + (appToken.length() > 20 ? appToken.substring(0, 20) + "..." : appToken));
+            android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW Headers:\n" + headers);
 
             String resp = HttpUtil.post(url, post, headers, null);
             android.util.Log.d("LoginApi", "OBTAIN_TOKEN_NEW 响应: " + resp);
@@ -238,11 +239,15 @@ public class LoginApi {
                 android.util.Log.d("LoginApi", "token: " + (returnedToken.isEmpty() ? "(empty)" : returnedToken.substring(0, Math.min(50, returnedToken.length())) + "..."));
 
                 if ("OK".equals(status) || "10000".equals(status)) {
-                    // 成功：保存 X-Auth-Token（门禁审核专用）
+                    // 成功：保存 X-Auth-Token 和 appacctid
+                    Session s = Session.get();
                     if (!returnedToken.isEmpty()) {
-                        Session s = Session.get();
                         s.doorApprovalXAuthToken = returnedToken;
                         android.util.Log.d("LoginApi", "已更新 doorApprovalXAuthToken: " + returnedToken.substring(0, Math.min(50, returnedToken.length())));
+                    }
+                    if (!appacctid.isEmpty()) {
+                        s.doorApprovalAcctId = appacctid;
+                        android.util.Log.d("LoginApi", "已更新 doorApprovalAcctId: " + appacctid);
                     }
                     return appacctid;
                 } else {
@@ -252,14 +257,13 @@ public class LoginApi {
                 android.util.Log.w("LoginApi", "OBTAIN_TOKEN_NEW 响应为空");
             }
         } catch (Exception e) {
-            android.util.Log.e("LoginApi", "OBTAIN_TOKEN_NEW 异常", e);
+            android.util.Log.e("LoginApi", "OBTAIN_TOKEN_NEW 异常: " + e.getClass().getName() + ": " + e.getMessage());
+            e.printStackTrace();
         }
 
-        // 失败：使用后备值（仅用于开发调试）
-        Session s = Session.get();
-        s.doorApprovalXAuthToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJSRVMiLCJpc3MiOiJXUzRBIiwiZXhwIjoxNzc2MzUxNjAwLCJOQU5PU0VDT05EIjoxNTA3MDgyODUxNzYxODgxNH0.eYt8lOLXQLO3Dyj10OI-L7N0obpSP3GKPyxBUGR8uDU";
-        android.util.Log.d("LoginApi", "使用后备 X-Auth-Token");
-        return "203349045";
+        // ★★★ 修复（2026-04-18）：失败时不覆盖原有值，保持 Session 中已有的 token
+        android.util.Log.w("LoginApi", "OBTAIN_TOKEN_NEW 调用失败，不覆盖原有认证信息");
+        return "";  // 返回空，让调用方使用后备值或保留原有值
     }
 
     /** 兼容旧调用（无 Cookie） */

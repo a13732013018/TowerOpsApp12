@@ -226,13 +226,16 @@ public class OmmsLoginActivity extends Activity {
                         hint("正在自动填写账号密码...");
                         ThreadManager.postDelayed(() -> autoFill4aLogin(view), 1500);
                     } else if (!isLoginPage) {
-                        // 4A 登录成功（包含有Cookie直接进入工作台的情况），立即捕获4A Cookie并保存
-                        captureAndSave4aCookie();
-                        // 只触发一次自动跳转，防止SSO URL重定向后再次触发
-                        if (!autoJumpTriggered) {
+                        // 4A 登录成功（包含有Cookie直接进入工作台的情况）
+                        // ★ 只在成功获取有效Cookie时才触发OMMS跳转，避免用无效Cookie跳转到OMMS
+                        boolean cookieSuccess = captureAndSave4aCookie();
+                        if (cookieSuccess && !autoJumpTriggered) {
                             autoJumpTriggered = true;
                             hint("4A 已就绪，正在自动跳转到「运维监控」...");
                             ThreadManager.postDelayed(() -> injectAutoClickOmmsMenu(view), 1500);
+                        } else if (!cookieSuccess) {
+                            Logger.w(TAG, "4A登录成功但Cookie无效，请手动刷新页面");
+                            hint("⚠️ 4A登录成功但Cookie无效，请关闭页面重试");
                         }
                     }
                 } else if (url.contains("tymj.chinatowercom.cn")) {
@@ -678,11 +681,8 @@ public class OmmsLoginActivity extends Activity {
         Logger.d(TAG, "autoFill4a: 自动填充账号=" + username);
         hint("正在自动填写账号密码，请等待短信验证码...");
 
-        // ★ 5秒超时：防止登录失败导致autoFilling永远不重置
-        ThreadManager.postDelayed(() -> {
-            autoFilling = false;
-            Logger.d(TAG, "autoFill4a: 超时重置autoFilling标志");
-        }, 5000);
+        // ★ 不使用固定超时重置：autoFilling 由 captureAndSave4aCookie 成功时或 JS 回调失败时重置
+        // 这样可以避免：登录成功但5秒超时后 autoFilling 被重置 → 再次触发 autoFill4aLogin → 死循环
 
         // JS：找到账号密码输入框，填值，点击登录按钮
         String js = "(function() {" +
@@ -738,8 +738,9 @@ public class OmmsLoginActivity extends Activity {
     /**
      * 捕获4A域的Cookie并保存到 Session.tower4aSessionCookie
      * 在用户手动登录4A成功后调用（onPageFinished 检测到不在login页面）
+     * @return true=成功获取有效Cookie，false=获取失败
      */
-    private void captureAndSave4aCookie() {
+    private boolean captureAndSave4aCookie() {
         CookieManager cm = CookieManager.getInstance();
         String raw = cm.getCookie("http://4a.chinatowercom.cn:20000");
         if (raw == null || raw.isEmpty()) {
@@ -755,8 +756,13 @@ public class OmmsLoginActivity extends Activity {
             session.saveTower4aCookie(this);
 
             Logger.d(TAG, "capture4a: 已保存到Session.tower4aSessionCookie (len=" + raw.length() + ")");
+            
+            // ★ 成功获取Cookie后重置 autoFilling 标志
+            autoFilling = false;
+            return true;
         } else {
             Logger.w(TAG, "capture4a: 未能捕获有效的4A Cookie");
+            return false;
         }
     }
 

@@ -426,7 +426,7 @@ public class WorkOrderFragment extends Fragment {
 
                 // Step4: 告警清除（等待2秒模拟人工操作，用 confirm 后的最新 ViewState）
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-                String clearResp = WorkOrderApi.clearOmmsAlarm(foundAlarmId, clearViewState);
+                String clearResp = WorkOrderApi.clearOmmsAlarm(foundAlarmId, order.billsn, clearViewState);
                 Logger.d("ClearAlarm", "告警清除len=" + clearResp.length()
                         + " preview=" + clearResp.substring(0, Math.min(200, clearResp.length())));
 
@@ -494,7 +494,7 @@ public class WorkOrderFragment extends Fragment {
                 String vsAfter2 = extractViewState(confirmResp2);
                 String clearVs  = (vsAfter2 != null && !vsAfter2.isEmpty()) ? vsAfter2 : viewState;
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-                String clearResp = WorkOrderApi.clearOmmsAlarm(alarmId, clearVs);
+                String clearResp = WorkOrderApi.clearOmmsAlarm(alarmId, order.billsn, clearVs);
                 boolean success = isClearSuccess(clearResp, alarmId);
                 String result = success ? "✅ 手动清除成功" : "❌ 清除失败(告警仍存在)";
                 runOnUi(() -> {

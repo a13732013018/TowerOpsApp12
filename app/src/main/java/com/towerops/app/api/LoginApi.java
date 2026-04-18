@@ -198,9 +198,11 @@ public class LoginApi {
             String url = BASE + "?porttype=OBTAIN_TOKEN_NEW&v=1.0.95&userid=" + userid + "&c=0";
 
             // POST 参数（易语言格式）
+            // ★★★ 修复（2026-04-18）：c_account 应传 loginname（昵称），不是 userid
+            //    易语言代码：c_account=昵称编辑框.内容（即 loginname，如 wx-linjy22）
             String post = "username=" + username
                     + "&c_timestamp=" + ts
-                    + "&c_account=" + userid
+                    + "&c_account=" + username  // 传 loginname，不是 userid
                     + "&c_sign=" + FIXED_C_SIGN
                     + "&upvs=" + FIXED_UPVS;
 

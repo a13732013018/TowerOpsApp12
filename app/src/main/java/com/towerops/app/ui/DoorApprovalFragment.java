@@ -268,8 +268,16 @@ public class DoorApprovalFragment extends Fragment {
             try {
                 // 1. 获取待审批列表
                 List<DoorApprovalApi.ApprovalItem> pending = DoorApprovalApi.getUnfinishedList();
+                
+                // ★★★ 过滤：只保留"简易出入站"和"注册审批"类型
+                List<DoorApprovalApi.ApprovalItem> filtered = new ArrayList<>();
+                for (DoorApprovalApi.ApprovalItem item : pending) {
+                    if ("简易出入站".equals(item.taskType) || "注册审批".equals(item.taskType)) {
+                        filtered.add(item);
+                    }
+                }
 
-                if (pending == null || pending.isEmpty()) {
+                if (filtered == null || filtered.isEmpty()) {
                     mainHandler.post(() -> {
                         tvApprovalCount.setText("待审批 0 条");
                         appendLog("📭 暂无待审批工单");
@@ -280,11 +288,11 @@ public class DoorApprovalFragment extends Fragment {
 
                 mainHandler.post(() -> {
                     itemList.clear();
-                    itemList.addAll(pending);
+                    itemList.addAll(filtered);
                     adapter.notifyDataSetChanged();
                     updateEmpty();
                     tvApprovalCount.setText("待审批 " + itemList.size() + " 条");
-                    appendLog("📋 发现 " + pending.size() + " 条待审批，开始自动审批...");
+                    appendLog("📋 发现 " + filtered.size() + " 条待审批（简易出入站/注册审批），开始自动审批...");
                     updateStatus();
                 });
 
@@ -425,18 +433,26 @@ public class DoorApprovalFragment extends Fragment {
         executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             List<DoorApprovalApi.ApprovalItem> result = DoorApprovalApi.getUnfinishedList();
+            
+            // ★★★ 过滤：只保留"简易出入站"和"注册审批"类型
+            List<DoorApprovalApi.ApprovalItem> filtered = new ArrayList<>();
+            for (DoorApprovalApi.ApprovalItem item : result) {
+                if ("简易出入站".equals(item.taskType) || "注册审批".equals(item.taskType)) {
+                    filtered.add(item);
+                }
+            }
 
             mainHandler.post(() -> {
                 if (!isAdded()) return;
                 itemList.clear();
-                itemList.addAll(result);
+                itemList.addAll(filtered);
                 adapter.notifyDataSetChanged();
                 updateEmpty();
                 tvApprovalCount.setText("待审批 " + itemList.size() + " 条");
                 if (itemList.isEmpty()) {
                     setStatus("✅ 暂无待审批工单");
                 } else {
-                    setStatus("共 " + itemList.size() + " 条待审批，点击「审批」逐条，或开启自动审批");
+                    setStatus("共 " + itemList.size() + " 条待审批（已过滤），点击「审批」逐条，或开启自动审批");
                 }
                 loading = false;
                 btnRefresh.setEnabled(true);

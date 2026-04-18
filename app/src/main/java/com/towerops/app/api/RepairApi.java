@@ -110,8 +110,16 @@ public class RepairApi {
         QueryResult result = new QueryResult();
         Session session = Session.get();
 
+        android.util.Log.d(TAG, "========== RepairApi.query 开始 ==========");
+        android.util.Log.d(TAG, "Session.ommsCookie: " + (session.ommsCookie == null ? "NULL" : 
+                (session.ommsCookie.isEmpty() ? "EMPTY" : 
+                ("长度=" + session.ommsCookie.length() + ", hasJSESSIONID=" + session.ommsCookie.contains("JSESSIONID") 
+                + ", hasPwdaToken=" + session.ommsCookie.contains("pwdaToken")
+                + ", 前100字符=" + session.ommsCookie.substring(0, Math.min(100, session.ommsCookie.length()))))));
+
         if (session.ommsCookie == null || session.ommsCookie.isEmpty()) {
             result.errorMsg = "OMMS Cookie 未登录，请先在【门禁系统】Tab 点「OMMS登录」";
+            android.util.Log.e(TAG, "★★★ RepairApi: OMMS Cookie为空，跳过查询 ★★★");
             return result;
         }
 
@@ -130,18 +138,26 @@ public class RepairApi {
 
         try {
             String body = buildRequestBody(startDate, endDate, pageSize, viewState);
-            // ★ A4J AJAX请求（RichFaces 3.x）：浏览器实际发的是A4J请求，服务器返回<?xml ...><html>格式局部更新
-            // 必须带 AJAXREQUEST=queryForm 和 Accept: application/xml，否则服务器返回完整初始化页面（无数据）
-            String postHeaders = "Accept: application/xml, text/xml, */*; q=0.01\n"
-                    + "Accept-Language: zh-CN,zh;q=0.9\n"
-                    + "Content-Type: application/x-www-form-urlencoded; charset=UTF-8\n"
-                    + "Host: omms.chinatowercom.cn:9000\n"
-                    + "Origin: http://omms.chinatowercom.cn:9000\n"
-                    + "Proxy-Connection: keep-alive\n"
-                    + "Referer: http://omms.chinatowercom.cn:9000/business/hiddenFixMge/fixBillList.xhtml\n"
-                    + "User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36\n"
-                    + "X-Requested-With: XMLHttpRequest";
-            // ★ 调试：直接获取完整HttpResponse（含状态码）
+            // ★ 构造 POST 请求头：与 GET 一致，额外添加 Authorization 头传递 pwdaToken
+            // 关键：pwdaToken 是 JWT，需要通过 Authorization 头显式传递（参考 TymjLoginActivity）
+            StringBuilder headersBuilder = new StringBuilder();
+            headersBuilder.append("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n");
+            headersBuilder.append("Accept-Language: zh-CN,zh;q=0.9\n");
+            headersBuilder.append("Content-Type: application/x-www-form-urlencoded; charset=UTF-8\n");
+            headersBuilder.append("Host: omms.chinatowercom.cn:9000\n");
+            headersBuilder.append("Origin: http://omms.chinatowercom.cn:9000\n");
+            headersBuilder.append("Connection: keep-alive\n");
+            headersBuilder.append("Referer: http://omms.chinatowercom.cn:9000/business/hiddenFixMge/fixBillList.xhtml\n");
+            headersBuilder.append("User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36\n");
+            // ★ 关键修复：从 Cookie 中提取 pwdaToken，通过 Authorization 头传递
+            String pwdaToken = extractPwdaToken(session.ommsCookie);
+            if (pwdaToken != null && !pwdaToken.isEmpty()) {
+                headersBuilder.append("Authorization: Bearer ").append(pwdaToken).append("\n");
+                headersBuilder.append("pwdaToken: ").append(pwdaToken).append("\n");
+                android.util.Log.d(TAG, "POST 添加 Authorization 头: " + pwdaToken.substring(0, Math.min(30, pwdaToken.length())) + "...");
+            }
+            String postHeaders = headersBuilder.toString();
+            // ★★★ 关键修复：将Cookie放在headers中传递，与GET请求一致
             HttpUtil.HttpResponse httpResp = HttpUtil.postWithHeaders(URL, body, postHeaders, session.ommsCookie);
             String resp = httpResp != null ? httpResp.body : "";
             int httpCode = httpResp != null ? httpResp.code : -1;
@@ -241,6 +257,13 @@ public class RepairApi {
      */
     private static String fetchViewState(String cookie) {
         try {
+            android.util.Log.d(TAG, "========== RepairApi fetchViewState 开始 ==========");
+            android.util.Log.d(TAG, "Cookie详情: len=" + (cookie != null ? cookie.length() : 0)
+                    + " hasPwda=" + (cookie != null && cookie.contains("pwdaToken"))
+                    + " hasJsid=" + (cookie != null && cookie.contains("JSESSIONID"))
+                    + " hasAcctId=" + (cookie != null && cookie.contains("acctId")));
+            android.util.Log.d(TAG, "Cookie完整内容: " + (cookie != null ? cookie : "NULL"));
+
             String getHeaders = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n"
                     + "Accept-Language: zh-CN,zh;q=0.9\n"
                     + "Host: omms.chinatowercom.cn:9000\n"
@@ -249,12 +272,20 @@ public class RepairApi {
                     + "Referer: http://omms.chinatowercom.cn:9000/business/hiddenFixMge/fixBillList.xhtml\n"
                     + "User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36";
 
+            android.util.Log.d(TAG, "准备发送GET请求到: " + URL);
             String html = HttpUtil.get(URL, getHeaders, cookie);
-            if (html == null || html.isEmpty()) return null;
+            android.util.Log.d(TAG, "========== RepairApi fetchViewState GET完成 ==========");
+            android.util.Log.d(TAG, "html len=" + (html != null ? html.length() : 0));
+            android.util.Log.d(TAG, "html前300: " + (html != null ? html.substring(0, Math.min(300, html.length())) : "NULL"));
+
+            if (html == null || html.isEmpty()) {
+                android.util.Log.e(TAG, "★★★ fetchViewState: HTML为空/null，可能网络不通或Cookie无效 ★★★");
+                return null;
+            }
 
             if (html.contains("doPrevLogin") || html.contains("uac/login")
                     || html.contains("没有登录") || html.contains("登录已超时")) {
-                android.util.Log.w(TAG, "fetchViewState: OMMS Cookie 已失效");
+                android.util.Log.w(TAG, "★★★ fetchViewState: OMMS Cookie 已失效（被重定向到登录页）★★★");
                 return "__SESSION_EXPIRED__";
             }
 
@@ -265,10 +296,11 @@ public class RepairApi {
             java.util.regex.Matcher vm = vpat.matcher(html);
             String vs = null;
             while (vm.find()) vs = vm.group(1);
-            android.util.Log.d(TAG, "fetchViewState: vs=" + vs + " htmlLen=" + html.length());
+            android.util.Log.d(TAG, "ViewState提取结果: " + (vs != null ? ("长度=" + vs.length() + ", 内容=" + vs) : "NULL"));
             return vs;
         } catch (Exception e) {
-            android.util.Log.e(TAG, "fetchViewState error: " + e.getMessage());
+            android.util.Log.e(TAG, "fetchViewState EXCEPTION: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
@@ -417,5 +449,31 @@ public class RepairApi {
         Map<String, Double> result = new LinkedHashMap<>();
         for (Map.Entry<String, Double> e : entries) result.put(e.getKey(), e.getValue());
         return result;
+    }
+
+    /**
+     * 从 Cookie 字符串中提取 pwdaToken
+     * 参考 TymjLoginActivity 的做法：pwdaToken 需要通过 Authorization 头传递
+     */
+    private static String extractPwdaToken(String cookie) {
+        if (cookie == null || cookie.isEmpty()) return null;
+        try {
+            // 格式: pwdaToken=eyJhbGc...; 或 pwdaToken=eyJhbGc...
+            int idx = cookie.indexOf("pwdaToken=");
+            if (idx < 0) {
+                android.util.Log.w(TAG, "extractPwdaToken: Cookie中未找到pwdaToken");
+                return null;
+            }
+            int start = idx + "pwdaToken=".length();
+            int end = cookie.indexOf(";", start);
+            if (end < 0) end = cookie.length();
+            String token = cookie.substring(start, end).trim();
+            android.util.Log.d(TAG, "extractPwdaToken: 成功提取, 长度=" + token.length()
+                    + ", 前30字符=" + token.substring(0, Math.min(30, token.length())));
+            return token;
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "extractPwdaToken 异常: " + e.getMessage());
+            return null;
+        }
     }
 }

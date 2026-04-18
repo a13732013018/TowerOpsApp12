@@ -180,6 +180,9 @@ public class HttpUtil {
             // 附加 cookie
             if (cookie != null && !cookie.isEmpty()) {
                 builder.header("Cookie", cookie);
+                System.out.println("[HttpUtil.GET] Cookie set: " + cookie.substring(0, Math.min(150, cookie.length())) + (cookie.length() > 150 ? "..." : ""));
+            } else {
+                System.out.println("[HttpUtil.GET] Cookie: NULL or EMPTY");
             }
 
             // 解析自定义协议头（换行分隔，格式 "Key: Value"）
@@ -200,12 +203,30 @@ public class HttpUtil {
             }
 
             Request request = builder.build();
-            try (Response response = CLIENT.newCall(request).execute()) {
-                if (response.body() != null) {
-                    return response.body().string();
+            
+            // 【调试】打印最终请求的所有header
+            System.out.println("[HttpUtil.GET] URL: " + url);
+            System.out.println("[HttpUtil.GET] Request headers:");
+            for (String name : request.headers().names()) {
+                String val = request.header(name);
+                if (name.equalsIgnoreCase("Cookie")) {
+                    System.out.println("  " + name + ": " + (val != null ? val.substring(0, Math.min(80, val.length())) + "..." : "null"));
+                } else {
+                    System.out.println("  " + name + ": " + val);
                 }
             }
+            
+            try (Response response = CLIENT.newCall(request).execute()) {
+                String body = "";
+                if (response.body() != null) {
+                    body = response.body().string();
+                }
+                System.out.println("[HttpUtil.GET] Response: code=" + response.code() + " bodyLen=" + body.length());
+                System.out.println("[HttpUtil.GET] body preview: " + (body.length() > 0 ? body.substring(0, Math.min(200, body.length())) : "EMPTY"));
+                return body;
+            }
         } catch (Exception e) {
+            System.err.println("[HttpUtil.GET] Exception: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             e.printStackTrace();
         }
         return "";
@@ -277,15 +298,38 @@ public class HttpUtil {
     /**
      * GET 请求，返回字节数组（用于图片等二进制内容）
      * 同时会自动将响应的 Set-Cookie 存入 CookieStore
+     *
+     * @param url     目标地址
+     * @param headers 附加协议头（格式 "Key: Value\nKey2: Value2"），可为 null
      */
-    public static byte[] getBytes(String url) {
+    public static byte[] getBytes(String url, String headers) {
         try {
-            Request request = new Request.Builder()
+            Request.Builder builder = new Request.Builder()
                     .url(url.trim())
                     .get()
                     .header("User-Agent", "okhttp/4.10.0")
-                    .header("Connection", "Keep-Alive")
-                    .build();
+                    .header("Connection", "Keep-Alive");
+
+            // 解析并添加自定义协议头
+            if (headers != null && !headers.isEmpty()) {
+                String[] lines = headers.split("\n");
+                for (String line : lines) {
+                    int idx = line.indexOf(": ");
+                    if (idx == -1) {
+                        idx = line.indexOf(":");
+                    }
+                    if (idx > 0) {
+                        String key = line.substring(0, idx).trim();
+                        String val = line.substring(idx + 1).trim();
+                        if (val.startsWith(" ")) {
+                            val = val.substring(1);
+                        }
+                        builder.header(key, val);
+                    }
+                }
+            }
+
+            Request request = builder.build();
 
             try (okhttp3.Response response = CLIENT.newCall(request).execute()) {
                 // 提取并保存 Cookie（合并所有 Set-Cookie 头，服务器可能返回多个）
@@ -310,5 +354,13 @@ public class HttpUtil {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * GET 请求，返回字节数组（无自定义头）
+     * @deprecated 推荐使用 {@link #getBytes(String, String)} 并传入必要的请求头
+     */
+    public static byte[] getBytes(String url) {
+        return getBytes(url, null);
     }
 }

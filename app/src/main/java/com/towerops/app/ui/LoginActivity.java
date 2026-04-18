@@ -148,13 +148,24 @@ public class LoginActivity extends AppCompatActivity {
     private void loadCaptcha(boolean clearStatus) {
         executor.execute(() -> {
             try {
-                byte[] bytes = HttpUtil.getBytes(CAPTCHA_URL);
+                // ★ 修复：验证码接口需要 Referer 和 Origin 请求头才能正常返回
+                String headers = "Referer: http://ywapp.chinatowercom.cn:58090/itower/mobile/\n"
+                        + "Origin: http://ywapp.chinatowercom.cn:58090";
+                byte[] bytes = HttpUtil.getBytes(CAPTCHA_URL, headers);
                 if (bytes != null && bytes.length > 0) {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                     cookie = CookieStore.getCookie();
                     runOnUiThread(() -> {
-                        ivCaptcha.setImageBitmap(bitmap);
-                        if (clearStatus) tvStatus.setText("");
+                        if (bitmap != null) {
+                            ivCaptcha.setImageBitmap(bitmap);
+                            if (clearStatus) tvStatus.setText("");
+                        } else {
+                            // 解码失败，可能是服务器返回了错误页面
+                            tvStatus.setText("验证码加载失败，请重试");
+                            // 打印返回内容以便调试
+                            String content = new String(bytes);
+                            System.out.println("[LoginActivity] Captcha response: " + content);
+                        }
                     });
                 } else {
                     runOnUiThread(() -> tvStatus.setText("加载验证码失败"));

@@ -424,6 +424,8 @@ public class DoorDataFragment extends Fragment {
 
     private void refreshStatus() {
         Session s = Session.get();
+        Logger.d("DoorData", "refreshStatus: ommsCookie=" + (s.ommsCookie == null ? "NULL" : 
+                (s.ommsCookie.isEmpty() ? "EMPTY" : ("len=" + s.ommsCookie.length() + " hasJSESSIONID=" + s.ommsCookie.contains("JSESSIONID")))));
         if (s.ommsCookie == null || s.ommsCookie.isEmpty()) {
             tvStatus.setText("请先在「门禁系统」Tab完成OMMS登录");
         } else {
@@ -434,8 +436,15 @@ public class DoorDataFragment extends Fragment {
     private void doQuery() {
         if (querying) return;
         Session s = Session.get();
+        Logger.d("DoorData", "========== doQuery 开始 ==========");
+        Logger.d("DoorData", "Session.ommsCookie=" + (s.ommsCookie == null ? "NULL" : 
+                (s.ommsCookie.isEmpty() ? "EMPTY" : ("len=" + s.ommsCookie.length() 
+                + " hasJSESSIONID=" + s.ommsCookie.contains("JSESSIONID")
+                + " hasPwdaToken=" + s.ommsCookie.contains("pwdaToken")
+                + " preview=" + s.ommsCookie.substring(0, Math.min(80, s.ommsCookie.length()))))));
         if (s.ommsCookie == null || s.ommsCookie.isEmpty()) {
             tvStatus.setText("请先在「门禁系统」Tab完成OMMS登录");
+            Logger.e("DoorData", "★★★ doQuery: ommsCookie为空，无法查询 ★★★");
             return;
         }
         // 保存区域选择到 SharedPreferences

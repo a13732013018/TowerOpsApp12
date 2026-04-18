@@ -389,6 +389,12 @@ public class Session {
         String savedOmmsCookie = PrefHelper.getString(ctx, PREF_SESSION, KEY_OMMS_COOKIE, "");
         if (!savedOmmsCookie.isEmpty()) {
             ommsCookie = savedOmmsCookie;
+            android.util.Log.d("Session", "★★ loadConfig: 恢复OMMS Cookie 长度=" + ommsCookie.length()
+                    + " hasJSESSIONID=" + ommsCookie.contains("JSESSIONID")
+                    + " hasPwdaToken=" + ommsCookie.contains("pwdaToken")
+                    + " preview=" + ommsCookie.substring(0, Math.min(100, ommsCookie.length())));
+        } else {
+            android.util.Log.w("Session", "★★ loadConfig: SharedPreferences中没有OMMS Cookie (ommsCookie仍为空)");
         }
     }
 

@@ -126,10 +126,14 @@ public class MonitorTask implements Runnable {
             alarmPool.execute(() -> {
                 try {
                     String resp = WorkOrderApi.getBillAlarmList(finalWo.billsn);
-                    // ★★★ 调试日志：查看API返回的JSON结构 ★★★
-                    android.util.Log.d("MonitorTask", "getBillAlarmList[" + finalWo.billsn + "] len=" + resp.length() + " preview=" + resp.substring(0, Math.min(300, resp.length())));
-                    // 严格按易语言逻辑：寻找文本(resp, "alarmname") ≠ -1 → 告警中
-                    finalWo.alertStatus = resp.contains("alarmname") ? "告警中" : "已恢复";
+                    // ★★★ 调试日志：查看API返回的完整JSON结构 ★★★
+                    android.util.Log.d("MonitorTask", "getBillAlarmList[" + finalWo.billsn + "] len=" + resp.length() + " preview=" + resp.substring(0, Math.min(1000, resp.length())));
+                    // 判断逻辑：list 有数据且 ifrecover="N" → 告警中；否则 → 已恢复
+                    // API 可能有缓存延迟，ifrecover 更新滞后于实际状态
+                    boolean hasListData = resp.contains("\"list\":[") && !resp.contains("\"list\":[]");
+                    boolean ifRecoverN = resp.contains("ifrecover\":\"N");
+                    android.util.Log.d("MonitorTask", "[" + finalWo.billsn + "] hasList=" + hasListData + " ifrecover=N? " + ifRecoverN + " → " + ((hasListData && ifRecoverN) ? "告警中" : "已恢复"));
+                    finalWo.alertStatus = (hasListData && ifRecoverN) ? "告警中" : "已恢复";
                     // ★ 同时提取最早告警时间（用于 UI 告警时间排序）
                     if (finalWo.alertTime == null || finalWo.alertTime.isEmpty()) {
                         finalWo.alertTime = extractAlarmTime(resp);

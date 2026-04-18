@@ -168,7 +168,8 @@ public class DoorApprovalFragment extends Fragment {
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 try {
-                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.username, s.token, "");
+                    // ★★★ 修复（2026-04-18）：第二个参数应传 loginname（wx-linjy22），不是 username（林甲雨）
+                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.doorApprovalLoginAcct, s.token, "");
                     android.util.Log.w("DoorApproval", "OBTAIN_TOKEN_NEW 返回: " + (newToken == null || newToken.isEmpty() ? "空/失败" : "成功"));
                     
                     // 如果获取成功，doorApprovalXAuthToken应该已被更新为非JWT格式
@@ -386,7 +387,8 @@ public class DoorApprovalFragment extends Fragment {
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 try {
-                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.username, s.token, "");
+                    // ★★★ 修复（2026-04-18）：第二个参数应传 loginname（wx-linjy22），不是 username（林甲雨）
+                    String newToken = LoginApi.obtainAppAcctId(s.userid, s.doorApprovalLoginAcct, s.token, "");
                     android.util.Log.w("DoorApproval", "OBTAIN_TOKEN_NEW 返回: " + (newToken == null || newToken.isEmpty() ? "空/失败" : "成功"));
                     
                     // 如果获取成功，doorApprovalXAuthToken应该已被更新为非JWT格式

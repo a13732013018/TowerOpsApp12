@@ -1076,7 +1076,8 @@ public class DoorDataFragment extends Fragment {
             return all;
         }
         if (html == null || html.isEmpty()) return all;
-        if (html.contains("doPrevLogin") || html.contains("uac/login")) return all;
+        // AJAX响应中uac/login可能出现在URL配置里，不是真正的登录页，只有很小(<500字节)时才判为登录
+        if (html.length() < 500 && (html.contains("doPrevLogin") || html.contains("uac/login"))) return all;
 
         String workHtml = extractCdata(html);
 
@@ -1130,7 +1131,7 @@ public class DoorDataFragment extends Fragment {
                 Logger.w("DoorData", "第" + page + "页返回空，停止翻页");
                 break;
             }
-            if (html.contains("doPrevLogin") || html.contains("uac/login")) break;
+            if (html.length() < 500 && (html.contains("doPrevLogin") || html.contains("uac/login"))) break;
 
             workHtml = extractCdata(html);
             pageRows = parseAlarmRows(workHtml);

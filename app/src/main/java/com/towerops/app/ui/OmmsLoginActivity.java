@@ -61,6 +61,7 @@ public class OmmsLoginActivity extends Activity {
     private boolean captured = false;
     private boolean captured4aToken = false;  // 是否已捕获4A Bearer Token
     private boolean autoJumpTriggered = false; // 是否已触发OMMS自动跳转（防止重复）
+    private boolean autoFilling = false;       // 是否正在自动填充（防重入死循环）
     private String savedPwdaToken = "";  // 保存pwdaToken用于后续获取4A Token
 
     @Override
@@ -213,11 +214,18 @@ public class OmmsLoginActivity extends Activity {
                     hint("正在获取OMMS凭据，请稍候...");
                     ThreadManager.postDelayed(OmmsLoginActivity.this::tryCaptureCookie, 800);
                 } else if (url.contains("4a.chinatowercom.cn")) {
-                    if (url.contains("login") || url.contains("doPrevLogin")) {
+                    // ★ 精准检测真正的4A登录页：URL路径中包含login字样（而非只是参数）
+                    // 排除：/uac/index（有loginTime参数但不是登录页）、任何含login参数的普通页面
+                    boolean isLoginPage = url.contains("/uac/login")
+                            || url.contains("/login.do")
+                            || url.contains("/doPrevLogin")
+                            || (url.contains("/uac/") && url.contains("login") && !url.contains("index"));
+
+                    if (isLoginPage && !autoFilling) {
+                        autoFilling = true;
                         hint("正在自动填写账号密码...");
-                        // 自动填充账号密码并提交（用户只需等短信验证码）
                         ThreadManager.postDelayed(() -> autoFill4aLogin(view), 1500);
-                    } else {
+                    } else if (!isLoginPage) {
                         // 4A 登录成功（包含有Cookie直接进入工作台的情况），立即捕获4A Cookie并保存
                         captureAndSave4aCookie();
                         // 只触发一次自动跳转，防止SSO URL重定向后再次触发
@@ -314,45 +322,72 @@ public class OmmsLoginActivity extends Activity {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * 4A登录成功后，自动跳转到OMMS。
+     * 4A登录成功后，自动跳转到OMMS并捕获Cookie。
      *
-     * 策略（按优先级）：
-     *  1. 直接用WebView加载4A的OMMS SSO入口URL（最可靠，不依赖UI点击）
-     *     4A SSO会自动验证Cookie并重定向到OMMS
-     *  2. 若SSO直跳失败（回到登录页），则JS查找「运维监控」菜单并点击
-     *  3. 若JS也找不到，提示手动点击
+     * 完整自动化流程（零手动操作）：
+     *  1. [当前] 4A Cookie有效 -> 4A首页加载完成
+     *  2. [本方法] 将4A Cookie注入OMMS域 -> 直接加载OMMS主页
+     *     - 若4A Cookie有效 -> OMMS接受SSO -> 捕获Cookie -> 完成
+     *     - 若4A Cookie过期 -> OMMS重定向回4A -> 进入autoFill4aLogin流程
+     *  3. [备用] JS点菜单 + 手动提示
      */
     private void injectAutoClickOmmsMenu(WebView view) {
         view.addJavascriptInterface(new OmmsMenuBridge(), "OmmsMenuBridge");
 
-        // ★ 策略1：直接加载4A的OMMS SSO跳转URL，让服务端自动做SSO验证+重定向
-        // 这是最可靠的方案，不依赖任何UI点击，完全服务端驱动
         hint("正在自动跳转到运维监控（OMMS）...");
-        Logger.d(TAG, "autoJump: 直接加载OMMS SSO入口URL");
+        Logger.d(TAG, "autoJump: 开始OMMS自动跳转流程");
 
-        // 4A的OMMS应用入口（通过appCode或serviceUrl跳转）
-        // 常见格式：/uac/index?serviceUrl=<omms域>&appCode=<code>
-        // 这里先尝试直接构造SSO跳转；若失败onPageFinished里会回退到JS点菜单
-        String ssoUrl = "http://4a.chinatowercom.cn:20000/uac/index?serviceUrl="
-                + "http%3A%2F%2Fomms.chinatowercom.cn%3A9000%2Flayout%2Findex.xhtml";
-        webView.loadUrl(ssoUrl);
+        Session s = Session.get();
 
-        // ★ 策略2备用：3秒后如果还没跳到OMMS，尝试JS点菜单
+        // 核心改进：先把4A Cookie注入到OMMS域
+        // 当OMMS做SSO验证时，4A域的Cookie会自动随请求发送
+        if (s.tower4aSessionCookie != null && !s.tower4aSessionCookie.isEmpty()) {
+            CookieManager cm = CookieManager.getInstance();
+            for (String part : s.tower4aSessionCookie.split(";")) {
+                String kv = part.trim();
+                if (!kv.isEmpty()) {
+                    cm.setCookie("http://chinatowercom.cn", kv);
+                    cm.setCookie("http://.chinatowercom.cn", kv);
+                    cm.setCookie("http://4a.chinatowercom.cn:20000", kv);
+                }
+            }
+            cm.flush();
+            Logger.d(TAG, "autoJump: 4A Cookie已注入到各子域");
+        }
+
+        // 策略1（主）：直接加载OMMS主页
+        // 如果4A Cookie有效，OMMS会在服务端完成SSO验证并设置自己的Session
+        webView.loadUrl("http://omms.chinatowercom.cn:9000/Layout/index.xhtml");
+
+        // 策略2备用：2秒后检查状态
         ThreadManager.postDelayed(() -> {
             if (!captured) {
-                Logger.d(TAG, "autoJump: SSO直跳可能未成功，尝试JS点菜单");
-                tryJsClickOmmsMenu(view);
-            }
-        }, 3000);
+                String curUrl = "";
+                try { curUrl = webView.getUrl(); } catch (Exception ignored) {}
+                Logger.d(TAG, "autoJump: 2s后当前URL=" + curUrl + " captured=" + captured);
 
-        // ★ 策略3最终超时：10秒后还未成功，提示手动
+                if (curUrl != null && (curUrl.contains("login") || curUrl.contains("uac/login"))) {
+                    Logger.d(TAG, "autoJump: 4A Cookie过期，触发自动登录");
+                    hint("4A登录状态已过期，正在自动填写账号密码...");
+                    autoFill4aLogin(view);
+                } else if (curUrl != null && curUrl.contains("4a.chinatowercom.cn")) {
+                    Logger.d(TAG, "autoJump: 仍在4A首页，尝试JS点菜单");
+                    tryJsClickOmmsMenu(view);
+                } else if (curUrl != null && curUrl.contains("omms")) {
+                    Logger.d(TAG, "autoJump: 在OMMS页面，重新尝试捕获Cookie");
+                    retryCount = 0;
+                    tryCaptureCookie();
+                }
+            }
+        }, 2000);
+
+        // 策略3最终超时：8秒后还未成功，提示手动
         ThreadManager.postDelayed(() -> {
             if (!captured) {
-                hint("⚠️ 未能自动跳转\n请手动点击页面中的\n「运维监控」");
+                hint("未能自动获取Cookie，请手动点击页面中的「运维监控」或重试");
             }
-        }, 10000);
+        }, 8000);
     }
-
     /**
      * 用JS在当前页面（包括iframe）查找「运维监控」菜单并点击
      */
@@ -635,12 +670,19 @@ public class OmmsLoginActivity extends Activity {
         String password = AccountConfig.get4aPassword(idx);
 
         if (password == null || password.isEmpty()) {
+            autoFilling = false; // 重置标志
             hint("⚠️ 未配置4A密码，请手动输入账号密码");
             return;
         }
 
         Logger.d(TAG, "autoFill4a: 自动填充账号=" + username);
         hint("正在自动填写账号密码，请等待短信验证码...");
+
+        // ★ 5秒超时：防止登录失败导致autoFilling永远不重置
+        ThreadManager.postDelayed(() -> {
+            autoFilling = false;
+            Logger.d(TAG, "autoFill4a: 超时重置autoFilling标志");
+        }, 5000);
 
         // JS：找到账号密码输入框，填值，点击登录按钮
         String js = "(function() {" +
@@ -683,7 +725,7 @@ public class OmmsLoginActivity extends Activity {
         view.evaluateJavascript(js, result -> {
             Logger.d(TAG, "autoFill4a JS result: " + result);
             if (result != null && result.contains("NOT_FOUND")) {
-                // 输入框没找到，提示用户手动输入
+                autoFilling = false; // 重置标志，允许用户手动输入
                 ThreadManager.runOnUiThread(() ->
                     hint("⚠️ 未找到登录输入框，请手动输入账号密码\n账号: " + username));
             } else if (result != null && result.contains("FILLED")) {

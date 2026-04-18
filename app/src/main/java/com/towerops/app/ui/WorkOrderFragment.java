@@ -294,6 +294,25 @@ public class WorkOrderFragment extends Fragment {
                 String listRespA = WorkOrderApi.getOmmsAlarmListBySite(order.stationname);
                 Logger.d("ClearAlarm", "策略A响应长度=" + listRespA.length());
 
+                // 策略A返回的如果很小（<1500字节）且有登录表单特征 → Cookie已失效，立即报错
+                // 登录表单特征：password/username输入框、dologin URL、uac/login 重定向
+                // 注意：不能只凭"login"字符串判断，因为OMMS正常页面里"login"到处出现
+                boolean aIsLogin = listRespA.length() > 0 && listRespA.length() < 1500
+                        && (listRespA.contains("name=\"password\"")
+                            || listRespA.contains("name=\"username\"")
+                            || listRespA.contains("name=\"j_password\"")
+                            || listRespA.contains("name=\"j_username\"")
+                            || listRespA.contains("dologin")
+                            || (listRespA.contains("uac") && listRespA.contains("login")));
+                if (aIsLogin) {
+                    Logger.w("ClearAlarm", "策略A检测到登录页，Cookie已失效");
+                    runOnUi(() -> {
+                        if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ OMMS登录已失效");
+                        showToast(order.stationname + " ⚠️ OMMS登录已失效，请重新获取Cookie！");
+                    });
+                    return;
+                }
+
                 String alarmId   = parseAlarmIdFromHtml(listRespA, order.stationname, order.billsn);
                 // 同时提取本次响应的 ViewState（用于后续确认/清除）
                 String viewState = extractViewState(listRespA);
@@ -312,7 +331,37 @@ public class WorkOrderFragment extends Fragment {
                 }
 
                 if (alarmId == null || alarmId.isEmpty()) {
+                    // 告警ID为空有两种可能：
+                    //  1. 真的没有告警（正常情况）
+                    //  2. OMMS Cookie已失效，返回的是登录页（响应很小+含login关键词）
                     String listRespDbg = WorkOrderApi.getOmmsAlarmList();
+                    int dbgLen = listRespDbg != null ? listRespDbg.length() : 0;
+                    // 打印实际响应内容（截取前200字符），方便调试
+                    String dbgPreview = listRespDbg != null
+                            ? listRespDbg.substring(0, Math.min(200, listRespDbg.length())).replace("\n", " ").replace("\r", "")
+                            : "null";
+                    Logger.w("ClearAlarm", "未找到告警ID，响应len=" + dbgLen + " 内容=" + dbgPreview);
+                    // 真正的登录页特征：password/username输入框、dologin URL
+                    // 不能只凭"login"字符串，因为OMMS正常页面里到处都是（如"logged in", "loginTime"）
+                    boolean likelyLoginPage = dbgLen > 0 && dbgLen < 1500
+                            && (listRespDbg.contains("name=\"password\"")
+                                || listRespDbg.contains("name=\"username\"")
+                                || listRespDbg.contains("name=\"j_password\"")
+                                || listRespDbg.contains("name=\"j_username\"")
+                                || listRespDbg.contains("dologin")
+                                || (listRespDbg.contains("uac") && listRespDbg.contains("login")));
+                    Logger.w("ClearAlarm", "未找到告警ID，响应len=" + dbgLen + " 可能是登录页=" + likelyLoginPage + " 内容=" + dbgPreview);
+
+                    if (likelyLoginPage) {
+                        // Cookie已失效 → 明确提示用户去刷新Cookie
+                        runOnUi(() -> {
+                            if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ OMMS登录已失效");
+                            showToast(order.stationname + " ⚠️ OMMS登录已失效，请重新获取Cookie！");
+                        });
+                        return;
+                    }
+
+                    // 真的没有告警数据 → 弹对话框让用户手动输入alarmId
                     String debugInfo   = extractAlarmRowsDebugInfo(listRespDbg);
                     final String fd    = debugInfo;
                     runOnUi(() -> {
@@ -327,6 +376,12 @@ public class WorkOrderFragment extends Fragment {
                 final String finalViewState = (viewState != null && !viewState.isEmpty()) ? viewState : "j_id12";
                 Logger.d("ClearAlarm", "找到alarmId=" + foundAlarmId + " viewState=" + finalViewState);
 
+                // ★★★ 在 confirm/clear 前先调用 refreshAlarmViewState() ★★★
+                // JSF j_id 是动态的，必须从完整 HTML 页面提取最新值
+                // 这会同步更新 confirmTrigger 和 clearTrigger
+                Logger.d("ClearAlarm", "刷新告警页，解析最新j_id触发字段...");
+                WorkOrderApi.refreshAlarmViewState();
+
                 runOnUi(() -> {
                     if (adapter != null) adapter.updateStatus(0, order.billsn, "⏳告警确认中...");
                 });
@@ -334,37 +389,30 @@ public class WorkOrderFragment extends Fragment {
                 // Step3: 告警确认（传入当前 ViewState）
                 String confirmResp = WorkOrderApi.confirmOmmsAlarm(foundAlarmId, finalViewState);
                 Logger.d("ClearAlarm", "告警确认len=" + confirmResp.length()
-                        + " preview=" + confirmResp.substring(0, Math.min(200, confirmResp.length())));
+                        + " preview=" + confirmResp.substring(0, Math.min(300, confirmResp.length())));
 
-                // ── 从 confirm 响应判断告警确认是否成功 ───────────────────────────
-                // 判断策略：
-                //   1. alarmId 不在响应中（checkbox消失）→ 确认成功
-                //   2. alarmId 仍在响应中且 title="Y" → 确认成功
-                //   3. alarmId 仍在响应中但无 title 属性（大页面）→ 可能之前已确认，继续走清除
-                //   4. 响应含登录页关键词 → Cookie失效
-                //   5. title="N" → 确认失败，报错退出
-                boolean confirmOk = isAlarmConfirmed(confirmResp, foundAlarmId);
-                Logger.d("ClearAlarm", "confirm验证: alarmId=" + foundAlarmId.substring(0,8)
-                        + "... confirmOk=" + confirmOk);
-
-                if (!confirmOk) {
-                    // 检查是否是登录页导致的失败
-                    if (confirmResp != null && (confirmResp.toLowerCase().contains("dologin")
-                            || confirmResp.toLowerCase().contains("uac/login"))) {
-                        runOnUi(() -> {
-                            if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ OMMS登录已失效");
-                            showToast(order.stationname + " ⚠️ OMMS登录已失效，请重新获取Cookie");
-                        });
-                    } else {
-                        Logger.w("ClearAlarm", "confirm后告警仍未确认，可能无操作权限");
-                        runOnUi(() -> {
-                            if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ 确认失败(无权限?)");
-                            showToast(order.stationname + " ⚠️ 告警确认失败，可能该告警不在您的代维范围");
-                        });
-                    }
+                // ── 判断是否需要继续清除 ───────────────────────────────────────────
+                // confirm是AJAX请求，返回RichFaces XML片段，不是完整HTML页面。
+                // 旧逻辑：试图从XML中找checkbox title → 永远找不到 → 永远失败
+                // 新逻辑：直接跳过验证（confirm已执行），让clear的报错告诉我们结果
+                // AJAX响应含重定向URL是正常的（如RichFaces返回window.location.href配置）
+                // 只有当响应很小(<1000字节)且有明确登录表单特征时才判为登录页
+                boolean isLoginPage = confirmResp != null
+                        && confirmResp.length() < 1000
+                        && (confirmResp.contains("name=\"password\"")
+                            || confirmResp.contains("name=\"username\"")
+                            || confirmResp.contains("name=\"j_password\"")
+                            || confirmResp.contains("name=\"j_username\"")
+                            || confirmResp.contains("dologin"));
+                if (isLoginPage) {
+                    Logger.w("ClearAlarm", "confirm响应含登录页，Cookie失效");
+                    runOnUi(() -> {
+                        if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ OMMS登录已失效");
+                        showToast(order.stationname + " ⚠️ OMMS登录已失效，请重新获取Cookie");
+                    });
                     return;
                 }
-                // confirm 成功或之前已确认 → 继续清除
+                // confirm执行完成 → 直接进入清除流程
 
                 // confirm 完成后，RichFaces 会返回新的 ViewState，必须提取出来给 clear 用
                 String vsAfterConfirm = extractViewState(confirmResp);
@@ -435,6 +483,8 @@ public class WorkOrderFragment extends Fragment {
         if (adapter != null) adapter.updateStatus(0, order.billsn, "⏳手动清除中...");
         executor.submit(() -> {
             try {
+                // ★★★ 刷新 j_id 触发字段 ★★★
+                WorkOrderApi.refreshAlarmViewState();
                 // 查询一次获取最新 ViewState
                 String listResp  = WorkOrderApi.getOmmsAlarmList();
                 String viewState = extractViewState(listResp);
@@ -907,96 +957,66 @@ public class WorkOrderFragment extends Fragment {
         }
     }
 
-    /**
-     * 验证 confirm 是否成功：从 confirm 响应里找目标 alarmId 对应的 selectFlag，
-     * 看 title 属性是否已从 "N" 变成 "Y"。
-     *
-     * OMMS doClearAlarmFunc 的校验逻辑：
-     *   if (TackCheckObj[i].title == "N") { showWarmMsg("只有已确认的告警才能进行强制删除"); return; }
-     * 所以只有 title="Y" 的告警才能执行 clear。
-     *
-     * @param confirmResp confirm 接口返回的 XHTML
-     * @param alarmId     要检查的告警 ID（32位hex）
-     * @return true = 已确认（title=Y），false = 未确认（title=N 或找不到）
-     */
-    private static boolean isAlarmConfirmed(String confirmResp, String alarmId) {
-        if (confirmResp == null || confirmResp.isEmpty() || alarmId == null) return false;
-        try {
-            // 在 XHTML 里找包含 alarmId 的 selectFlag input，检查 title 属性
-            java.util.regex.Pattern sfPat = java.util.regex.Pattern.compile(
-                    "<input[^>]+name=[\"']selectFlag[\"'][^>]*/?>",
-                    java.util.regex.Pattern.CASE_INSENSITIVE);
-            java.util.regex.Matcher sfM = sfPat.matcher(confirmResp);
-            while (sfM.find()) {
-                String tag = sfM.group();
-                if (!tag.contains(alarmId)) continue;
-                java.util.regex.Matcher tm = java.util.regex.Pattern.compile(
-                        "title=[\"']([^\"']*)[\"']",
-                        java.util.regex.Pattern.CASE_INSENSITIVE).matcher(tag);
-                if (tm.find()) {
-                    boolean confirmed = "Y".equalsIgnoreCase(tm.group(1));
-                    Logger.d("ClearAlarm", "isAlarmConfirmed title=" + tm.group(1) + " → " + confirmed);
-                    return confirmed;
-                }
-            }
-            // 找不到该 alarmId 对应的 checkbox
-            if (!confirmResp.contains(alarmId)) {
-                boolean bigPage = confirmResp.length() > 100000;
-                Logger.d("ClearAlarm", "isAlarmConfirmed: alarmId不在响应里 bigPage=" + bigPage + " len=" + confirmResp.length());
-                return bigPage && !confirmResp.toLowerCase().contains("dologin")
-                        && !confirmResp.toLowerCase().contains("uac/login");
-            }
-            Logger.w("ClearAlarm", "isAlarmConfirmed: 找到alarmId但无title属性，视为可能已确认");
-            // ★ 改进：找不到title但alarmId在响应中 → 可能已确认（页面重新渲染了），返回true继续走清除
-            return true;
-        } catch (Exception e) {
-            Logger.e("ClearAlarm", "isAlarmConfirmed error: " + e.getMessage());
-            return false;
-        }
-    }
 
     /**
      * 判断告警清除是否成功。
-     *
-     * 实测行为（账号有操作权限时）：
-     *   - clear 成功：返回整页 XHTML（约370KB），**无 JSON**，alarmId 对应的 selectFlag 消失
-     *   - clear 失败（ViewState失效/无权限）：返回含 JSON {"success":false} 或短错误响应
-     *   - Session 过期：响应含登录页关键词
+     * 
+     * 可靠验证方式：清除操作后再查一次告警列表，确认 alarmId 是否真的消失了。
+     * 这是最准确的方式，因为 AJAX 响应中 alarmId 可能残留在 ViewState 等字段中，
+     * 不能作为判断依据。
+     * 
+     * 注意：本方法会发起一次额外的网络请求（查询+正则匹配约50-200ms），这是必要的。
      */
-    private static boolean isClearSuccess(String resp, String alarmId) {
-        if (resp == null || resp.isEmpty()) return false;
-
-        // 优先：找 JSON 结果（含 "success":true/false）
-        java.util.regex.Matcher jm = java.util.regex.Pattern.compile(
-                "\"success\"\\s*:\\s*(true|false)",
-                java.util.regex.Pattern.CASE_INSENSITIVE).matcher(resp);
-        if (jm.find()) {
-            boolean suc = "true".equalsIgnoreCase(jm.group(1));
-            Logger.d("ClearAlarm", "isClearSuccess JSON success=" + suc);
-            return suc;
+    private static boolean isClearSuccess(String clearResp, String alarmId) {
+        if (clearResp == null || clearResp.isEmpty()) {
+            Logger.w("ClearAlarm", "isClearSuccess: clearResp为空，跳过初步判断");
+        } else {
+            String lower = clearResp.toLowerCase();
+            // 明显失败：响应很小(<500)且含登录关键词
+            if (clearResp.length() < 500
+                    && (lower.contains("sessionexpired") || lower.contains("uac/login")
+                        || lower.contains("dologin") || lower.contains("请先登录"))) {
+                Logger.w("ClearAlarm", "isClearSuccess: clearResp含登录页，Cookie失效");
+                return false;
+            }
+            Logger.d("ClearAlarm", "isClearSuccess: clearResp初步分析 len=" + clearResp.length()
+                    + " alarmIdContained=" + (alarmId != null && !alarmId.isEmpty() && clearResp.contains(alarmId)));
         }
 
-        String lower = resp.toLowerCase();
-
-        // Session 过期/登录页 → 明确失败
-        if (lower.contains("sessionexpired") || lower.contains("uac/login")
-                || lower.contains("dologin") || lower.contains("请先登录")) {
-            Logger.w("ClearAlarm", "isClearSuccess: Session已过期");
+        // ★★★ 可靠验证：查一次告警列表，确认 alarmId 是否真的消失了 ★★★
+        // 即使 AJAX 响应里 alarmId 残留也不影响判断
+        if (alarmId == null || alarmId.isEmpty()) {
+            Logger.w("ClearAlarm", "isClearSuccess: alarmId为空，无法验证");
             return false;
         }
 
-        // ★ 关键判断：clear成功后alarmId对应的selectFlag应从页面消失
-        // 大页面里alarmId仍然存在 → 清除未成功（页面刷新了但告警还在）
-        if (alarmId != null && !alarmId.isEmpty() && resp.contains(alarmId)) {
-            Logger.w("ClearAlarm", "isClearSuccess: alarmId仍在响应中 → 清除未成功 len=" + resp.length());
-            return false;
-        }
+        try {
+            String listResp = WorkOrderApi.getOmmsAlarmList();
+            if (listResp == null || listResp.isEmpty()) {
+                Logger.w("ClearAlarm", "isClearSuccess: 查询告警列表返回空");
+                return false;
+            }
 
-        // 无 JSON 且 alarmId 已消失 → 视为成功
-        // 实测：清除成功时 OMMS 返回轻量 Ajax 响应（含 ViewState，约1KB），
-        //       alarmId 已不在响应中，这就是成功的标志，无需判断响应大小
-        Logger.d("ClearAlarm", "isClearSuccess alarmId已消失 → 清除成功 len=" + resp.length());
-        return true;
+            // 列表中仍有这个 alarmId → 清除未成功
+            if (listResp.contains(alarmId)) {
+                Logger.w("ClearAlarm", "isClearSuccess: 告警列表中仍有alarmId → 清除未成功！");
+                return false;
+            }
+
+            // alarmId 已从列表中消失 → 清除成功
+            Logger.d("ClearAlarm", "isClearSuccess: ✅ 告警列表中无alarmId，验证成功");
+            return true;
+
+        } catch (Exception e) {
+            Logger.e("ClearAlarm", "isClearSuccess: 查询验证异常: " + e.getMessage());
+            // 查询验证失败时，降级为原来的判断方式
+            if (alarmId != null && !alarmId.isEmpty() && clearResp != null && clearResp.contains(alarmId)) {
+                Logger.w("ClearAlarm", "isClearSuccess: 降级判断——alarmId仍在响应中，判定失败");
+                return false;
+            }
+            Logger.d("ClearAlarm", "isClearSuccess: 降级判断——alarmId已消失，判定成功");
+            return true;
+        }
     }
 
     private void runOnUi(Runnable r) {

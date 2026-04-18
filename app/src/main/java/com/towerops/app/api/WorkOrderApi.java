@@ -492,7 +492,10 @@ public class WorkOrderApi {
                         android.util.Log.w("DOOR_DIAG", "返回内容[" + i + "-" + end + "]: " + result.substring(i, end));
                     }
                 }
-                if (result.contains("doPrevLogin") || result.contains("uac/login")) {
+                // AJAX分页响应中uac/login可能出现在URL配置里，不是真正的登录页
+                // 只有响应很小(<500字节)且有明确登录特征时才判为登录页
+                if (result.length() < 500
+                        && (result.contains("doPrevLogin") || result.contains("uac/login"))) {
                     android.util.Log.e("DOOR_DIAG", "第" + pageNo + "页被重定向到登录页！Cookie已失效！");
                     return "";
                 }
@@ -564,7 +567,9 @@ public class WorkOrderApi {
                 android.util.Log.e("DOOR_DIAG", "翻页返回 null 或空！");
                 return "";
             }
-            if (result.contains("doPrevLogin") || result.contains("uac/login")) {
+            // AJAX响应中uac/login可能出现在URL配置里，不是真正的登录页
+            if (result.length() < 500
+                    && (result.contains("doPrevLogin") || result.contains("uac/login"))) {
                 android.util.Log.e("DOOR_DIAG", "翻页被重定向到登录页！Cookie已失效！");
                 return "";
             }
@@ -706,12 +711,12 @@ public class WorkOrderApi {
         if (cookie == null || cookie.isEmpty()) return "{\"error\":\"ommsCookie为空\"}";
 
         String url = "http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml";
-        // ★ 参数完全基于精易模块真实抓包（2026-03-28）：
+        // ★ 参数基于精易模块真实抓包 + 动态 j_id 解析
         //   AJAXREQUEST=_viewRoot（RichFaces标准值）
-        //   form=alarmConfirmListForm（不是j_id1351）
-        //   alarmId字段名=alarmConfirmListForm:alarmId（不是alarmStr）
+        //   form=alarmConfirmListForm
+        //   alarmId字段名=alarmConfirmListForm:alarmId
         //   confirmInfo=1（必须，之前缺失）
-        //   触发器=alarmConfirmListForm:j_id1589（不是j_id1351:j_id1359）
+        //   触发器=alarmConfirmListForm:j_idXXX（动态，从页面提取）
         String post =
                 "AJAXREQUEST=_viewRoot"
                 + "&alarmConfirmListForm%3AalarmId=" + urlEncUtf8(alarmId)
@@ -719,7 +724,7 @@ public class WorkOrderApi {
                 + "&alarmConfirmListForm=alarmConfirmListForm"
                 + "&autoScroll="
                 + "&javax.faces.ViewState=" + urlEncUtf8(viewState)
-                + "&alarmConfirmListForm%3Aj_id1589=alarmConfirmListForm%3Aj_id1589"
+                + "&" + confirmTriggerFull.replace(":", "%3A") + "=" + confirmTriggerFull.replace(":", "%3A")
                 + "&AJAX%3AEVENTS_COUNT=1";
 
         String headers = buildOmmsHeader("http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml");
@@ -743,13 +748,13 @@ public class WorkOrderApi {
 
         String url = "http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml";
         // ★ 参数完全基于精易模块真实抓包（2026-03-28），全部验证正确
+        // 清除请求不需要独立的表单名字段（与确认请求不同，抓包数据验证）
         String post =
                 "AJAXREQUEST=_viewRoot"
-                + "&j_id1351=j_id1351"
                 + "&autoScroll="
                 + "&javax.faces.ViewState=" + urlEncUtf8(viewState)
                 + "&alarmStr=" + urlEncUtf8(alarmStr)
-                + "&j_id1351%3Aj_id1369=j_id1351%3Aj_id1369"
+                + "&" + clearTriggerFull.replace(":", "%3A") + "=" + clearTriggerFull.replace(":", "%3A")
                 + "&AJAX%3AEVENTS_COUNT=1";
 
         String headers = buildOmmsHeader("http://omms.chinatowercom.cn:9000/business/resMge/alarmMge/listAlarm.xhtml");
@@ -779,6 +784,20 @@ public class WorkOrderApi {
     private static volatile String alarmProviceId  = "";
     private static volatile String alarmCityId     = "";
     private static volatile String alarmCountryId  = "";
+
+    // =====================================================================
+    // OMMS 告警页 confirm（确认）按钮触发字段缓存
+    // HTML形如: <input ... name="alarmConfirmListForm:j_id1589" ... value="确认" .../>
+    // =====================================================================
+    private static volatile String confirmTrigger = "j_id1589";  // 默认值，冒号后部分
+    private static volatile String confirmTriggerFull = "alarmConfirmListForm:j_id1589";  // 默认值，含前缀
+
+    // =====================================================================
+    // OMMS 告警页 clear（清除）按钮触发字段缓存
+    // HTML形如: <input ... name="alarmConfirmListForm:j_id1369" ... value="清除" .../>
+    // =====================================================================
+    private static volatile String clearTrigger = "j_id1369";  // 默认值，冒号后部分
+    private static volatile String clearTriggerFull = "alarmConfirmListForm:j_id1369";  // 默认值，含前缀
 
     // =====================================================================
     // 门禁告警专用触发字段缓存（与 alarmQueryTrigger 不同，门禁表单触发器为 j_id56 等）
@@ -825,8 +844,7 @@ public class WorkOrderApi {
             if (html.isEmpty()) return null;
 
             // 是否被重定向到登录页
-            if (html.contains("doPrevLogin") || html.contains("uac/login")
-                    || html.contains("loginpage") || html.contains("请先登录")) {
+            if (html.contains("doPrevLogin") || html.contains("loginpage") || html.contains("请先登录")) {
                 android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 被重定向到登录页，ommsCookie已失效");
                 return null;
             }
@@ -868,6 +886,85 @@ public class WorkOrderApi {
                 extractAreaIds(html, "listAlarm(refresh)");
                 android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: area="
                         + alarmProviceId + "/" + alarmCityId + "/" + alarmCountryId);
+
+                // ★★★ 动态解析 confirm 和 clear 按钮触发字段 ★★★
+                // JSF j_id 是动态的，必须从页面 HTML 提取，不能写死！
+                // 增强正则：支持 self-closing tag (/>) 和任意属性顺序
+                // HTML形如: <input type="submit" name="alarmConfirmListForm:j_id1589" value="Confirm" />
+                // 或: <input value="Confirm" name="alarmConfirmListForm:j_id1589" .../>
+                String q = "[\"']";  // 单引号或双引号
+                String qval = "[^\"']*";  // 属性值（不含引号）
+
+                // ===== confirm 按钮解析 =====
+                // 方案A: name在前，value在后 (支持 self-closing)
+                // 方案B: value在前，name在后 (支持 self-closing)
+                java.util.regex.Pattern pConfirm = java.util.regex.Pattern.compile(
+                        "<input[^>]*/>"  // 先找所有 self-closing input
+                        + "|"  // 或
+                        + "<input[^>]*/?>"  // 兼容 non-self-closing
+                        + "(?=[^<]*(?:name=" + q + "alarmConfirmListForm:" + qval + q + "))",  // lookahead: 含confirm按钮
+                        java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher mConfirm = pConfirm.matcher(html);
+                String foundConfirmName = null;
+                while (mConfirm.find()) {
+                    String inp = mConfirm.group(0);
+                    // 提取 name 属性值
+                    java.util.regex.Pattern pName = java.util.regex.Pattern.compile(
+                            "name=" + q + "(" + qval + ")" + q,
+                            java.util.regex.Pattern.CASE_INSENSITIVE);
+                    java.util.regex.Matcher mName = pName.matcher(inp);
+                    while (mName.find()) {
+                        String n = mName.group(1);
+                        if (n.contains("alarmConfirmListForm:")) {
+                            foundConfirmName = n;
+                            break;
+                        }
+                    }
+                    if (foundConfirmName != null) break;
+                }
+                if (foundConfirmName != null) {
+                    confirmTriggerFull = foundConfirmName;
+                    confirmTrigger = foundConfirmName.substring(foundConfirmName.indexOf(":") + 1);
+                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: confirmTriggerFull=" + foundConfirmName + " confirmTrigger=" + confirmTrigger);
+                } else {
+                    android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 未找到confirm按钮，保持confirmTriggerFull=" + confirmTriggerFull);
+                }
+
+                // ===== clear 按钮解析 =====
+                // 查找含 value="清除" 的 input，提取其 name 属性
+                java.util.regex.Pattern pClear = java.util.regex.Pattern.compile(
+                        "<input[^>]*/?>",
+                        java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher mClear = pClear.matcher(html);
+                String foundClearName = null;
+                while (mClear.find()) {
+                    String inp = mClear.group(0);
+                    // 检查是否含 value="清除" (忽略大小写)
+                    if (java.util.regex.Pattern.compile(
+                            "value=" + q + "[^\"']*清除[^\"']*" + q,
+                            java.util.regex.Pattern.CASE_INSENSITIVE).matcher(inp).find()) {
+                        // 提取 name 属性
+                        java.util.regex.Pattern pName2 = java.util.regex.Pattern.compile(
+                                "name=" + q + "(" + qval + ")" + q,
+                                java.util.regex.Pattern.CASE_INSENSITIVE);
+                        java.util.regex.Matcher mName2 = pName2.matcher(inp);
+                        while (mName2.find()) {
+                            String n = mName2.group(1);
+                            if (n.contains(":")) {
+                                foundClearName = n;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundClearName != null) break;
+                }
+                if (foundClearName != null) {
+                    clearTriggerFull = foundClearName;
+                    clearTrigger = foundClearName.substring(foundClearName.indexOf(":") + 1);
+                    android.util.Log.d("WorkOrderApi", "refreshAlarmViewState: clearTriggerFull=" + foundClearName + " clearTrigger=" + clearTrigger);
+                } else {
+                    android.util.Log.w("WorkOrderApi", "refreshAlarmViewState: 未找到clear按钮，保持clearTriggerFull=" + clearTriggerFull);
+                }
 
                 // ★ 注意：doorAlarmTrigger 不在这里更新！
                 // listAlarm.xhtml（普通告警）与 listHisAlarmHbase.xhtml（门禁历史告警）是两个不同页面，
@@ -930,8 +1027,7 @@ public class WorkOrderApi {
             }
 
             // 是否被重定向到登录页
-            if (html.contains("doPrevLogin") || html.contains("uac/login")
-                    || html.contains("loginpage") || html.contains("请先登录")) {
+            if (html.contains("doPrevLogin") || html.contains("loginpage") || html.contains("请先登录")) {
                 android.util.Log.w("WorkOrderApi", "refreshDoorAlarmViewState: 被重定向到登录页，ommsCookie已失效");
                 return null;
             }

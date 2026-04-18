@@ -126,6 +126,8 @@ public class MonitorTask implements Runnable {
             alarmPool.execute(() -> {
                 try {
                     String resp = WorkOrderApi.getBillAlarmList(finalWo.billsn);
+                    // ★★★ 调试日志：查看API返回的JSON结构 ★★★
+                    android.util.Log.d("MonitorTask", "getBillAlarmList[" + finalWo.billsn + "] len=" + resp.length() + " preview=" + resp.substring(0, Math.min(300, resp.length())));
                     // 严格按易语言逻辑：寻找文本(resp, "alarmname") ≠ -1 → 告警中
                     finalWo.alertStatus = resp.contains("alarmname") ? "告警中" : "已恢复";
                     // ★ 同时提取最早告警时间（用于 UI 告警时间排序）
@@ -133,6 +135,7 @@ public class MonitorTask implements Runnable {
                         finalWo.alertTime = extractAlarmTime(resp);
                     }
                 } catch (Exception e) {
+                    android.util.Log.e("MonitorTask", "getBillAlarmList[" + finalWo.billsn + "] 异常: " + e.getMessage());
                     finalWo.alertStatus = "告警中"; // 查询异常保守处理
                 } finally {
                     alarmLatch.countDown();

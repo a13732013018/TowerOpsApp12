@@ -211,6 +211,7 @@ public class LoginApi {
 
             // 易语言协议头：用 appToken 替换 "token2"
             // Authorization: token2  →  Authorization: <appToken>
+            // ★★★ 修复（2026-04-18）：移除 Accept-Encoding: gzip，避免服务器返回压缩数据
             String headers = "Authorization: " + appToken + "\n"
                     + "equiptoken: \n"
                     + "appVer: 202112\n"
@@ -218,7 +219,6 @@ public class LoginApi {
                     + "Content-Length: " + contentLength + "\n"
                     + "Host: ywapp.chinatowercom.cn:58090\n"
                     + "Connection: Keep-Alive\n"
-                    + "Accept-Encoding: gzip\n"
                     + "Cookie: ULTRA_U_K=\"\"; ULTRA_U_K=\"\"\n"
                     + "User-Agent: okhttp/4.10.0";
 

@@ -22,6 +22,7 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.towerops.app.R;
+import com.towerops.app.model.AccountConfig;
 import com.towerops.app.model.Session;
 import com.towerops.app.util.PrefHelper;
 
@@ -208,7 +209,22 @@ public class TymjLoginActivity extends Activity {
                 && (tower4aCookie.contains("SESSION=") || tower4aCookie.contains("Tnuocca="));
         
         Log.d(TAG, ">>> Cookie有效性检查: " + cookieValid);
-        
+
+        CookieManager cm = CookieManager.getInstance();
+        cm.setAcceptCookie(true);
+        cm.setAcceptThirdPartyCookies(webView, true);
+
+        // ① 检查WebView中是否已有有效的4A Cookie
+        String existing = cm.getCookie(BASE_4A);
+        if (existing != null && existing.contains("SESSION")) {
+            Log.d(TAG, ">>> WebView中已有有效4A Cookie，直接加载");
+            hint("✅ 已检测到4A登录状态\n正在加载页面...\n\n💡 如需重新登录，请点击右上角刷新按钮");
+            sessionCookieValid = true;
+            Log.d(TAG, ">>> 加载URL: " + UA4A_INDEX);
+            webView.loadUrl(UA4A_INDEX);
+            return;
+        }
+
         if (!cookieValid) {
             // Cookie无效或为空，需要用户在WebView中登录
             s.tower4aSessionCookie = "";  // 清空无效Cookie
@@ -219,13 +235,8 @@ public class TymjLoginActivity extends Activity {
             sessionCookieValid = true;
         }
 
-        CookieManager cm = CookieManager.getInstance();
-        cm.setAcceptCookie(true);
-        cm.setAcceptThirdPartyCookies(webView, true);
-
-        cm.removeAllCookies(null);
-
-        // 注入4A Cookie（如果存在有效Cookie）
+        // ② 直接注入Cookie，不删除任何旧Cookie
+        // （4A服务器端Session过期后删除也没用，直接让页面显示登录页更可靠）
         if (cookieValid) {
             for (String part : tower4aCookie.split(";")) {
                 String kv = part.trim();
@@ -325,11 +336,13 @@ public class TymjLoginActivity extends Activity {
                     session.tower4aSessionCookie = "";
                     Log.d(TAG, "4A Cookie已过期，已清空，将在WebView中重新登录");
                     
-                    hint("⚠️ 4A Session已过期\n请在下方登录4A（输入账号密码+短信验证码）\n登录成功后程序将自动获取Bearer Token");
+                    hint("⚠️ 4A Session已过期，正在自动填写账号密码...");
                     
                     // 不关闭页面，让用户在WebView中重新登录
                     // 重置captured状态，登录成功后继续获取Token
                     captured = false;
+                    // 延迟1.5秒自动填充（等页面完全加载）
+                    mainHandler.postDelayed(() -> autoFill4aLogin(webView), 1500);
                     return false; // 继续加载登录页
                 }
                 
@@ -374,8 +387,9 @@ public class TymjLoginActivity extends Activity {
                     }
                     hint("👆 请点击「统一门禁管理端」入口\n点击后程序将自动获取Bearer Token");
                 } else if (url.contains("4a.chinatowercom.cn") && url.contains("login")) {
-                    // 在登录页
-                    hint("👆 请在此页面登录4A\n输入账号密码+短信验证码\n登录成功后程序将自动获取Bearer Token");
+                    // 在登录页 - 自动填充账号密码
+                    hint("正在自动填写账号密码，请等待短信验证码...");
+                    mainHandler.postDelayed(() -> autoFill4aLogin(view), 1000);
                 } else if (url.contains("tymj.chinatowercom.cn")) {
                     // 进入门禁页面
                     hint("✅ 已进入门禁页面，正在获取Bearer Token...");
@@ -460,6 +474,66 @@ public class TymjLoginActivity extends Activity {
                 }
             }
         }
+    }
+
+    /**
+     * 自动填充4A登录页的账号密码并提交
+     * 用户只需等待短信验证码，无需手动输入账号密码
+     */
+    private void autoFill4aLogin(WebView view) {
+        Session s = Session.get();
+        int idx = s.selected4AAccountIndex;
+        String username = AccountConfig.ACCOUNTS[idx][0];
+        String password = AccountConfig.get4aPassword(idx);
+
+        if (password == null || password.isEmpty()) {
+            hint("⚠️ 未配置4A密码，请手动输入账号密码");
+            return;
+        }
+
+        Log.d(TAG, "autoFill4a: 自动填充账号=" + username);
+        hint("正在自动填写账号密码，请等待短信验证码...");
+
+        // JS：找到账号密码输入框，填值，点击登录按钮
+        String js = "(function() {" +
+            "try {" +
+            "  var userInput = document.querySelector('input[name=\"username\"]') " +
+            "    || document.querySelector('input[type=\"text\"]') " +
+            "    || document.querySelector('#username') " +
+            "    || document.querySelector('input[placeholder*=\"账号\"]') " +
+            "    || document.querySelector('input[placeholder*=\"工号\"]');" +
+            "  var pwdInput = document.querySelector('input[name=\"password\"]') " +
+            "    || document.querySelector('input[type=\"password\"]') " +
+            "    || document.querySelector('#password');" +
+            "  if (!userInput || !pwdInput) {" +
+            "    return 'NOT_FOUND: user=' + !!userInput + ' pwd=' + !!pwdInput;" +
+            "  }" +
+            "  userInput.value = '" + username.replace("'", "\\'") + "';" +
+            "  userInput.dispatchEvent(new Event('input', {bubbles:true}));" +
+            "  userInput.dispatchEvent(new Event('change', {bubbles:true}));" +
+            "  pwdInput.value = '" + password.replace("'", "\\'") + "';" +
+            "  pwdInput.dispatchEvent(new Event('input', {bubbles:true}));" +
+            "  pwdInput.dispatchEvent(new Event('change', {bubbles:true}));" +
+            "  setTimeout(function() {" +
+            "    var btn = document.querySelector('button[type=\"submit\"]') " +
+            "      || document.querySelector('input[type=\"submit\"]') " +
+            "      || document.querySelector('.login-btn') " +
+            "      || document.querySelector('button.btn-primary') " +
+            "      || document.querySelector('button');" +
+            "    if (btn) { btn.click(); }" +
+            "  }, 500);" +
+            "  return 'FILLED';" +
+            "} catch(e) { return 'ERR:' + e.message; }" +
+            "})()";
+
+        view.evaluateJavascript(js, result -> {
+            Log.d(TAG, "autoFill4a JS result: " + result);
+            if (result != null && result.contains("NOT_FOUND")) {
+                mainHandler.post(() -> hint("⚠️ 未找到登录输入框，请手动输入\n账号: " + username));
+            } else if (result != null && result.contains("FILLED")) {
+                mainHandler.post(() -> hint("✅ 已自动填写账号密码，正在提交...\n请等待短信验证码并输入"));
+            }
+        });
     }
 
     /**

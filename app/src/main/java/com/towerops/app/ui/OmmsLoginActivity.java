@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.towerops.app.R;
+import com.towerops.app.model.AccountConfig;
 import com.towerops.app.model.Session;
 import com.towerops.app.util.Logger;
 import com.towerops.app.util.ThreadManager;
@@ -58,6 +59,8 @@ public class OmmsLoginActivity extends Activity {
     private TextView   tvHint;
 
     private boolean captured = false;
+    private boolean captured4aToken = false;  // 是否已捕获4A Bearer Token
+    private String savedPwdaToken = "";  // 保存pwdaToken用于后续获取4A Token
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -170,6 +173,23 @@ public class OmmsLoginActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 String url = req.getUrl().toString();
                 Logger.d(TAG, "nav -> " + url);
+
+                // 检测到进入门禁页面
+                if (url.contains("tymj.chinatowercom.cn")) {
+                    // 保存pwdaToken（如果URL中有）
+                    if (url.contains("pwdaToken=")) {
+                        try {
+                            int start = url.indexOf("pwdaToken=") + "pwdaToken=".length();
+                            int end = url.indexOf("&", start);
+                            if (end < 0) end = url.length();
+                            savedPwdaToken = url.substring(start, end);
+                            Logger.d(TAG, "[4A] 保存pwdaToken: " + savedPwdaToken.substring(0, 20) + "...");
+                        } catch (Exception e) {
+                            Logger.e(TAG, "[4A] 保存pwdaToken失败: " + e.getMessage());
+                        }
+                    }
+                }
+
                 return false; // 全部放行，让 WebView 自己加载
             }
 
@@ -193,7 +213,9 @@ public class OmmsLoginActivity extends Activity {
                     ThreadManager.postDelayed(OmmsLoginActivity.this::tryCaptureCookie, 800);
                 } else if (url.contains("4a.chinatowercom.cn")) {
                     if (url.contains("login") || url.contains("doPrevLogin")) {
-                        hint("请登录4A账号");
+                        hint("正在自动填写账号密码...");
+                        // 自动填充账号密码并提交（用户只需等短信验证码）
+                        ThreadManager.postDelayed(() -> autoFill4aLogin(view), 1500);
                     } else {
                         // 4A 登录成功（包含有Cookie直接进入工作台的情况），立即捕获4A Cookie并保存
                         captureAndSave4aCookie();
@@ -201,6 +223,16 @@ public class OmmsLoginActivity extends Activity {
                         hint("4A 已就绪，正在自动点击「运维监控」...");
                         ThreadManager.postDelayed(() -> injectAutoClickOmmsMenu(view), 2000);
                     }
+                } else if (url.contains("tymj.chinatowercom.cn")) {
+                    // 进入门禁管理端，同时获取OMMS Cookie和4A Bearer Token
+                    hint("✅ 进入门禁管理端，获取OMMS凭据和4A Token...");
+
+                    // 方式1：注入JS Hook拦截XHR Authorization头获取4A Bearer Token
+                    if (!captured4aToken) {
+                        ThreadManager.postDelayed(() -> inject4aTokenHook(view), 1000);
+                    }
+                    // 方式2：延迟获取OMMS Cookie
+                    ThreadManager.postDelayed(OmmsLoginActivity.this::tryCaptureCookie, 1500);
                 }
             }
 
@@ -216,31 +248,34 @@ public class OmmsLoginActivity extends Activity {
     /**
      * 智能注入4A Cookie 并加载4A首页。
      *
-     * 优化策略（避免重复登录4A）：
-     *  1. 先检查 CookieManager 里是否已有有效的4A Session Cookie（SESSION= 字段）。
-     *     有效 → 直接加载4A首页，完全不清 Cookie，不重新注入，保留当前已登录状态。
-     *  2. 无有效 Session 但 tower4aSessionCookie 不为空 → 增量注入（只覆盖4A域，不清其他域）。
-     *  3. 两者都没有 → 显示手动登录提示，加载4A登录页。
+     * 策略：
+     *  1. 先检查 WebView 中是否已有有效的4A Cookie → 直接加载
+     *  2. 没有则从 Session 读取保存的 Cookie → 直接注入（不清旧Cookie）
+     *  3. 两者都没有 → 加载4A登录页
      *
-     * ★ 关键改动：去掉 removeAllCookies，避免清掉有效的4A Session，
-     *    导致每次进来都要重新输账号密码甚至验证码。
+     * 注意：不再删除Cookie，因为4A服务器端Session过期后即使删除也没用，
+     *       直接让页面显示登录页让用户重新登录更可靠。
      */
     private void inject4aCookieAndLoad() {
         Session s = Session.get();
         String cookie4a = s.tower4aSessionCookie;
         CookieManager cm = CookieManager.getInstance();
 
-        // 【修复方案1】强制清除所有Cookie + 重新注入4A Session
-        // 原因：WebView CookieManager 在App重启后会清空，需要强制重新注入
-        if (cookie4a != null && !cookie4a.isEmpty()) {
-            // 清空所有域的Cookie（避免旧Cookie干扰）
-            Logger.d(TAG, "inject4a: 清空所有Cookie...");
-            cm.removeAllCookies(null);
-            cm.flush();
+        // ① 检查WebView中是否已有有效的4A Cookie
+        String existing = cm.getCookie("http://4a.chinatowercom.cn:20000");
+        if (existing != null && existing.contains("SESSION")) {
+            Logger.d(TAG, "inject4a: WebView中已有有效4A Cookie，直接加载");
+            hint("✅ 已检测到4A登录状态，正在加载...");
+            webView.loadUrl(URL_4A);
+            return;
+        }
 
-            // 注入4A域的Cookie
-            Logger.d(TAG, "inject4a: 注入4A Cookie (len=" + cookie4a.length() + ")");
+        // ② 从Session读取并注入Cookie
+        if (cookie4a != null && !cookie4a.isEmpty()) {
+            Logger.d(TAG, "inject4a: 从Session注入4A Cookie (len=" + cookie4a.length() + ")");
             hint("正在注入4A登录状态...");
+
+            // 直接注入Cookie，不删除任何旧Cookie
             for (String part : cookie4a.split(";")) {
                 String kv = part.trim();
                 if (!kv.isEmpty()) {
@@ -255,20 +290,18 @@ public class OmmsLoginActivity extends Activity {
             String check = cm.getCookie("http://4a.chinatowercom.cn:20000");
             boolean injected = check != null && check.contains("SESSION");
             Logger.d(TAG, "inject4a: 验证结果 " + (injected ? "成功" : "失败")
-                    + ": " + (check == null ? "null" : check.substring(0, Math.min(100, check.length()))));
+                    + ": " + (check == null ? "null" : (check.length() > 100 ? check.substring(0, 100) : check)));
 
             if (injected) {
-                hint("已注入4A登录状态，正在加载4A首页...");
-                webView.loadUrl(URL_4A);
-                return;
+                hint("✅ 已注入4A登录状态，正在加载4A首页...");
             } else {
-                hint("⚠️ Cookie注入失败，请手动登录4A账号");
-                webView.loadUrl(URL_4A);
-                return;
+                hint("⚠️ Cookie注入可能失败，尝试加载页面...");
             }
+            webView.loadUrl(URL_4A);
+            return;
         }
 
-        // ② 完全没有4A凭据，让用户手动登录
+        // ③ 完全没有4A凭据，让用户手动登录
         Logger.w(TAG, "inject4a: tower4aSessionCookie为空");
         hint("未检测到4A登录状态，请在此处手动登录4A账号");
         webView.loadUrl(URL_4A);
@@ -356,6 +389,88 @@ public class OmmsLoginActivity extends Activity {
                 Logger.d(TAG, "autoClickOmms JS result: " + result));
     }
 
+    /**
+     * 注入JS Hook拦截XHR/fetch请求，获取4A Bearer Token
+     * Bearer Token在API请求的Authorization头中
+     */
+    private void inject4aTokenHook(WebView view) {
+        if (captured4aToken) return;
+
+        // 添加Android接口（确保已添加）
+        view.addJavascriptInterface(new OmmsMenuBridge(), "OmmsMenuBridge");
+
+        // 注入XHR Hook脚本
+        String hookJs = "(function(){" +
+                "  if (window._omms4aHooked) return 'already hooked';" +
+                "  window._omms4aHooked = true;" +
+
+                "  // Hook XMLHttpRequest" +
+                "  var OriginalXHR = window.XMLHttpRequest;" +
+                "  window.XMLHttpRequest = function(){" +
+                "    var xhr = new OriginalXHR();" +
+                "    var originalSetRequestHeader = xhr.setRequestHeader;" +
+                "    xhr.setRequestHeader = function(name, value){" +
+                "      if (name.toLowerCase() === 'authorization' && value){" +
+                "        window._4aAuthHeader = value;" +
+                "        console.log('[4A-Hook] Authorization: ' + value);" +
+                "        try { window.OmmsMenuBridge.on4aTokenCaptured(value); } catch(e) {}" +
+                "      }" +
+                "      return originalSetRequestHeader.call(this, name, value);" +
+                "    };" +
+                "    return xhr;" +
+                "  };" +
+
+                "  // Hook fetch" +
+                "  var OriginalFetch = window.fetch;" +
+                "  window.fetch = function(url, options){" +
+                "    if (options && options.headers){" +
+                "      var headers = options.headers;" +
+                "      if (typeof headers.get === 'function'){" +
+                "        var auth = headers.get('authorization');" +
+                "        if (auth) window._4aAuthHeader = auth;" +
+                "      } else {" +
+                "        for (var key in headers){" +
+                "          if (key.toLowerCase() === 'authorization'){" +
+                "            window._4aAuthHeader = headers[key];" +
+                "            break;" +
+                "          }" +
+                "        }" +
+                "      }" +
+                "    }" +
+                "    return OriginalFetch.apply(this, arguments);" +
+                "  };" +
+
+                "  console.log('[4A-Hook] XHR/Fetch hooked');" +
+                "  return 'XHR/Fetch hooked';" +
+                "})()";
+
+        view.evaluateJavascript(hookJs, result ->
+                Logger.d(TAG, "[4A-Hook] 注入结果: " + result));
+
+        // 延迟触发一个API请求，激活token生成
+        ThreadManager.postDelayed(() -> triggerApiForToken(view), 2000);
+    }
+
+    /**
+     * 触发API请求，激活4A Bearer Token生成
+     */
+    private void triggerApiForToken(WebView view) {
+        if (captured4aToken) return;
+
+        String triggerJs = "(function(){" +
+                "  var xhr = new XMLHttpRequest();" +
+                "  xhr.open('GET', '/api/doorOpeningRecord/queryAreaTree', true);" +
+                "  xhr.onload = function(){" +
+                "    console.log('[4A-Trigger] API响应: ' + xhr.status);" +
+                "  };" +
+                "  xhr.send();" +
+                "  return 'triggered';" +
+                "})()";
+
+        view.evaluateJavascript(triggerJs, result ->
+                Logger.d(TAG, "[4A-Trigger] 触发结果: " + result));
+    }
+
     public class OmmsMenuBridge {
         @android.webkit.JavascriptInterface
         public void onMenuClicked(String menu) {
@@ -369,6 +484,37 @@ public class OmmsLoginActivity extends Activity {
             String preview = textsJson.length() > 200 ? textsJson.substring(0, 200) + "..." : textsJson;
             ThreadManager.runOnUiThread(() ->
                 hint("⚠️ 自动找菜单失败，请手动点击「运维监控」\n\n页面文本:\n" + preview));
+        }
+
+        /**
+         * 从XHR Hook回调4A Bearer Token
+         * 格式：Bearer xxxxxxxx（去掉Bearer前缀后约96字符的hex字符串）
+         */
+        @android.webkit.JavascriptInterface
+        public void on4aTokenCaptured(String authHeader) {
+            if (captured4aToken || authHeader == null || authHeader.isEmpty()) return;
+
+            String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+            // Bearer Token特征：非JWT格式，约96字符hex
+            if (token.contains(".")) {
+                Logger.d(TAG, "[4A Token] 跳过JWT，等待Bearer Token...");
+                return;
+            }
+            if (token.length() < 20) return;
+
+            Logger.d(TAG, "🎯 [4A Token] 捕获到Bearer Token: " + token.substring(0, 20) + "...");
+            captured4aToken = true;
+
+            // 保存到Session
+            Session session = Session.get();
+            session.tower4aToken = token;
+            session.saveTower4aToken(OmmsLoginActivity.this);
+            Logger.d(TAG, "[4A Token] 已保存到Session.tower4aToken");
+
+            ThreadManager.runOnUiThread(() -> {
+                hint("✅ OMMS + 4A Token 获取成功！");
+                Toast.makeText(OmmsLoginActivity.this, "✅ 4A Bearer Token 自动获取成功！", Toast.LENGTH_SHORT).show();
+            });
         }
     }
 
@@ -409,6 +555,12 @@ public class OmmsLoginActivity extends Activity {
             hint("✅ 获取成功！" + (hasPwda ? "含pwdaToken" : "含JSESSIONID"));
             Toast.makeText(this, "✅ OMMS 登录成功！", Toast.LENGTH_SHORT).show();
 
+            // 如果4A Token也已捕获，延迟关闭
+            if (captured4aToken) {
+                hint("✅ OMMS + 4A Token 全部获取成功！");
+                Toast.makeText(this, "✅ OMMS Cookie + 4A Bearer Token 获取成功！", Toast.LENGTH_LONG).show();
+            }
+
             // 延迟600ms让用户看到提示后自动关闭
             ThreadManager.postDelayed(() -> {
                 Intent result = new Intent();
@@ -428,6 +580,75 @@ public class OmmsLoginActivity extends Activity {
                 retryCount = 0; // 重置计数，允许再次触发
             }
         }
+    }
+
+    /**
+     * 自动填充4A登录页的账号密码并提交
+     * 用户只需等待短信验证码，无需手动输入账号密码
+     */
+    private void autoFill4aLogin(WebView view) {
+        Session s = Session.get();
+        int idx = s.selected4AAccountIndex;
+        String username = AccountConfig.ACCOUNTS[idx][0];
+        String password = AccountConfig.get4aPassword(idx);
+
+        if (password == null || password.isEmpty()) {
+            hint("⚠️ 未配置4A密码，请手动输入账号密码");
+            return;
+        }
+
+        Logger.d(TAG, "autoFill4a: 自动填充账号=" + username);
+        hint("正在自动填写账号密码，请等待短信验证码...");
+
+        // JS：找到账号密码输入框，填值，点击登录按钮
+        String js = "(function() {" +
+            "try {" +
+            // 找账号输入框（多种选择器兜底）
+            "  var userInput = document.querySelector('input[name=\"username\"]') " +
+            "    || document.querySelector('input[type=\"text\"]') " +
+            "    || document.querySelector('#username') " +
+            "    || document.querySelector('input[placeholder*=\"账号\"]') " +
+            "    || document.querySelector('input[placeholder*=\"工号\"]');" +
+            // 找密码输入框
+            "  var pwdInput = document.querySelector('input[name=\"password\"]') " +
+            "    || document.querySelector('input[type=\"password\"]') " +
+            "    || document.querySelector('#password');" +
+            "  if (!userInput || !pwdInput) {" +
+            "    return 'NOT_FOUND: user=' + !!userInput + ' pwd=' + !!pwdInput;" +
+            "  }" +
+            // 填账号
+            "  userInput.value = '" + username.replace("'", "\\'") + "';" +
+            "  userInput.dispatchEvent(new Event('input', {bubbles:true}));" +
+            "  userInput.dispatchEvent(new Event('change', {bubbles:true}));" +
+            // 填密码
+            "  pwdInput.value = '" + password.replace("'", "\\'") + "';" +
+            "  pwdInput.dispatchEvent(new Event('input', {bubbles:true}));" +
+            "  pwdInput.dispatchEvent(new Event('change', {bubbles:true}));" +
+            // 延迟500ms点提交按钮
+            "  setTimeout(function() {" +
+            "    var btn = document.querySelector('button[type=\"submit\"]') " +
+            "      || document.querySelector('input[type=\"submit\"]') " +
+            "      || document.querySelector('.login-btn') " +
+            "      || document.querySelector('button.btn-primary') " +
+            "      || document.querySelector('button');" +
+            "    if (btn) { btn.click(); return 'SUBMITTED'; }" +
+            "    return 'NO_BUTTON';" +
+            "  }, 500);" +
+            "  return 'FILLED';" +
+            "} catch(e) { return 'ERR:' + e.message; }" +
+            "})()";
+
+        view.evaluateJavascript(js, result -> {
+            Logger.d(TAG, "autoFill4a JS result: " + result);
+            if (result != null && result.contains("NOT_FOUND")) {
+                // 输入框没找到，提示用户手动输入
+                ThreadManager.runOnUiThread(() ->
+                    hint("⚠️ 未找到登录输入框，请手动输入账号密码\n账号: " + username));
+            } else if (result != null && result.contains("FILLED")) {
+                ThreadManager.runOnUiThread(() ->
+                    hint("✅ 已自动填写账号密码，正在提交...\n请等待短信验证码"));
+            }
+        });
     }
 
     /**

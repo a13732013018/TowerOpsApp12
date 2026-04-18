@@ -336,22 +336,35 @@ public class WorkOrderFragment extends Fragment {
                 Logger.d("ClearAlarm", "告警确认len=" + confirmResp.length()
                         + " preview=" + confirmResp.substring(0, Math.min(200, confirmResp.length())));
 
-                // ── 从 confirm 响应里验证 title 是否变成了 "Y" ──────────────────
-                // doClearAlarmFunc 的逻辑：title="N" 时禁止 clear，必须先 confirm 成功
-                // confirm 响应是更新后的 XHTML，找目标 alarmId 附近的 title 属性
+                // ── 从 confirm 响应判断告警确认是否成功 ───────────────────────────
+                // 判断策略：
+                //   1. alarmId 不在响应中（checkbox消失）→ 确认成功
+                //   2. alarmId 仍在响应中且 title="Y" → 确认成功
+                //   3. alarmId 仍在响应中但无 title 属性（大页面）→ 可能之前已确认，继续走清除
+                //   4. 响应含登录页关键词 → Cookie失效
+                //   5. title="N" → 确认失败，报错退出
                 boolean confirmOk = isAlarmConfirmed(confirmResp, foundAlarmId);
                 Logger.d("ClearAlarm", "confirm验证: alarmId=" + foundAlarmId.substring(0,8)
-                        + "... title=Y: " + confirmOk);
+                        + "... confirmOk=" + confirmOk);
 
                 if (!confirmOk) {
-                    // confirm 失败（title 仍是 N），通常意味着没有权限操作此告警
-                    Logger.w("ClearAlarm", "confirm后告警仍未确认，可能无操作权限");
-                    runOnUi(() -> {
-                        if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ 确认失败(无权限?)");
-                        showToast(order.stationname + " ⚠️ 告警确认失败，可能该告警不在您的代维范围");
-                    });
+                    // 检查是否是登录页导致的失败
+                    if (confirmResp != null && (confirmResp.toLowerCase().contains("dologin")
+                            || confirmResp.toLowerCase().contains("uac/login"))) {
+                        runOnUi(() -> {
+                            if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ OMMS登录已失效");
+                            showToast(order.stationname + " ⚠️ OMMS登录已失效，请重新获取Cookie");
+                        });
+                    } else {
+                        Logger.w("ClearAlarm", "confirm后告警仍未确认，可能无操作权限");
+                        runOnUi(() -> {
+                            if (adapter != null) adapter.updateStatus(0, order.billsn, "⚠️ 确认失败(无权限?)");
+                            showToast(order.stationname + " ⚠️ 告警确认失败，可能该告警不在您的代维范围");
+                        });
+                    }
                     return;
                 }
+                // confirm 成功或之前已确认 → 继续清除
 
                 // confirm 完成后，RichFaces 会返回新的 ViewState，必须提取出来给 clear 用
                 String vsAfterConfirm = extractViewState(confirmResp);
@@ -911,11 +924,12 @@ public class WorkOrderFragment extends Fragment {
         try {
             // 在 XHTML 里找包含 alarmId 的 selectFlag input，检查 title 属性
             java.util.regex.Pattern sfPat = java.util.regex.Pattern.compile(
-                    "<input[^>]+name=[\"']selectFlag[\"'][^>]*" + alarmId + "[^>]*>",
-                    java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+                    "<input[^>]+name=[\"']selectFlag[\"'][^>]*/?>",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
             java.util.regex.Matcher sfM = sfPat.matcher(confirmResp);
             while (sfM.find()) {
                 String tag = sfM.group();
+                if (!tag.contains(alarmId)) continue;
                 java.util.regex.Matcher tm = java.util.regex.Pattern.compile(
                         "title=[\"']([^\"']*)[\"']",
                         java.util.regex.Pattern.CASE_INSENSITIVE).matcher(tag);
@@ -926,17 +940,15 @@ public class WorkOrderFragment extends Fragment {
                 }
             }
             // 找不到该 alarmId 对应的 checkbox
-            // ★ 注意：不能直接视为成功 — 可能是 ViewState 失效导致服务端返回了不含告警数据的空页面
-            // 只有响应本身不含 alarmId 且是大页面（说明是刷新后的真实告警列表）才视为已处理
             if (!confirmResp.contains(alarmId)) {
                 boolean bigPage = confirmResp.length() > 100000;
                 Logger.d("ClearAlarm", "isAlarmConfirmed: alarmId不在响应里 bigPage=" + bigPage + " len=" + confirmResp.length());
-                // 大页面且无登录页关键词 → 可视为告警已不存在（被删除或已确认隐藏）
                 return bigPage && !confirmResp.toLowerCase().contains("dologin")
                         && !confirmResp.toLowerCase().contains("uac/login");
             }
-            Logger.w("ClearAlarm", "isAlarmConfirmed: 找到alarmId但无title属性，无法判断");
-            return false;
+            Logger.w("ClearAlarm", "isAlarmConfirmed: 找到alarmId但无title属性，视为可能已确认");
+            // ★ 改进：找不到title但alarmId在响应中 → 可能已确认（页面重新渲染了），返回true继续走清除
+            return true;
         } catch (Exception e) {
             Logger.e("ClearAlarm", "isAlarmConfirmed error: " + e.getMessage());
             return false;

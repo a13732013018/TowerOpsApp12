@@ -60,6 +60,7 @@ public class OmmsLoginActivity extends Activity {
 
     private boolean captured = false;
     private boolean captured4aToken = false;  // 是否已捕获4A Bearer Token
+    private boolean autoJumpTriggered = false; // 是否已触发OMMS自动跳转（防止重复）
     private String savedPwdaToken = "";  // 保存pwdaToken用于后续获取4A Token
 
     @Override
@@ -219,9 +220,12 @@ public class OmmsLoginActivity extends Activity {
                     } else {
                         // 4A 登录成功（包含有Cookie直接进入工作台的情况），立即捕获4A Cookie并保存
                         captureAndSave4aCookie();
-                        // 自动找运维监控菜单
-                        hint("4A 已就绪，正在自动点击「运维监控」...");
-                        ThreadManager.postDelayed(() -> injectAutoClickOmmsMenu(view), 2000);
+                        // 只触发一次自动跳转，防止SSO URL重定向后再次触发
+                        if (!autoJumpTriggered) {
+                            autoJumpTriggered = true;
+                            hint("4A 已就绪，正在自动跳转到「运维监控」...");
+                            ThreadManager.postDelayed(() -> injectAutoClickOmmsMenu(view), 1500);
+                        }
                     }
                 } else if (url.contains("tymj.chinatowercom.cn")) {
                     // 进入门禁管理端，同时获取OMMS Cookie和4A Bearer Token
@@ -310,83 +314,121 @@ public class OmmsLoginActivity extends Activity {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * 在4A页面自动找「运维监控」或「综合运维管理系统」菜单并点击
-     * 超时6秒后提示手动操作
+     * 4A登录成功后，自动跳转到OMMS。
+     *
+     * 策略（按优先级）：
+     *  1. 直接用WebView加载4A的OMMS SSO入口URL（最可靠，不依赖UI点击）
+     *     4A SSO会自动验证Cookie并重定向到OMMS
+     *  2. 若SSO直跳失败（回到登录页），则JS查找「运维监控」菜单并点击
+     *  3. 若JS也找不到，提示手动点击
      */
     private void injectAutoClickOmmsMenu(WebView view) {
-        // 6秒超时保底
+        view.addJavascriptInterface(new OmmsMenuBridge(), "OmmsMenuBridge");
+
+        // ★ 策略1：直接加载4A的OMMS SSO跳转URL，让服务端自动做SSO验证+重定向
+        // 这是最可靠的方案，不依赖任何UI点击，完全服务端驱动
+        hint("正在自动跳转到运维监控（OMMS）...");
+        Logger.d(TAG, "autoJump: 直接加载OMMS SSO入口URL");
+
+        // 4A的OMMS应用入口（通过appCode或serviceUrl跳转）
+        // 常见格式：/uac/index?serviceUrl=<omms域>&appCode=<code>
+        // 这里先尝试直接构造SSO跳转；若失败onPageFinished里会回退到JS点菜单
+        String ssoUrl = "http://4a.chinatowercom.cn:20000/uac/index?serviceUrl="
+                + "http%3A%2F%2Fomms.chinatowercom.cn%3A9000%2Flayout%2Findex.xhtml";
+        webView.loadUrl(ssoUrl);
+
+        // ★ 策略2备用：3秒后如果还没跳到OMMS，尝试JS点菜单
         ThreadManager.postDelayed(() -> {
             if (!captured) {
-                hint("⚠️ 未能自动找到运维监控菜单\n\n请手动点击页面里的\n「运维监控」或「综合运维管理系统」");
+                Logger.d(TAG, "autoJump: SSO直跳可能未成功，尝试JS点菜单");
+                tryJsClickOmmsMenu(view);
             }
-        }, 6000);
+        }, 3000);
 
+        // ★ 策略3最终超时：10秒后还未成功，提示手动
+        ThreadManager.postDelayed(() -> {
+            if (!captured) {
+                hint("⚠️ 未能自动跳转\n请手动点击页面中的\n「运维监控」");
+            }
+        }, 10000);
+    }
+
+    /**
+     * 用JS在当前页面（包括iframe）查找「运维监控」菜单并点击
+     */
+    private void tryJsClickOmmsMenu(WebView view) {
         String js = "(function() {" +
 
-            "function findByText(texts, maxLen) {" +
-            "    maxLen = maxLen || 30;" +
-            "    if (typeof texts === 'string') texts = [texts];" +
-            "    var all = document.querySelectorAll('a,li,span,div,td,button,p,h3,h4');" +
-            "    for (var k = 0; k < texts.length; k++) {" +
-            "        for (var i = 0; i < all.length; i++) {" +
-            "            var t = (all[i].textContent || '').trim();" +
-            "            if (t === texts[k]) return all[i];" +
-            "        }" +
-            "    }" +
-            "    for (var k = 0; k < texts.length; k++) {" +
-            "        for (var i = 0; i < all.length; i++) {" +
-            "            var t = (all[i].textContent || '').trim();" +
-            "            if (t.indexOf(texts[k]) !== -1 && t.length <= maxLen) return all[i];" +
-            "        }" +
-            "    }" +
-            "    return null;" +
-            "}" +
-
-            "function dumpTexts() {" +
-            "    var all = document.querySelectorAll('*');" +
-            "    var texts = [];" +
+            // 在指定document中查找目标文字节点
+            "function findInDoc(doc, texts) {" +
+            "  var all = doc.querySelectorAll('a,li,span,div,td,button,p,h3,h4,label');" +
+            "  for (var k = 0; k < texts.length; k++) {" +
             "    for (var i = 0; i < all.length; i++) {" +
-            "        var t = (all[i].textContent || '').trim();" +
-            "        if (t && t.length > 0 && t.length < 20 && all[i].children.length === 0) texts.push(t);" +
+            "      var t = (all[i].textContent || '').trim();" +
+            "      if (t === texts[k] || (t.indexOf(texts[k]) !== -1 && t.length <= 20)) {" +
+            "        return all[i];" +
+            "      }" +
             "    }" +
-            "    return texts.filter(function(v,i,a){return a.indexOf(v)===i;});" +
+            "  }" +
+            "  return null;" +
             "}" +
 
-            // 直接找「运维监控」或「综合运维管理系统」
-            "var target = findByText(['运维监控', '综合运维管理系统', '综合运维']);" +
-            "if (target) {" +
-            "    console.log('[AutoClick] 找到运维监控菜单，点击...');" +
-            "    target.click();" +
-            "    if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuClicked('found');" +
-            "} else {" +
-            // 先尝试展开应用列表
-            "    var appList = findByText(['我的应用', '应用列表', '工作台', '全部应用']);" +
-            "    if (appList) {" +
-            "        console.log('[AutoClick] 先展开应用列表...');" +
-            "        appList.click();" +
-            "        setTimeout(function() {" +
-            "            var t2 = findByText(['运维监控', '综合运维管理系统', '综合运维']);" +
-            "            if (t2) {" +
-            "                t2.click();" +
-            "                if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuClicked('found');" +
-            "            } else {" +
-            "                var texts = dumpTexts();" +
-            "                console.log('[AutoClick] not found, texts=' + JSON.stringify(texts.slice(0,60)));" +
-            "                if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuNotFound(JSON.stringify(texts.slice(0,60)));" +
-            "            }" +
-            "        }, 1000);" +
-            "    } else {" +
-            "        var texts = dumpTexts();" +
-            "        console.log('[AutoClick] not found, texts=' + JSON.stringify(texts.slice(0,60)));" +
-            "        if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuNotFound(JSON.stringify(texts.slice(0,60)));" +
+            // 获取所有可能包含菜单的document（主文档+所有iframe）
+            "function getAllDocs() {" +
+            "  var docs = [document];" +
+            "  try {" +
+            "    var frames = document.querySelectorAll('iframe,frame');" +
+            "    for (var i = 0; i < frames.length; i++) {" +
+            "      try { if (frames[i].contentDocument) docs.push(frames[i].contentDocument); } catch(e) {}" +
             "    }" +
+            "  } catch(e) {}" +
+            "  return docs;" +
+            "}" +
+
+            "var keywords = ['运维监控','综合运维管理系统','综合运维','OMMS'];" +
+            "var docs = getAllDocs();" +
+            "var found = null;" +
+            "for (var d = 0; d < docs.length && !found; d++) {" +
+            "  found = findInDoc(docs[d], keywords);" +
+            "}" +
+
+            "if (found) {" +
+            "  console.log('[AutoClick] 找到菜单: ' + found.textContent.trim());" +
+            "  found.click();" +
+            "  if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuClicked(found.textContent.trim());" +
+            "  return 'CLICKED';" +
+            "} else {" +
+            // 先展开「我的应用」再查
+            "  var expand = null;" +
+            "  for (var d = 0; d < docs.length && !expand; d++) {" +
+            "    expand = findInDoc(docs[d], ['我的应用','应用列表','全部应用','工作台']);" +
+            "  }" +
+            "  if (expand) {" +
+            "    expand.click();" +
+            "    setTimeout(function() {" +
+            "      var docs2 = getAllDocs();" +
+            "      var t2 = null;" +
+            "      for (var d = 0; d < docs2.length && !t2; d++) {" +
+            "        t2 = findInDoc(docs2[d], ['运维监控','综合运维管理系统','综合运维']);" +
+            "      }" +
+            "      if (t2) {" +
+            "        t2.click();" +
+            "        if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuClicked(t2.textContent.trim());" +
+            "      } else {" +
+            "        if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuNotFound('after_expand');" +
+            "      }" +
+            "    }, 1200);" +
+            "    return 'EXPAND_THEN_SEARCH';" +
+            "  } else {" +
+            "    if (window.OmmsMenuBridge) window.OmmsMenuBridge.onMenuNotFound('no_expand');" +
+            "    return 'NOT_FOUND';" +
+            "  }" +
             "}" +
 
             "})();";
 
-        view.addJavascriptInterface(new OmmsMenuBridge(), "OmmsMenuBridge");
         view.evaluateJavascript(js, result ->
-                Logger.d(TAG, "autoClickOmms JS result: " + result));
+                Logger.d(TAG, "jsClickOmms result: " + result));
     }
 
     /**

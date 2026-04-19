@@ -39,7 +39,7 @@ public class ShuyunAccountConfig {
         new Account(
             "13732013018",
             "F8TVasxWplZNK7AJq4T1cA==",
-            "ba9f03beaacd4c05",
+            "392da95e0c378e1b",
             "账号1 (13732013018)"
         ),
         // 账号2 - 15858734252

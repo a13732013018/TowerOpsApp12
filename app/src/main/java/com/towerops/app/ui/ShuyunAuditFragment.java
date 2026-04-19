@@ -51,7 +51,7 @@ public class ShuyunAuditFragment extends Fragment {
     private android.widget.ListView lvCityFinishedList, lvCityTodoList;
 
     // 省级审核开发者权限IMEI
-    private static final String PROVINCE_AUTH_IMEI = "ba9f03beaacd4c05";
+    private static final String PROVINCE_AUTH_IMEI = "392da95e0c378e1b";
 
     // 选中的市级已办工单（用于省监控回单）
     private ShuyunApi.CountyTaskInfo selectedCityFinishedTask = null;
